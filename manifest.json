@@ -1,0 +1,10 @@
+{
+  "display_name": "万界武库通用插件",
+  "loading_order": 90,
+  "js": "index.js",
+  "css": "style.css",
+  "author": "万界武库项目",
+  "version": "1.0.0",
+  "auto_update": false,
+  "minimum_client_version": "1.12.14"
+}
