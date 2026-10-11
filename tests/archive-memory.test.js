@@ -80,10 +80,11 @@ test('a long recent scene does not displace the current draft and opening a pinn
     f.app.openMemory(f.r.id); strict.equal(viewed.selections[f.id].mode, 'pinned');
   } finally { globalThis.document = previousDocument; }
 });
-test('failed local save leaves single-use selection available and never writes MVU', async () => {
+test('unavailable local and host save leaves single-use selection available and never writes MVU', async () => {
   const f = setup(); await f.store.transact(next => { next.powers[f.power.id] = clone(f.power); next.archiveMemory = clone(f.config); });
   f.app.beginArchiveMemory('normal'); f.app.mainBusy = true; f.app.memoryInjection(f.store.read());
   f.ctx.chat.push({ mes: '自编新正文内容', is_user: false }); f.app.memoryAttempt.ended = true; f.app.memoryAttempt.rendered = 1;
+  f.ctx.saveChat = undefined;
   const previous = f.storage.setItem; f.storage.setItem = () => { throw new Error('quota'); };
   await strict.rejects(f.app.completeArchiveMemory(), /未提交/); f.storage.setItem = previous;
   strict.ok(f.store.read().archiveMemory.selections[f.id]); strict.equal(f.replacementCount, 0);

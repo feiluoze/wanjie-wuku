@@ -47,8 +47,8 @@ test('queued task is discarded on chat switch; invalid automatic save setting re
  const bad=clone(f.state);bad.powers[f.power.id].autoArchiveSave='yes';strict.throws(()=>validateState(bad),/自动保存设置/);
 });
 test('local persistence failure cannot install automatic archive progress',async()=>{
- const f=fixture();f.app.settings.mode='st';f.app.model.request=async()=>response(f);await f.app.togglePlayerAutoSave();f.store.storageImpl.setItem=()=>{throw Error('quota');};
- await strict.rejects(()=>f.app.reviewArchives({silent:true,autoSave:true}),/本机备份写入失败/);strict.equal(Object.keys(f.store.read().powers[f.power.id].archives).length,0);strict.equal(f.store.read().powers[f.power.id].archiveReviewed.length,0);
+ const f=fixture();f.app.settings.mode='st';f.app.model.request=async()=>response(f);await f.app.togglePlayerAutoSave();f.ctx.saveChat=undefined;f.store.storageImpl.setItem=()=>{throw Error('quota');};
+ await strict.rejects(()=>f.app.reviewArchives({silent:true,autoSave:true}),/未提交/);strict.equal(Object.keys(f.store.read().powers[f.power.id].archives).length,0);strict.equal(f.store.read().powers[f.power.id].archiveReviewed.length,0);
 });
 test('queued latest generation survives an in-flight older analysis',async()=>{
  const f=fixture();f.app.settings.mode='st';await f.store.transact(n=>{n.powers[f.power.id].autoArchiveReview=true;});let release,calls=0;

@@ -33,12 +33,45 @@ try{
  await page.waitForFunction(()=>document.querySelectorAll('#extensionsMenu #wjwk-wand-entry').length===1);
  await page.goto(base+'/tests/preview.html');await page.waitForFunction(()=>Boolean(globalThis.wanjie_wuku_general_instance));
  await page.locator('#wjwk-root [data-action="toggle"]').click();
+ // The mobile add button must remain visible after a first power is registered.
+ await page.getByRole('button',{name:'＋ 添加金手指',exact:true}).click();
+ await page.locator('[data-entry-search]').fill('源堡');
+ await page.locator('[data-action="register"]').click();
+ await page.getByRole('button',{name:'＋ 添加金手指',exact:true}).waitFor();
+ assert.equal(await page.locator('[data-power-picker] option').count(),1);
+ await page.getByRole('button',{name:'＋ 添加金手指',exact:true}).click();
+ await page.locator('[data-entry-search]').fill('永暗之河');
+ await page.locator('[data-action="register"]').click();
+
+ await page.getByRole('button',{name:'＋ 添加金手指',exact:true}).waitFor();
+ await page.waitForFunction(()=>document.querySelectorAll('[data-power-picker] option').length===2);
+ assert.equal(await page.locator('[data-power-picker] option').count(),2);
+ for(const width of [320,390,720]){
+   await page.setViewportSize({width,height:844});
+   const add=page.getByRole('button',{name:'＋ 添加金手指',exact:true});
+   assert.equal(await add.isVisible(),true);
+   const box=await add.boundingBox();assert.ok(box.width>=44&&box.height>=44&&box.x>=0&&box.x+box.width<=width);
+ }
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:resolve(out,'mobile-add-powers.png')});
  assert.equal(await page.locator('[data-action="space-taishi"]').count(),0);assert.equal(await page.locator('[data-action="space-mmlc"]').count(),0);
  await page.locator('[data-action="modules-open"]').click();await page.locator('[name="mmlc"]').check();await page.locator('[name="taishi"]').check();await page.locator('[data-action="modules-save"]').click();
  await page.locator('[data-action="space-mmlc"]').waitFor();await page.locator('[data-action="space-taishi"]').waitFor();
  await page.locator('[data-action="modules-open"]').click();await page.locator('[name="mmlc"]').uncheck();await page.locator('[name="taishi"]').uncheck();await page.locator('[data-action="modules-save"]').click();
  await page.waitForFunction(()=>!document.querySelector('[data-action="space-taishi"]'));
- assert.equal(await page.evaluate(()=>Object.values(wanjie_wuku_general_instance.store.read().powers).filter(p=>p.active).length),0);
+ assert.equal(await page.evaluate(()=>Object.values(wanjie_wuku_general_instance.store.read().powers).filter(p=>p.active && /^(?:漫漫长路|太始天)/.test(p.name)).length),0);
+ await page.evaluate(() => {
+   const app = wanjie_wuku_general_instance;
+   const restricted = { getItem: () => null, setItem() { throw new DOMException('quota', 'QuotaExceededError'); } };
+   app.store.storageImpl = restricted; app.runtimeLog.storage = restricted;
+ });
+ await page.locator('[data-action="modules-open"]').click();await page.locator('[name="mmlc"]').check();await page.locator('[data-action="modules-save"]').click();
+ await page.locator('[data-action="space-mmlc"]').waitFor();
+ const diagnostics = await page.evaluate(() => ({ save: wanjie_wuku_general_instance.store.lastSave, log: wanjie_wuku_general_instance.runtimeLog.export() }));
+ assert.equal(diagnostics.save.verified, true); assert.equal(diagnostics.save.local, false);
+ assert.equal(diagnostics.log.storageFailed, true);
+ assert.ok(diagnostics.log.records.some(r => r.label === '档案保存诊断' && r.status === '成功'));
+ await page.screenshot({path:resolve(out,'mobile-storage-fallback.png')});
  await page.locator('[data-action="modules-open"]').click();await page.screenshot({path:resolve(out,'mobile-module-switches.png')});
  const failed=await browser.newPage({viewport:{width:390,height:844}});
  await failed.route('**/index.js',r=>r.abort());await failed.goto(base+'/entry-preview');
@@ -48,5 +81,5 @@ try{
  // ES module failed imports are cached by the browser: refresh, rather than retry, is required for network import failures.
  await failed.reload();await failed.waitForFunction(()=>Boolean(globalThis.wanjie_wuku_general_instance));
  assert.deepEqual(errors,[]);
- console.log('PASS: mobile wand entry, delayed context, default-user without account endpoint, menu replacement, hidden floating button fallback, module toggles, visible import failure, refreshed recovery. Mock host, no model calls.');
+ console.log('PASS: mobile wand entry, delayed context, default-user without account endpoint, menu replacement, hidden floating button fallback, module toggles, visible import failure, refreshed recovery. Quota fallback with verified host save and memory-only diagnostics. Mock host, no model calls.');
 }finally{await browser?.close();server.close();}
