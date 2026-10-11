@@ -44,7 +44,7 @@ export function scope(ctx) {
 }
 // Official accountStorage is an in-memory map plus debounced settings save.
 // Only native localStorage is an immediate checkpoint; never substitute it here.
-function storage() { return globalThis.localStorage; }
+function storage() { try { return globalThis.localStorage; } catch { return null; } }
 function savedSettings(ctx) {
   const settings = ctx?.extensionSettings || globalThis.extension_settings || {};
   let saved = settings[MODULE_ID] || {};
@@ -175,7 +175,7 @@ export async function verifyReceiptSaved(capture, target, id, { context = getCon
 }
 export class ChatStore {
   constructor({ context = getContext, fetchImpl = globalThis.fetch, lockManager = globalThis.navigator?.locks, storageImpl = storage() } = {}) {
-    this.context = context; this.fetchImpl = fetchImpl; this.lockManager = lockManager; this.storageImpl = storageImpl; this.queue = Promise.resolve(); this.lastSave = null; this.listeners = new Set();
+    this.context = context; this.fetchImpl = fetchImpl; this.lockManager = lockManager; this.storageImpl = storageImpl; this.queue = Promise.resolve(); this.lastSave = null; this.listeners = new Set(); this.pendingSaves = new Map(); this.onPersistence = () => {};
   }
   backupKey(captured) { return `${MODULE_ID}:chat:${captured.key}`; }
   read() {
@@ -183,8 +183,8 @@ export class ChatStore {
     const host = ctx.chatMetadata.extensions?.[MODULE_ID];
     let local = null;
     try { const raw = this.storageImpl?.getItem(this.backupKey(captured)); if (raw) { const backup = JSON.parse(raw); if (backup.chatKey === captured.key) local = validateState(backup.state); } } catch { /* A malformed backup never replaces a working host state. */ }
-    let selected = host;
-    if (local && (!host || local.writeVersion > (host.writeVersion || 0))) selected = local;
+    let selected = this.pendingSaves.get(captured.key) || host;
+    if (!this.pendingSaves.has(captured.key) && local && (!host || local.writeVersion > (host.writeVersion || 0))) selected = local;
     if (!selected) selected = emptyState();
     validateState(selected);
     ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = selected;
@@ -197,30 +197,61 @@ export class ChatStore {
   }
   async persist(state) {
     const ctx = this.context(), captured = scope(ctx);
-    // A synchronous durable checkpoint comes first. If it fails, no ledger mutation is installed.
-    try { this.storageImpl.setItem(this.backupKey(captured), JSON.stringify({ chatKey: captured.key, state })); }
-    catch { throw new Error('本机备份写入失败，本次操作未提交；请释放存储空间或导出档案'); }
-    ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = clone(state);
-    // Let the UI show the committed local result while server verification runs.
-    this.lastSave = { verified: false, note: '已提交本机账本，正在核对酒馆保存…', at: Date.now(), chatKey: captured.key };
-    for (const listener of this.listeners) { try { listener(); } catch { /* Preserve the committed checkpoint. */ } }
+    const report = data => { try { this.onPersistence({ chatKey: captured.key, ...data }); } catch { /* Diagnostics cannot prevent saving. */ } };
+    let local = false, storageError = '';
+    try {
+      if (!this.storageImpl?.setItem) throw Object.assign(new Error(), { name: 'StorageUnavailable' });
+      this.storageImpl.setItem(this.backupKey(captured), JSON.stringify({ chatKey: captured.key, state })); local = true;
+    } catch (error) {
+      storageError = ['QuotaExceededError', 'NS_ERROR_DOM_QUOTA_REACHED'].includes(error?.name) ? '容量不足' : error?.name === 'SecurityError' ? '存储访问被限制' : error?.name === 'StorageUnavailable' ? '存储不可用' : '备份写入异常';
+    }
     const save = ctx.saveChat || ctx.saveMetadata || globalThis.saveChatConditional;
-    let verified = false, note = '已保存本机备份；当前环境未提供酒馆保存接口';
+    if (!local && typeof save !== 'function') {
+      const note = `浏览器${storageError}，当前环境也没有酒馆保存接口；本次操作未提交`;
+      this.lastSave = { verified: false, local, note, at: Date.now(), chatKey: captured.key };
+      report({ local, storageError, server: '接口不可用', verified: false }); throw new Error(note);
+    }
+    ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = clone(state);
+    this.lastSave = { verified: false, local, note: local ? '已提交本机账本，正在核对酒馆保存…' : '本机备份不可用，正在尝试酒馆保存…', at: Date.now(), chatKey: captured.key };
+    if (local) for (const listener of this.listeners) { try { listener(); } catch { /* Preserve the committed checkpoint. */ } }
+    let verified = false, server = '接口不可用';
     if (typeof save === 'function') {
+      try { await timeout(Promise.resolve(save.call(ctx)), 12000, '酒馆保存超时'); server = '已调用'; }
+      catch { server = '保存报错或超时'; }
+      // A host can throw after writing. Read-back remains the authority.
       try {
-        await timeout(Promise.resolve(save.call(ctx)), 12000, '酒馆保存超时');
         const saved = await readSavedMetadata(ctx, captured, this.fetchImpl);
         verified = saved?.id === state.id && saved.writeVersion === state.writeVersion && stable(saved) === stable(state);
-        note = verified ? '已保存，并核对酒馆落盘' : '已保存本机备份；酒馆落盘尚未核对，请保持备份';
-      } catch { note = '已保存本机备份；酒馆落盘未核实，可稍后重试保存'; }
+        server = verified ? '落盘核对成功' : '落盘内容未匹配';
+      } catch { server += '，落盘读取失败'; }
     }
-    this.lastSave = { verified, note, at: Date.now(), chatKey: captured.key };
+    const note = verified ? (local ? '已保存，并核对酒馆落盘' : `已保存到酒馆并核对成功；浏览器${storageError}，本机备份暂不可用`) : local ? '已保存本机备份；酒馆落盘未核实，可稍后重试保存' : `浏览器${storageError}，酒馆保存也未确认；档案暂留本页，请重试酒馆保存或导出档案，刷新前请先处理`;
+    this.lastSave = { verified, local, note, at: Date.now(), chatKey: captured.key };
+    if (!local || !verified) report({ local, storageError, server, verified });
+    if (!local && !verified) {
+      this.pendingSaves.set(captured.key, clone(state));
+      for (const listener of this.listeners) { try { listener(); } catch { /* Keep pending data exportable. */ } }
+      throw new Error(note);
+    }
+    this.pendingSaves.delete(captured.key);
     return this.lastSave;
+  }
+  retrySave() {
+    const identity = scope(this.context()).key;
+    const work = async () => {
+      assert(scope(this.context()).key === identity, '聊天已切换，保存已取消');
+      const result = await this.persist(this.read());
+      for (const listener of this.listeners) { try { listener(); } catch { /* Save is already complete. */ } }
+      return result;
+    };
+    const run = () => this.lockManager?.request ? this.lockManager.request(`${MODULE_ID}:${identity}`, work) : work();
+    const promise = this.queue.then(run, run); this.queue = promise.catch(() => {}); return promise;
   }
   transact(mutator, { captured = null, facts = true } = {}) {
     const identity = scope(this.context()).key;
     const work = async () => {
       assert(scope(this.context()).key === identity, '聊天已切换，操作已取消');
+      assert(!this.pendingSaves.has(identity), '上一笔档案尚未确认保存，请先重试酒馆保存或导出档案');
       const before = this.read(); if (captured) this.assertCapture(captured, before);
       const next = clone(before), result = await mutator(next);
       assert(scope(this.context()).key === identity, '聊天已切换，操作已取消');

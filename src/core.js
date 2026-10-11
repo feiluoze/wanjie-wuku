@@ -14,7 +14,7 @@ import { isMmlc, MMLC_ID, MMLC_MODULES } from './mmlc.js';
 import { isTaishi } from './taishi.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.0.1';
+export const VERSION = '1.2.0';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
