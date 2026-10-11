@@ -72,6 +72,9 @@ AI拟定后可用一句话提修改意见，参考上一稿调整；失败保留
 连接设置的“按任务选择模型”可把整理、拟定、终端、初始化、其他核对分配给不同已保存API方案；默认沿用当前连接。
 总开关关闭时全部暂停，不额外增加自动调用，不在失败后自动切换模型。API方案与密钥仅保存在账户设置，不进入聊天备份。
 
+1.2更新：手机端在当前金手指旁点击“＋ 添加金手指”，可继续接入其他词条，无需绑定角色变量。
+保存修复：浏览器备份失败时自动尝试酒馆保存并核对；两边都未确认时保留本页档案，刷新前请重试酒馆保存或导出。保存异常可在运行日志查看，存储不可用时日志仅在本页保留。
+
 1.0.1修复版：魔术棒菜单新增“万界武库”入口；启动失败会显示提示、重试与刷新入口。
 适配宿主明确关闭多账户时的默认账户识别，不绕过已开启多账户的登录验证。
 顶部“模块开关”控制当前聊天的漫漫长路与太始天；关闭后暂停该模块的自动整理、规则与档案发送，保留已有记录。新聊天默认关闭，已有启用状态保留。
@@ -81,7 +84,7 @@ AI拟定后可用一句话提修改意见，参考上一稿调整；失败保留
 '''
 args.out.parent.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(args.out, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-    for name in files + ['README.md', 'RELEASE-1.0.md', 'RELEASE-1.0.1.md']:
+    for name in files + ['README.md', 'RELEASE-1.0.md', 'RELEASE-1.0.1.md', 'RELEASE-1.2.md']:
         info = zipfile.ZipInfo('wanjie-wuku/' + name, date_time=(1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         info.external_attr = 0o644 << 16
