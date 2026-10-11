@@ -11,7 +11,7 @@ parser.add_argument('--out', type=Path, required=True)
 args = parser.parse_args()
 root = args.root.resolve()
 manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
-files = ['index.js', 'manifest.json', 'style.css', 'LICENSE', 'NOTICE.md']
+files = ['bootstrap.js', 'index.js', 'manifest.json', 'style.css', 'LICENSE', 'NOTICE.md']
 files += sorted(p.relative_to(root).as_posix() for p in (root / 'src').glob('*.js'))
 for entry in [manifest['js'], manifest['css']]:
     if entry not in files:
@@ -72,12 +72,16 @@ AI拟定后可用一句话提修改意见，参考上一稿调整；失败保留
 连接设置的“按任务选择模型”可把整理、拟定、终端、初始化、其他核对分配给不同已保存API方案；默认沿用当前连接。
 总开关关闭时全部暂停，不额外增加自动调用，不在失败后自动切换模型。API方案与密钥仅保存在账户设置，不进入聊天备份。
 
-1.0.0发布包：本地回归与打包验证已完成；真实模型质量、实际手机与第三方插件组合不宣称全部通过。详细验证范围见RELEASE-1.0.md。
+1.0.1修复版：魔术棒菜单新增“万界武库”入口；启动失败会显示提示、重试与刷新入口。
+适配宿主明确关闭多账户时的默认账户识别，不绕过已开启多账户的登录验证。
+顶部“模块开关”控制当前聊天的漫漫长路与太始天；关闭后暂停该模块的自动整理、规则与档案发送，保留已有记录。新聊天默认关闭，已有启用状态保留。
+普通武库已接入并启用的词条会发送完整规则，通常无需重复开启同一全局词条；太始天个人世界需另行提供，漫漫长路仍需正文侧完整世界书。
+针对本次改动的48项单元测试及手机尺寸模拟宿主检查通过；全量回归存在与1.0.0基线相同的17项失败，未新增失败。实际TauriTavern手机与真实模型调用尚未验收。
 
 '''
 args.out.parent.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(args.out, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-    for name in files + ['README.md', 'RELEASE-1.0.md']:
+    for name in files + ['README.md', 'RELEASE-1.0.md', 'RELEASE-1.0.1.md']:
         info = zipfile.ZipInfo('wanjie-wuku/' + name, date_time=(1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         info.external_attr = 0o644 << 16
