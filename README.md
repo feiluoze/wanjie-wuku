@@ -1,4 +1,4 @@
-# 万界武库 1.0.1
+# 万界武库 1.2
 
 SillyTavern 金手指成果管理扩展。武库、漫漫长路、太始天各有独立入口，用于查看当前家底、进行中的安排和长期变化。
 
@@ -19,7 +19,7 @@ https://github.com/feiluoze/wanjie-wuku
 
 安装后刷新网页。最低酒馆版本声明为 1.12.14；具体能力还取决于宿主接口。
 
-手动安装：在 [Releases](https://github.com/feiluoze/wanjie-wuku/releases) 下载 `wanjie-wuku-v1.0.1.zip`，解压后将 `wanjie-wuku` 放入 `SillyTavern/public/scripts/extensions/third-party/`。更新前备份旧扩展与聊天档案；不要删除酒馆 data 目录。
+手动安装：在 [Releases](https://github.com/feiluoze/wanjie-wuku/releases) 下载 `wanjie-wuku-v1.2.0.zip`，解压后将 `wanjie-wuku` 放入 `SillyTavern/public/scripts/extensions/third-party/`。更新前备份旧扩展与聊天档案；不要删除酒馆 data 目录。
 
 入口：点击输入栏旁的魔术棒 →「万界武库」，也可使用浮动按钮。顶部「模块开关」可分别开启当前聊天的漫漫长路和太始天；新聊天默认关闭，关闭保留档案并暂停该模块发送与后台整理。
 
@@ -42,7 +42,7 @@ API 密钥与连接方案按账户保存，不随聊天档案备份导出。运�
 `bootstrap.js` 是启动入口，`index.js` 是主模块，`src/` 包含完整可读运行源码，`data/` 是内置配置源，`scripts/` 是构建脚本，`tests/` 是离线与模拟宿主用例。没有隐藏的运行模块。
 
 ```sh
-python scripts/build-release.py --root . --out dist/wanjie-wuku-v1.0.1.zip
+python scripts/build-release.py --root . --out dist/wanjie-wuku-v1.2.0.zip
 node --test tests/*.test.js
 ```
 
@@ -53,3 +53,11 @@ node --test tests/*.test.js
 ## 许可与来源
 
 原创代码采用 [MIT](LICENSE)；内置规则及第三方内容的权利见 [NOTICE](NOTICE.md)，不会因随包分发自动改成 MIT。参考项目见 [来源与致谢](ACKNOWLEDGEMENTS.md)。本仓库不包含玩家个人世界书、聊天记录、API 配置、参考脚本原文件或主题原文件。
+
+## 1.2 更新
+
+手机端点击“当前金手指”旁的“＋ 添加金手指”，选择词条后接入；角色变量接入是可选项。
+
+浏览器备份失败时会尝试酒馆保存并核对，不再直接阻止模块开关保存。两边都未确认时，请在刷新前重试酒馆保存或导出档案。保存异常可从运行日志导出；浏览器不能保存日志时仅保留本页。55项针对性回归与320/390/720像素模拟布局检查通过；未在反馈玩家的设备实测。详见 [1.2版本说明](RELEASE-1.2.md)。
+
+本次全量回归：770项，740通过、13跳过、17失败。失败名称与1.0.1历史基线一致，没有新增失败；这些旧失败仍未解决，不能视为全套通过。

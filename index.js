@@ -37,6 +37,13 @@ export class WukuApp {
     this.model = new ModelConnection({ context: getContext, settings: () => this.settings, getKey: () => this.apiKey });
     this.chatHooks = []; this.destroyed = false;
     this.runtimeLog=new RuntimeLog({scope:()=>{try{return scope(getContext()).key;}catch{return getContext()?.userHandle?'user:'+hash(getContext().userHandle):'';}},secret:()=>accountSecrets(),version:VERSION});
+    this.store.onPersistence = report => {
+      if (scope(getContext()).key !== report.chatKey) return;
+      const ticket = this.runtimeLog.begin('档案保存诊断');
+      const { chatKey, ...details } = report;
+      this.runtimeLog.step(ticket, '保存结果', details);
+      this.runtimeLog.finish(ticket, report.verified ? '成功' : report.local ? '部分完成' : '失败');
+    };
     this.role = new RoleBridge(); this.roleDraft = null; this.roleError = ''; this.roleHooks = null;
   }
   async start() {
@@ -776,7 +783,7 @@ export class WukuApp {
       case 'backup': return this.ui.showBackup();
       case 'import-backup': assert(data.file.size <= 32 * 1024 * 1024, '备份文件超过32MB'); { const raw = JSON.parse(await data.file.text()); assert(raw.format === 'wjwk-backup', '这不是武库导出的备份'); this.restoreCandidate = validateState(clone(raw.state)); for (const p of Object.values(this.restoreCandidate.powers)) { upgradeBuiltinPower(p); upgradeResources(p, this.settings.catalog); } return this.ui.showRestorePreview(this.restoreCandidate); }
       case 'confirm-restore': assert(!this.busy && !this.mainBusy && this.restoreCandidate, '当前不能恢复档案'); await this.store.restore(this.restoreCandidate, chatHashes(getContext().chat)); this.restoreCandidate = null; this.pendingManagement = null; this.managementDraft = null; this.workflowDraft = null; this.plans = []; this.ui.closeDialog(); this.refresh(); return this.notice(`档案已恢复。${this.store.lastSave.note}`);
-      case 'retry-save': await this.store.transact(next => { next.updatedAt = Date.now(); }, { facts: false }); this.refresh(); return this.notice(this.store.lastSave?.note || '档案没有变化');
+      case 'retry-save': await this.store.retrySave(); this.refresh(); return this.notice(this.store.lastSave?.note || '档案没有变化');
       case 'save-position': this.settings.position = { x: data.x, y: data.y }; return saveSettings(this.settings);
       default: throw new Error('未知操作');
     }
