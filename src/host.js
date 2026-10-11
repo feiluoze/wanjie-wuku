@@ -10,13 +10,23 @@ export function getContext() {
 export function events(ctx) { return { source: ctx?.eventSource || globalThis.eventSource, types: ctx?.eventTypes || ctx?.event_types || globalThis.event_types || {} }; }
 let resolvedAccount = null;
 function account(ctx) { const handle = ctx?.userHandle || resolvedAccount; assert(typeof handle === 'string' && handle, '当前酒馆账户尚未识别，不能提交本机档案'); return handle; }
-export async function resolveAccount(ctx = getContext()) {
+export async function resolveAccount(ctx = getContext(), { loadUsers = () => import('/scripts/user.js'), fetchImpl = globalThis.fetch } = {}) {
   if (ctx?.userHandle) { resolvedAccount = String(ctx.userHandle); return resolvedAccount; }
-  try { const users = await import('/scripts/user.js'); if (typeof users.getCurrentUserHandle === 'function') { const handle = users.getCurrentUserHandle(); if (handle && handle !== 'default-user') { resolvedAccount = handle; return resolvedAccount; } } } catch { /* Older clients may expose only the endpoint. */ }
+  try {
+    const users = await loadUsers();
+    if (typeof users.getCurrentUserHandle === 'function') {
+      const handle = users.getCurrentUserHandle();
+      // default-user is authoritative when host account controls are disabled.
+      // With accounts enabled it is also the getter's pre-login placeholder.
+      if (typeof handle === 'string' && handle && (handle !== 'default-user' || users.accountsEnabled === false || users.currentUser?.handle === handle)) {
+        resolvedAccount = handle; return resolvedAccount;
+      }
+    }
+  } catch { /* Older clients may expose only the endpoint. */ }
   assert(typeof ctx?.getRequestHeaders === 'function', '当前环境缺少账户识别接口');
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 5000);
   try {
-    const response = await fetch('/api/users/me', { headers: ctx.getRequestHeaders(), signal: controller.signal });
+    const response = await fetchImpl('/api/users/me', { headers: ctx.getRequestHeaders(), signal: controller.signal });
     // A genuinely absent account route belongs to pre-account single-user clients.
     if (response.status === 404) { resolvedAccount = 'legacy-single-user'; return resolvedAccount; }
     assert(response.ok, '酒馆账户识别失败，请确认当前登录与服务连接');

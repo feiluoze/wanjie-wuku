@@ -1,10 +1,33 @@
 import {createPower,assert} from './core.js';
 import {builtinEntries,builtinPowerId} from './builtin-worldbook.js';
 import {isTaishi,TAISHI_SECTIONS} from './taishi.js';
-import {isMmlc} from './mmlc.js';
+import {isMmlc,MMLC_ENTRY} from './mmlc.js';
 // Space selection has no archive migration or destructive side effects.
 export const powerSpace=p=>isMmlc(p)?'mmlc':isTaishi(p)?'taishi':'wuku';
+export const moduleEnabled=(state,space)=>Object.values(state?.powers||{}).some(p=>powerSpace(p)===space&&p.active);
 export const spaceMethods={
+  async saveModules(values){
+    assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务完成后再切换模块');
+    const s=this.ensureStable();
+    assert(!(s.state.roleWrites||[]).some(w=>w.status==='pending'),'请先处理待完成的角色写回');
+    await this.store.transact(next=>{
+      for(const space of ['mmlc','taishi']){
+        const enabled=values[space]==='on';
+        let powers=Object.values(next.powers).filter(p=>powerSpace(p)===space);
+        if(enabled&&!powers.length){
+          const entry=space==='mmlc'?MMLC_ENTRY:builtinEntries().find(e=>e.name.startsWith('太始天（完整版'));
+          assert(entry,'内置模块规则缺失');
+          const p=createPower(space==='mmlc'?entry:{...entry,id:builtinPowerId(entry,next.powers)});
+          p.archiveStart=Math.max(0,s.ctx.chat.length-24);p.autoArchiveReview=false;
+          next.powers[p.id]=p;powers=[p];
+        }
+        for(const p of powers)p.active=enabled;
+      }
+      this.record(next,'修改独立模块开关',['关闭模块暂停整理与发送；档案保留'],'setup');
+    },{captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}});
+    this.plans=[];this.selected=null;this.ui.closeDialog();this.refresh();
+    this.notice('模块开关已保存到当前聊天；关闭的模块不再整理或发送，已有档案保留。');
+  },
   async openTaishi(){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');
     const s=this.ensureStable(),existing=Object.values(s.state.powers).find(isTaishi);
