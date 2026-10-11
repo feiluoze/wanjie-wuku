@@ -18,7 +18,7 @@ let browser;try{
  await page.screenshot({path:process.env.WJWK_SCREENSHOTS+'/no-chat-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  await page.screenshot({path:process.env.WJWK_SCREENSHOTS+'/no-chat-mobile.png',fullPage:true});
- await page.locator('[data-no-chat-home] summary').click();await page.locator('[data-action="settings"]').click();await page.getByRole('heading',{name:'连接模型 · 三步完成',exact:true}).waitFor();await page.locator('[data-action="dialog-close"]').click();
+ await page.locator('[data-no-chat-home] summary').click();await page.locator('[data-action="settings"]').click();await page.getByRole('heading',{name:'AI连接与方案',exact:true}).waitFor();await page.locator('[data-action="dialog-close"]').click();
  await page.evaluate(async()=>{Object.assign(SillyTavern.getContext(),chatContextBefore);await demoEmit('CHAT_CHANGED');});
  await page.waitForFunction(()=>!document.querySelector('[data-no-chat-home]'));
  assert.equal(await page.locator('#wjwk-root').count(),1);assert.equal(await page.locator('[data-action="manage"]').count()>0,true);
