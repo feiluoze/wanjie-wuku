@@ -1,4 +1,4 @@
-# 万界武库 1.0.0
+# 万界武库 1.0.1
 
 SillyTavern 金手指成果管理扩展。武库、漫漫长路、太始天各有独立入口，用于查看当前家底、进行中的安排和长期变化。
 
@@ -19,11 +19,15 @@ https://github.com/feiluoze/wanjie-wuku
 
 安装后刷新网页。最低酒馆版本声明为 1.12.14；具体能力还取决于宿主接口。
 
-手动安装：在 [Releases](https://github.com/feiluoze/wanjie-wuku/releases) 下载 `wanjie-wuku-v1.0.0.zip`，解压后将 `wanjie-wuku` 放入 `SillyTavern/public/scripts/extensions/third-party/`。更新前备份旧扩展与聊天档案；不要删除酒馆 data 目录。
+手动安装：在 [Releases](https://github.com/feiluoze/wanjie-wuku/releases) 下载 `wanjie-wuku-v1.0.1.zip`，解压后将 `wanjie-wuku` 放入 `SillyTavern/public/scripts/extensions/third-party/`。更新前备份旧扩展与聊天档案；不要删除酒馆 data 目录。
+
+入口：点击输入栏旁的魔术棒 →「万界武库」，也可使用浮动按钮。顶部「模块开关」可分别开启当前聊天的漫漫长路和太始天；新聊天默认关闭，关闭保留档案并暂停该模块发送与后台整理。
 
 首次使用进入角色聊天，接入词条并保存 AI 连接方案，点击「AI 整理当前情况」。漫漫长路可直接查看八类统计；太始天可选择自己的世界书建立底稿。无需导入作者测试用角色卡。
 
 日常操作、更新与验证范围见 [版本说明](RELEASE-1.0.md)。内置 2026-10-11 更新的武库 119 条唯一规则；适配提供统计与拟定指导，不代表所有机制都已自动结算。
+
+已接入且启用的普通武库词条会发送完整规则，通常不必重复开启同一全局词条。太始天个人世界设定需另行提供；漫漫长路仍需正文侧完整世界书。
 
 ## 隐私与第三方请求
 
@@ -35,16 +39,16 @@ API 密钥与连接方案按账户保存，不随聊天档案备份导出。运�
 
 ## 源码与构建
 
-`index.js` 是入口，`src/` 包含完整可读运行源码，`data/` 是内置配置源，`scripts/` 是构建脚本，`tests/` 是离线与模拟宿主用例。没有隐藏的运行模块。
+`bootstrap.js` 是启动入口，`index.js` 是主模块，`src/` 包含完整可读运行源码，`data/` 是内置配置源，`scripts/` 是构建脚本，`tests/` 是离线与模拟宿主用例。没有隐藏的运行模块。
 
 ```sh
-python scripts/build-release.py --root . --out dist/wanjie-wuku-v1.0.0.zip
+python scripts/build-release.py --root . --out dist/wanjie-wuku-v1.0.1.zip
 node --test tests/*.test.js
 ```
 
 部分回归测试需要通过 `WJWK_TEST_BOOK`、`WJWK_PREVIOUS_BOOK`、`WJWK_AUTHOR_BOOK`、`WJWK_PREVIOUS_ADAPTERS` 指定对应版本的公开规则测试输入。最新内置规则位于 `data/builtin-worldbook.json`；旧版外部输入不随发布包分发。模拟浏览器还需自行安装 Playwright，并设置 `WJWK_NODE_MODULES`、`WJWK_BROWSER_EXECUTABLE`、`WJWK_SCREENSHOTS`；主题参考测试需自备 `WJWK_THEME_DIR`，不会下载参考素材。
 
-发布前已有 758 项离线自动测试通过及模拟宿主检查；这些结果不等同于 1.0.0 的真实酒馆、实际手机或所有插件组合验收。反馈时附版本、操作步骤与经过检查的运行日志。
+1.0.1 针对性48项测试与模拟宿主手机尺寸检查通过。使用当前外部测试输入执行全量回归时，17项失败与未修改的1.0.0基线相同，未新增失败；实际手机TauriTavern及真实模型调用尚未验收。详见[本次修复说明](RELEASE-1.0.1.md)。反馈时附版本、操作步骤与经过检查的运行日志。
 
 ## 许可与来源
 

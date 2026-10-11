@@ -293,3 +293,9 @@
 
 /* A single shared outbox entrance, separate from compact header controls. */
 .wjwk-outbox-strip{display:flex;justify-content:flex-end;padding:6px 20px;border-bottom:1px solid var(--wk-line);flex-shrink:0}.wjwk .wjwk-outbox-button{font-size:12px;min-height:36px;padding:6px 12px;color:var(--wk-cyan)!important}.wjwk-outbox-actions{display:grid;gap:10px;margin-top:14px}.wjwk-outbox-actions>button{justify-self:start}.wjwk [data-outbox-item] header{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* Startup shell remains usable before account resolution and on native clients. */
+.wjwk-startup-card{position:fixed;z-index:3200;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:22px;background:var(--wk-bg,#152129);color:var(--wk-text,#e9f0eb);border:1px solid var(--wk-line,#47615a);border-radius:12px;box-shadow:0 12px 45px #0008}
+#wjwk-wand-entry>button{width:100%;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit;padding:8px}
+.wjwk[data-appearance] .wjwk-spaces{flex-wrap:wrap;gap:12px}
+.wjwk[data-appearance] .wjwk-spaces button{white-space:nowrap;flex-shrink:0}

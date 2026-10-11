@@ -1,4 +1,5 @@
-import { spaceMethods, powerSpace } from './src/space-controller.js';
+import { spaceMethods, powerSpace, moduleEnabled } from './src/space-controller.js';
+import { mountEntry } from './src/entry.js';
 import { isTaishi } from './src/taishi.js';
 import { resolveTaskConnection, saveTaskRoutes, accountSecrets } from './src/host.js';
 import { RuntimeLog } from './src/runtime-log.js';
@@ -108,10 +109,11 @@ export class WukuApp {
     if (this.pendingManagement && (this.pendingManagement.captured.revision !== state?.revision || this.pendingManagement.captured.stateId !== state?.id || this.pendingManagement.contextHash !== hash(stable(snapshot?.hashes || [])))) this.pendingManagement = null;
     if (chatChanged || snapshot?.chatKey !== this.currentKey) {
       this.resetChatTransient(); this.currentKey = snapshot?.chatKey;
-      const available=Object.values(state?.powers||{});
+      const available=Object.values(state?.powers||{}).filter(p=>powerSpace(p)==='wuku'||p.active);
       this.ui.space=available.some(p=>powerSpace(p)==='wuku')?'wuku':powerSpace(available[0]);
       this.ui.taishiSection=null;this.ui.mmlcSection=null;
     }
+    if (this.ui.space !== 'wuku' && !moduleEnabled(state,this.ui.space)) this.ui.space='wuku';
     const visiblePowers = Object.values(state?.powers || {}).filter(p => powerSpace(p) === (this.ui.space || 'wuku'));
     let power = visiblePowers.find(p => p.id === this.powerId); if (!power) { power = visiblePowers[0]; this.powerId = power?.id; }
     const contextHash = snapshot ? hash(stable(snapshot.hashes)) : '';
@@ -549,6 +551,8 @@ export class WukuApp {
       case 'adapter-import': return this.importAdapter(data.file);
       case 'adapter-confirm': return this.confirmAdapter();
       case 'refresh': return this.refresh();
+      case 'modules-open': return this.ui.showModules(this.store.read());
+      case 'modules-save': return this.saveModules(data.values || {});
       case 'space-wuku': this.ui.space = 'wuku'; this.ui.tab = 'management'; this.powerId = Object.values(this.store.read().powers).find(p => powerSpace(p)==='wuku')?.id; this.plans = []; this.selected = null; return this.refresh();
       case 'space-mmlc': return this.action('add-mmlc', {});
       case 'space-taishi': return this.openTaishi();
@@ -783,25 +787,18 @@ Object.assign(WukuApp.prototype, spaceMethods, aiWorldbookMethods, narrativeMeth
 
 installAIActivity(WukuApp.prototype);
 
-// Native client extension; no build step and no server plugin are required.
-(async () => {
-  if (typeof document === 'undefined') return; // Core/controller tests have no browser host.
+// Entrances are mounted before account resolution or runtime initialization.
+let initialization = null;
+export function initializeWuku() {
   const rootFlag = `${MODULE_ID}_instance`;
-  if (globalThis[rootFlag]) return;
-  let initializing = false;
-  const initialize = async () => {
-    if (globalThis[rootFlag] || initializing || !document.body || !getContext()) return false;
-    initializing = true;
-    try {
-      await resolveAccount();
-      const app = new WukuApp(); await app.start(); globalThis[rootFlag] = app; return true;
-    } catch (error) { console.error('[万界武库] 初始化失败', error.message); return false; }
-    finally { initializing = false; }
-  };
-  if (await initialize()) return;
-  const { source, types } = events(getContext());
-  if (source?.on && types.APP_READY) source.on(types.APP_READY, initialize);
-  // Also covers older clients and extensions loaded after APP_READY.
-  let attempts = 0;
-  const timer = setInterval(async () => { if (++attempts > 120 || await initialize()) { clearInterval(timer); source?.removeListener?.(types.APP_READY, initialize); } }, 500);
-})();
+  if (globalThis[rootFlag] && !globalThis[rootFlag].destroyed) return Promise.resolve(globalThis[rootFlag]);
+  if (initialization) return initialization;
+  initialization = (async () => {
+    for (let attempt=0; attempt<120 && (!document.body || !getContext()); attempt++) await new Promise(resolve=>setTimeout(resolve,500));
+    assert(document.body && getContext(), '酒馆宿主尚未就绪');
+    await resolveAccount();
+    const app = new WukuApp(); await app.start(); globalThis[rootFlag] = app; return app;
+  })().finally(()=>{initialization=null;});
+  return initialization;
+}
+if (typeof document !== 'undefined') mountEntry(initializeWuku);
