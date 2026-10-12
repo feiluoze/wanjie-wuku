@@ -20,7 +20,7 @@ async function setup(){
 
 test('explicit world or person names select their world; unknown scope sends no automatic global overview',async()=>{
  const f=await setup();for(const query of ['去海蓝界看看','找云岚说话']){
-  const plan=memoryPlan(f.state,f.ctx.chat,query,f.config);assert(plan.packet.includes('海商文明'));assert(plan.packet.includes('云岚'));assert(!plan.packet.includes('异界专属'));assert(!plan.packet.includes('砂舟'));assert(plan.omitted.some(r=>/范围/.test(r.reason)));
+  const plan=memoryPlan(f.state,f.ctx.chat,query,f.config);assert(plan.packet.includes('海商文明'));assert.equal(plan.packet.includes('云岚'),query.includes('云岚'));assert(!plan.packet.includes('异界专属'));assert(!plan.packet.includes('砂舟'));assert(plan.omitted.some(r=>/范围/.test(r.reason)));
  }
  assert.equal(memoryPlan(f.state,f.ctx.chat,'继续旅行',f.config).packet,'');
  const scope=taishiScope(f.power,Object.values(f.power.archives),'海蓝界和赤砂界');assert(scope.includes(f.world)&&scope.includes(f.stranger));
@@ -60,15 +60,15 @@ test('scene context and creation prompts use the same projection without rehydra
  assert.equal(result.sources[f.person.id],hash(stable(f.person)));assert(payload.contextSummary.informationPolicy);
 });
 
-test('basic and advanced share the knowledge policy and schema without modifying the sixteen-field contract',async()=>{
+test('basic and advanced share the knowledge policy and schema with the expanded person setting contract',async()=>{
  const f=await setup(),prompt=archivePrompt(f.power,[],f.ctx.chat,'继续世界发展');
  assert(prompt.system.includes(TAISHI_KNOWLEDGE_POLICY));const input=JSON.parse(prompt.user);assert.equal(input.informationPolicy,TAISHI_KNOWLEDGE_POLICY);
- const fields=input.recordSchemas.find(r=>r.id==='companion').fields;assert.equal(fields.length,16);assert(fields.find(r=>r.id==='knowledge').description.includes('获知途径'));
+ const fields=input.recordSchemas.find(r=>r.id==='companion').fields;assert.equal(fields.length,25);assert(fields.find(r=>r.id==='knowledge').description.includes('获知途径'));
  assert(input.current.some(r=>r.id===f.person.id&&r.specific.fields.core_memory==='私人核心标记')); // Archive maintenance still sees full player data.
 });
 
 test('compact feedback obeys budget and keeps whole records; legacy non-Taishi feedback is unchanged',async()=>{
- const f=await setup(),small=memoryPlan(f.state,f.ctx.chat,'海蓝界',{...f.config,budget:750});assert(small.packet.length<=750);assert(small.omitted.some(r=>/预算/.test(r.reason)));
+ const f=await setup();f.world.specific.fields.overview='海商文明'.repeat(1000);const small=memoryPlan(f.state,f.ctx.chat,'海蓝界',{...f.config,taishi:{world:{auto:true,budget:750},people:{auto:true,budget:750}}});assert(small.packet.length<=750);assert(small.omitted.some(r=>/预算/.test(r.reason)));
  const legacy=fixture();saveArchive(legacy.power,{name:'药圃',type:'environment',status:'active',fields:{conditions:'传统概况保持'}},archiveSource(legacy.ctx.chat,'手工'));
  assert(memoryPlan(legacy.state,legacy.ctx.chat,'',f.config).packet.includes('传统概况保持'));
 });

@@ -19,8 +19,8 @@ export function taishiScope(power,records,query=''){
 // Explicit next/pinned selections remain a deliberate narrator-reference override.
 export function taishiProjection(record,{explicit=false}={}){
   const kind=record.specific?.recordId,person=kind==='companion'||!kind&&record.type==='member';
-  const allowed=person?new Set(['world','location','role','action','progress','relationship','limits','profile','abilities','knowledge']):kind==='world'?new Set(['stage','clock','overview','geography','era','factions','resources','events','connections','limits']):null;
+  const allowed=person?new Set(['world','location','role','action','progress','relationship','limits','profile','appearance','personality','background','motivation','speech','preferences','abilities','combat_style','crafts','knowledge']):kind==='world'?new Set(['stage','clock','overview','geography','era','factions','resources','events','connections','limits']):null;
   const fields=explicit||!person?{...record.fields}:Object.fromEntries(Object.entries(record.fields||{}).filter(([k])=>['role','location','condition','limits'].includes(k)));
-  const specific=record.specific?{...record.specific,fields:Object.fromEntries(Object.entries(record.specific.fields).filter(([k])=>explicit||!allowed||allowed.has(k)))}:undefined;
+  const specific=record.specific?{...record.specific,fields:Object.fromEntries(Object.entries(record.specific.fields).filter(([k])=>k!=='source_profile'&&(explicit||!allowed||allowed.has(k))))}:undefined;
   return {id:record.id,name:record.name,type:record.type,status:record.status,fields,...(specific?{specific}:{}),informationBoundary:{audience:'叙事者连续性参考，不是角色共同知识',...(person?{known:record.specific?.fields.knowledge||'尚未登记；不推定全知',privateMemories:explicit?'玩家明确选择发送；仍不向其他角色公开':'未自动发送'}:{})}};
 }

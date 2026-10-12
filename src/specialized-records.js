@@ -14,6 +14,7 @@ export function normalizeSpecific(raw,power,before,{recovery=false}={}){
  assert(definition&&object(raw.details)&&Object.keys(raw.details).length&&Object.keys(raw.details).every(k=>definition.fields.some(f=>f.id===k)),'专用统计分类或字段不在当前适配声明中');
  assert(!before?.specific||before.specific.adapterId===config.id&&before.specific.recordId===definition.id,'已有对象不能自动换成另一种专用统计身份');
  if(isMmlc(power))assert(definition.id===(raw.module||mmlcModule(before||raw)),'漫漫长路专用字段必须归入同一个模块');
+ assert(!Object.hasOwn(raw.details,'source_profile'),'世界书原文只允许程序复制，不能由AI改写');
  const patch={};for(const [k,v]of Object.entries(raw.details)){assert(typeof v==='string'&&v.length<=4000,'专用统计只接收正文中的文字，不推算数值');patch[k]=v.trim();}
  
  const fields=recovery?patch:{...before?.specific?.fields,...patch};

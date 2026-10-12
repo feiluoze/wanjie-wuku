@@ -288,11 +288,12 @@ export function requestMemorySnapshot(value, marker = 'WJWK_ARCHIVE_MEMORY_V1') 
   assert(['WJWK_ARCHIVE_MEMORY_V1','WJWK_CREATION_INTENTS_V1','WJWK_TERMINAL_ORDERS_V1'].includes(marker),'未知武库请求块');
   const blocks = String(value || '').match(new RegExp('\\['+marker+'\\][\\s\\S]*?\\[\\/'+marker+'\\]','g')) || [];
   const packet = blocks.join('\n');
-  return { packet: packet.slice(0,marker==='WJWK_ARCHIVE_MEMORY_V1'?12000:14000), chars: packet.length, blocks: blocks.length, signature: hash(packet) };
+  return { packet: packet.slice(0,marker==='WJWK_ARCHIVE_MEMORY_V1'?36002:14000), chars: packet.length, blocks: blocks.length, signature: hash(packet) };
 }
 export function installInjection({ context = getContext, store, onStatus = () => {}, extraInjection = () => '', onRequest = () => {}, injectionChat = null }) {
   const ctx = context(), { source, types } = events(ctx);
   const cleanup = [];
+  const memoryMessages=new WeakSet();
   const observe = (kind, read) => { try { onRequest({ kind, read }); } catch { /* Diagnostics must never block generation. */ } };
   const injection = () => { try { const c = context(); const state = store.read(); return buildInjection(state, { user: c.name1, character: c.name2, chat: injectionChat?injectionChat():c.chat }) + extraInjection(state); } catch { return ''; } };
   const listen = (event, handler) => { if (!source?.on || !event) return false; source.on(event, handler); cleanup.push(() => source.removeListener?.(event, handler)); return true; };
@@ -305,8 +306,15 @@ export function installInjection({ context = getContext, store, onStatus = () =>
     const value = injection();
     // ST keeps a reference to this array after the event; assigning data.chat
     // would leave its actual request unchanged. Mutate the supplied array.
-    for (let i = data.chat.length - 1; i >= 0; i--) if (String(data.chat[i].content || '').startsWith(`[${STATE_MARKER}]`)) data.chat.splice(i, 1);
-    if (value) { data.chat.push({ role: 'system', content: value }); onStatus('已同步到聊天请求'); }
+    for (let i = data.chat.length - 1; i >= 0; i--) if (data.chat[i].role==='system' && (String(data.chat[i].content || '').startsWith(`[${STATE_MARKER}]`)||memoryMessages.has(data.chat[i]))) data.chat.splice(i, 1);
+    if (value) {
+      const blocks=value.match(/\[WJWK_ARCHIVE_MEMORY_V1\][\s\S]*?\[\/WJWK_ARCHIVE_MEMORY_V1\]/g)||[];
+      const separated=blocks.some(block=>block.includes('发送分区：'));
+      const base=separated?value.replace(/\[WJWK_ARCHIVE_MEMORY_V1\][\s\S]*?\[\/WJWK_ARCHIVE_MEMORY_V1\]/g,'').trimEnd():value;
+      if(base)data.chat.push({role:'system',content:base});
+      for(const content of separated?blocks:[]){const message={role:'system',content};memoryMessages.add(message);data.chat.push(message);}
+      onStatus('已同步到聊天请求');
+    }
     const supplied = data.chat;
     observe('chat', marker => requestMemorySnapshot(supplied.map(m => typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.filter(p=>p.type==='text').map(p=>p.text).join('\n') : '').join('\n'),marker));
   });

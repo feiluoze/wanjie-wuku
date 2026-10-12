@@ -51,7 +51,7 @@ test('diagnostic callback failures never break host request injection',async()=>
  const f=await setup();f.bridge.cleanup();installInjection({context:()=>f.ctx,store:f.store,extraInjection:s=>f.app.memoryInjection(s),onRequest:()=>{throw Error('diagnostic failed');}});assert.doesNotThrow(()=>f.handlers.get('chat')(f.request));assert.match(f.request.chat.at(-1).content,/耐寒工蜂/);
 });
 test('bounded inspector retains only complete memory blocks',()=>{
- const memory='[WJWK_ARCHIVE_MEMORY_V1]'+ 'x'.repeat(16000)+'[/WJWK_ARCHIVE_MEMORY_V1]';const s=requestMemorySnapshot('private prompt '+memory+' private tail');assert.equal(s.blocks,1);assert.ok(s.chars>12000);assert.equal(s.packet.length,12000);assert.doesNotMatch(s.packet,/private/);assert.equal(requestMemorySnapshot('[WJWK_ARCHIVE_MEMORY_V1]broken').blocks,0);
+ const memory='[WJWK_ARCHIVE_MEMORY_V1]'+ 'x'.repeat(40000)+'[/WJWK_ARCHIVE_MEMORY_V1]';const s=requestMemorySnapshot('private prompt '+memory+' private tail');assert.equal(s.blocks,1);assert.ok(s.chars>12000);assert.equal(s.packet.length,36002);assert.doesNotMatch(s.packet,/private/);assert.equal(requestMemorySnapshot('[WJWK_ARCHIVE_MEMORY_V1]broken').blocks,0);
 });
 
 test('failed late readback keeps the pending reminder and reports uncertainty',async()=>{const f=await setup();f.handlers.get('chat')(f.request);f.app.memoryAttempt.requestRead=()=>{throw Error('unavailable request');};f.app.finishMemoryRequest('ended');await f.render();assert.equal(f.app.memoryDiagnostics().readError,true);assert.ok(f.store.read().archiveMemory.selections[f.id]);});

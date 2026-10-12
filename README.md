@@ -21,7 +21,7 @@ https://github.com/feiluoze/wanjie-wuku
 
 安装后刷新网页。最低酒馆版本声明为 1.12.14；具体能力还取决于宿主接口。
 
-手动安装：在 [Releases](https://github.com/feiluoze/wanjie-wuku/releases) 下载 `wanjie-wuku-v1.3.0.zip`，解压后将 `wanjie-wuku` 放入 `SillyTavern/public/scripts/extensions/third-party/`。更新前备份旧扩展与聊天档案；不要删除酒馆 data 目录。
+手动安装：在 [Releases](https://github.com/feiluoze/wanjie-wuku/releases) 下载 `wanjie-wuku-v1.3.1.zip`，解压后将 `wanjie-wuku` 放入 `SillyTavern/public/scripts/extensions/third-party/`。更新前备份旧扩展与聊天档案；不要删除酒馆 data 目录。
 
 入口：点击输入栏旁的魔术棒 →「万界武库」，也可使用浮动按钮。顶部「模块开关」可分别开启当前聊天的漫漫长路和太始天；新聊天默认关闭，关闭保留档案并暂停该模块发送与后台整理。
 
@@ -44,7 +44,7 @@ API 密钥与连接方案按账户保存，不随聊天档案备份导出。运�
 `bootstrap.js` 是启动入口，`index.js` 是主模块，`src/` 包含完整可读运行源码，`data/` 是内置配置源，`scripts/` 是构建脚本，`tests/` 是离线与模拟宿主用例。没有隐藏的运行模块。
 
 ```sh
-python scripts/build-release.py --root . --out dist/wanjie-wuku-v1.3.0.zip
+python scripts/build-release.py --root . --out dist/wanjie-wuku-v1.3.1.zip
 node --test tests/*.test.js
 ```
 
@@ -63,3 +63,9 @@ node --test tests/*.test.js
 浏览器备份失败时会尝试酒馆保存并核对，不再直接阻止模块开关保存。两边都未确认时，请在刷新前重试酒馆保存或导出档案。保存异常可从运行日志导出；浏览器不能保存日志时仅保留本页。55项针对性回归与320/390/720像素模拟布局检查通过；未在反馈玩家的设备实测。详见 [1.2版本说明](RELEASE-1.2.md)。
 
 1.2历史验证范围见其版本说明；当前1.3验证结果见上方。
+
+## 1.3.1 制作版
+
+太始天世界与人物分别发送、分别配置预算；人物底档增加外貌、性格、经历、动机、说话方式、战斗方式与日常技艺。世界书构建按所选词条引用保存原文片段，默认折叠核对；跨批次补充不覆盖已有行动状态。旧人物需要主动选择相关词条重新建立批次后补充，升级本身不调用模型。
+
+离线回归 881 项：868 通过、0 失败、13 项外部样本跳过。模拟宿主浏览器验收独立设置、发送分块、原文折叠、日常技艺与桌面/窄屏布局；尚未安装到真实酒馆或调用真实模型验收。详见 [1.3.1 说明](RELEASE-1.3.1.md)。

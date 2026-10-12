@@ -1,3 +1,4 @@
+import {preparePersonSources,attachPersonSources} from './taishi-profile.js';
 import {assertStoryTime,recordStoryTime} from './taishi-time.js';
 import {TAISHI_KNOWLEDGE_POLICY} from './taishi-context.js';
 import {validateTaishiBuild,advanceTaishiBuild} from './taishi-build.js';
@@ -44,7 +45,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   const context = depth ? chat.slice(0,first).map((m,index)=>({index,content:archiveReadText(m.mes??m.content??''),is_user:m.is_user,is_system:m.is_system && m.extra?.bbs_hidden !== true})).filter(m=>!m.is_user&&!m.is_system&&m.content.trim()).slice(-depth).map(({index,content})=>({index,content})) : [];
 
   const payload = { ownership:ownershipContext(state,power), readingPolicy:'sources.content中<WJWK-status>是同一回复的状态快照，只能核对明确拥有的能力/关系/实际状态；快照中的当前安排、打算、待完成不能变成已完成成果。思考、选项、世界书设定与context不是新增事实证据。尽量优先引用正文或正式结算；只有快照提供明确事实时才引用其中连续原文。引文不要跨正文与快照拼接。', task: '核对经营档案变化', rules: power.rules, fieldTypes: ARCHIVE_FIELDS, statuses: ARCHIVE_STATUS,
-    staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: Object.values(power.archives || {}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat)).map(({ history, ...r }) => ({ ...r, previousNames:[...new Set((history||[]).map(h=>h.name))].filter(n=>n!==r.name).slice(-12), })), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
+    staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: Object.values(power.archives || {}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat)).map(({ history, ...r }) => ({ ...r,...(r.specific?{specific:{...r.specific,fields:Object.fromEntries(Object.entries(r.specific.fields).filter(([k])=>k!=='source_profile'))}}:{}), previousNames:[...new Set((history||[]).map(h=>h.name))].filter(n=>n!==r.name).slice(-12), })), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
     terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
   if(isTaishi(power)){payload.peopleSelection=peoplePolicy(power);payload.informationPolicy=TAISHI_KNOWLEDGE_POLICY;}
   if(taishiDraft){assert(isTaishi(power),'只有太始天可以生成建档草案');taishiDraftInstruction(taishiDraft);payload.taishiDraft=taishiDraft;payload.task='生成待玩家确认的建档草案';}
@@ -184,7 +185,9 @@ export const archiveReviewMethods = {
     assert(!options.workflowResume||taishiWorkflow,'高级工作流已关闭或当前任务不支持续跑');
     const result = await this.query(archivePrompt(power, sources, snapshot.ctx.chat, playerNote, {automatic: Boolean(options.automatic), terminalOrders,creationItems,state:snapshot.state,setupReferences:Boolean(options.setupReferences),taishiDraft:options.taishiDraft||null,taishiEvolution:options.taishiEvolution||null}), snapshot, {task:options.workflowRetryRole||(options.taishiDraft?'creation':options.setupReferences?'setup':'archive'),taishiWorkflow,referenceBatch:options.referenceBatch||null,workflowResume:options.workflowResume||null,workflowRetryRole:options.workflowRetryRole||null,validateWorkflowChanges:changes=>{const checked=normalizeArchiveBatch({changes},power,sources,snapshot.ctx.chat,playerNote,snapshot.state);if(options.taishiEvolution)for(const c of checked.changes){const reason=evolutionConsequence(c,power);if(reason)checked.issues.push({kind:"高影响后果",name:c.name,reason});}return checked.issues;},workflowOnAttempt:options.workflowOnAttempt});
     if (job && (job.cancelled || this.archiveReviewJob !== job)) throw new DOMException('查询已取消', 'AbortError');
-    let guide=null;const batch=normalizeArchiveBatch(result.data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state);
+    const prepared=isTaishi(power)?preparePersonSources(result.data,options.setupReferences?options.referenceBatch:null):{data:result.data};
+    let guide=null;const batch=normalizeArchiveBatch(prepared.data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state);
+    if(isTaishi(power))attachPersonSources(batch,prepared);
     if(taishiWorkflow&&result.data.workflowIssues?.length){batch.issues.push(...result.data.workflowIssues);batch.blockedFloors=[...new Set([...batch.blockedFloors,...sources.map(s=>s.index)])];}
     if(isTaishi(power)&&!options.taishiDraft&&!options.setupReferences&&!playerNote)filterPeopleBatch(batch,power);
     if(options.taishiEvolution)protectEvolution(batch,power,options.taishiEvolution);

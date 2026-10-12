@@ -1,5 +1,6 @@
 // Independent space, shared archive storage. No demo worlds or second ledger.
 import { hash, clone } from './primitives.js';
+import {PERSON_SETTING_FIELDS,PERSON_BUILD_INSTRUCTION} from './taishi-profile.js';
 import { CREATION_PRESETS } from './creation-presets.js';
 const preset = CREATION_PRESETS.find(c => c.id === 'wuku.primordial_world');
 export const isTaishi = power => Boolean(power && preset.target.primaryHashes.includes(hash(power.primaryRules ?? power.rules ?? '')));
@@ -38,7 +39,7 @@ export function taishiConfig(base = preset) {
   const companion=c.records.find(r=>r.id==='companion');
   if(companion){
     companion.description='眷属与相关人物独立建档；普通人物、拟邀约者与已缔约眷属明确区分，不自动缔约。';
-    for(const f of [field('profile','基础档案'),field('abilities','能力与专长'),field('goals','长期目标'),field('social','社交关系'),field('knowledge','知道与不知道'),field('recent_memory','近期记忆'),field('settled_memory','沉淀记忆'),field('core_memory','核心记忆'),field('origin','设定来源')])if(!companion.fields.some(x=>x.id===f.id))companion.fields.push(f);
+    for(const f of [field('profile','人物简介'),field('appearance','外貌与仪态'),field('personality','性格与行为'),field('background','身世与经历'),field('motivation','核心动机'),field('speech','说话方式'),field('preferences','喜好与习惯'),field('source_profile','世界书原文片段','由程序按本批词条引用复制保存；AI不得填写'),field('abilities','能力与专长'),field('combat_style','战斗方式','依据原文保留武器、战术、招式配合、应敌习惯和限制；日常人物无此设定时留空，不强行补战斗'),field('crafts','能力与技艺','日常或职业世界记录手艺、职业技能、生活专长、熟练程度及限制；不改写成战斗能力'),field('goals','长期目标'),field('social','社交关系'),field('knowledge','知道与不知道'),field('recent_memory','近期记忆'),field('settled_memory','沉淀记忆'),field('core_memory','核心记忆'),field('origin','设定来源')])if(!companion.fields.some(x=>x.id===f.id))companion.fields.push(f);
     const knowledge=companion.fields.find(f=>f.id==='knowledge');
     if(knowledge)knowledge.description='分开记录已知、未知、误信和获知途径（亲历/告知者/公开消息/已确认能力）；传闻不等于真相。未登记不代表全知，同世界与社交关系不自动传递秘密。';
   }
@@ -64,7 +65,16 @@ export function protectTaishiBaseline(batch) {
     if(c.specific){
       for(const [k,v]of Object.entries(c.specific.fields)){
         const old=c.before.specific?.fields[k];
-        if(old){if(old!==v)conflicts.push(k);c.specific.fields[k]=old;}
+        if(old&&k==='source_profile'){if(old!==v)newSpecific=true;continue;}
+        if(old){
+          const setting=c.specific.recordId==='companion'&&PERSON_SETTING_FIELDS.includes(k);
+          if(setting&&v&&!old.includes(v)&&!v.includes(old)){
+            const combined=old+'\n补充设定（需核对是否冲突）：'+v;
+            if(combined.length<=4000){c.specific.fields[k]=combined;newSpecific=true;}
+            else {c.specific.fields[k]=old;batch.issues.push({kind:'人物设定',name:c.name,reason:k+'补充后超过4000字符；原有设定保留，请分字段整理'});}
+          }else if(setting&&v&&v.includes(old)&&v!==old){c.specific.fields[k]=v;newSpecific=true;}
+          else {if(old!==v)conflicts.push(k);c.specific.fields[k]=old;}
+        }
         else if(v)newSpecific=true;
       }
     }
@@ -75,6 +85,6 @@ export function protectTaishiBaseline(batch) {
   });
   return batch;
 }
-export const TAISHI_REVIEW = `这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。每个实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
+export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。每个实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
 世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。关联世界使用已知完整名称；未知留空。
 各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`;

@@ -11,6 +11,9 @@ parser.add_argument('--out', type=Path, required=True)
 args = parser.parse_args()
 root = args.root.resolve()
 manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
+release_notes = f"RELEASE-{manifest['version']}.md"
+if not (root / release_notes).is_file():
+    release_notes = 'RELEASE-1.3.md'
 files = ['bootstrap.js', 'index.js', 'manifest.json', 'style.css', 'LICENSE', 'NOTICE.md']
 files += sorted(p.relative_to(root).as_posix() for p in (root / 'src').glob('*.js'))
 for entry in [manifest['js'], manifest['css']]:
@@ -31,17 +34,17 @@ readme = f'''# 万界武库 {manifest['version']}
 也可通过酒馆扩展管理器安装或更新 https://github.com/feiluoze/wanjie-wuku 。
 聊天档案与 API 设置保存在酒馆账户，不在安装包中。无需重新导入世界书或接入已有词条。
 
-本版增加太始天独立选书与词条、分批构建、基础/高级入口、任务模型显示与取消，以及紧凑的世界文明轮廓。
+本版分开世界与人物正文发送，独立选择与预算；人物档案保留外貌、性格、经历、战斗方式或日常技艺，并可折叠核对所选世界书原文片段。
 基础入口默认展示，高级多 Agent 配置按需使用。已有世界档案保留，旧构建需重新明确选择资料范围。
 新连接默认输出上限60000、温度0.85、普通查询超时120秒；世界书构建每批至少等待600秒。上游限制仍适用。
 
-完整更新、验证边界与操作提醒见 RELEASE-1.3.md；未完成内容及后续反馈见 docs/ROADMAP.md。
+完整更新、验证边界与操作提醒见 {release_notes}；未完成内容及后续反馈见 docs/ROADMAP.md。
 本包只包含可读运行模块和使用文档，不包含开发数据、测试样本、运行日志或个人连接密钥。
 隐私与第三方请求说明见 PRIVACY.md。
 '''
 args.out.parent.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(args.out, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-    for name in files + ['README.md', 'RELEASE-1.3.md', 'docs/ROADMAP.md', 'PRIVACY.md']:
+    for name in files + ['README.md', release_notes, 'docs/ROADMAP.md', 'PRIVACY.md']:
         info = zipfile.ZipInfo('wanjie-wuku/' + name, date_time=(1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         info.external_attr = 0o644 << 16

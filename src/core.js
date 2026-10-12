@@ -17,7 +17,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.3.0';
+export const VERSION = '1.3.1';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -425,7 +425,11 @@ export function validateState(data) {
       assert(archive || order, '正文记忆对应档案或已交正文安排不存在');
       assert(['next', 'pinned', 'exclude'].includes(selection.mode) && text(selection.token, 200), '正文记忆方式无效');
     }
-    if (m.last) assert(text(m.last.packet, 12000) && Number.isSafeInteger(m.last.at) && Number.isSafeInteger(m.last.index) && m.last.index >= 0 && Number.isInteger(m.last.count) && m.last.count > 0 && m.last.count <= 16, '上次正文记忆无效');
+    if(m.taishi!==undefined){
+      assert(m.taishi&&typeof m.taishi==='object'&&!Array.isArray(m.taishi)&&Object.keys(m.taishi).every(k=>['world','people'].includes(k)),'太始天发送分区无效');
+      for(const c of Object.values(m.taishi))assert(c&&typeof c.auto==='boolean'&&Number.isSafeInteger(c.budget)&&c.budget>=750&&c.budget<=12000,'太始天分区预算无效');
+    }
+    if (m.last) assert(text(m.last.packet, 36002) && Number.isSafeInteger(m.last.at) && Number.isSafeInteger(m.last.index) && m.last.index >= 0 && Number.isInteger(m.last.count) && m.last.count > 0 && m.last.count <= 48, '上次正文记忆无效');
   }
   for (const [id, p] of Object.entries(data.powers)) {
     validateWorkflows(p);
