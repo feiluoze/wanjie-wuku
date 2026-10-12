@@ -25,10 +25,10 @@ test('bundled book has only latest named rules and keeps author text intact',()=
   if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));assert.equal(author.length,120);for(const e of entries){const override=builtinWorldbookInfo().overrides?.taishi;if(e.name.startsWith('太始天（完整版')&&override)assert.equal(hash(e.content),override.contentHash);else assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content);}}
   const copy=builtinEntries();copy[0].content='changed';assert.notEqual(builtinEntries()[0].content,'changed');
 });
-test('all latest rules have management configuration and 58 reviewed presets match',()=>{
+test('all latest rules have management configuration and 70 reviewed presets match',()=>{
   for(const e of entries)assert.equal(managementProfile(e).match,'exact',e.name);
   assert(!managementProfile(entry('人生模拟')).workflows.includes('simulation'),'三重奖励不沿用候选选择入口');
-  assert.equal(entries.filter(e=>creationConfig(createPower(e))).length,58);
+  assert.equal(entries.filter(e=>creationConfig(createPower(e))).length,70);
   for(const config of CREATION_PRESETS){validateAdapter(config);const e=entries.find(e=>config.target.primaryHashes.includes(hash(e.content)));assert(e,config.id);assert(config.operations.every(o=>e.content.includes(o.ruleQuote)));}
 });
 test('new open-ended abilities do not invent wallets from descriptive overviews',()=>{
