@@ -7,11 +7,21 @@ import { AIActivity } from '../src/ai-activity.js';
 const wait = (ms=510) => new Promise(r=>setTimeout(r,ms));
 function deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};}
 function setup(){const f=fixture();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};return f;}
+
+test('floating cancel guards stale task buttons and commits, then rejects a late response',async()=>{
+ const f=setup(),response=deferred();f.app.model.request=()=>response.promise;
+ const work=f.app.reviewArchives();const rejected=assert.rejects(work,{name:'AbortError'});await Promise.resolve();
+ const taskId=String(f.app.aiActivity.current.id),revision=f.store.read().revision;
+ await f.app.action('ai-task-cancel',{taskId:'old-task'});assert.equal(f.app.busy,true);
+ f.app.committing=true;await assert.rejects(f.app.action('ai-task-cancel',{taskId}),/正在提交/);assert.equal(f.app.busy,true);f.app.committing=false;
+ await f.app.action('ai-task-cancel',{taskId});assert.equal(f.app.busy,false);assert.equal(f.app.aiActivity.current,null);
+ response.resolve(answer());await rejected;assert.equal(f.app.pendingArchiveReview,null);assert.equal(f.store.read().revision,revision);
+});
 const answer=()=>JSON.stringify({changes:[]});
 
 test('cancelled old request cannot clear a newer request or report old validation phase',async()=>{
  const f=setup(),old=deferred(),fresh=deferred();let calls=0;const phases=[];
- f.app.aiActivity={phase:p=>phases.push(p),cancel(){}};
+ f.app.aiActivity={phase:p=>phases.push(p),connection(){},cancel(){}};
  f.app.model.request=()=>++calls===1?old.promise:fresh.promise;
  const first=f.app.query({},f.app.contextSnapshot());const rejected=assert.rejects(first,{name:'AbortError'});
  f.app.cancel();const second=f.app.query({},f.app.contextSnapshot());const controller=f.app.controller;

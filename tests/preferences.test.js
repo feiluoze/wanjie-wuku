@@ -1,5 +1,24 @@
 import test from 'node:test';
+import { GENERATION_DEFAULTS } from '../src/preferences.js';
+import { WorkbenchUI } from '../src/ui.js';
 import assert from 'node:assert/strict';
+test('recommended defaults work for new connections and saved custom values remain intact',()=>{
+  assert.equal(DEFAULT_SETTINGS.maxTokens,60000);
+  assert.equal(DEFAULT_SETTINGS.temperature,0.85);
+  assert.equal(DEFAULT_SETTINGS.timeoutSeconds,120);
+  const values={mode:'custom',baseUrl:'https://example.test/v1',model:'chat',contextMessages:8,...GENERATION_DEFAULTS};
+  assert.equal(connectionValues(values).maxTokens,60000);
+  const ctx={userHandle:'default-settings-test',extensionSettings:{},saveSettingsDebounced(){}};
+  saveSettings({...DEFAULT_SETTINGS,maxTokens:4096,temperature:0.4,timeoutSeconds:90},ctx);
+  const restored=getSettings(ctx);
+  assert.equal(restored.maxTokens,4096);assert.equal(restored.temperature,0.4);assert.equal(restored.timeoutSeconds,90);
+});
+test('new profile starts at recommended generation values',()=>{
+  const names=['connectionProfile','profileName','profileKeyPolicy','mode','baseUrl','model','apiKey','clearKey','maxTokens','temperature','timeoutSeconds'];
+  const form={elements:Object.fromEntries(names.map(name=>[name,{value:'old',checked:true,focus(){}}]))};
+  WorkbenchUI.prototype.newConnectionProfile.call({modal:{querySelector:()=>form},filterModels(){},connectionVisibility(){}});
+  for(const [key,value]of Object.entries(GENERATION_DEFAULTS))assert.equal(form.elements[key].value,String(value));
+});
 import { MODULE_ID } from '../src/core.js';
 import { getSettings, saveSettings, getApiKey, getConnectionProfiles, saveConnectionProfile, applyConnectionProfile, deleteConnectionProfile, DEFAULT_SETTINGS } from '../src/host.js';
 import { connectionValues, connectionKey, themeId } from '../src/preferences.js';

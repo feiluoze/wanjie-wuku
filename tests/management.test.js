@@ -146,14 +146,14 @@ test('management UI renders hostile names, values and evidence as inert text', (
   const ui = Object.create(WorkbenchUI.prototype), html = ui.legacyManagement(f.s, p, false, 'off');
   strict.doesNotMatch(html, /<img|<script>/); strict.match(html, /&lt;script&gt;/); strict.match(html, /补录管理记录/); strict.doesNotMatch(html, /未配置货币/);
 });
-test('saved management records survive edited prose and remain in narrative injection', () => {
+test('saved management records survive edited prose but leave narrative injection until rechecked', () => {
   const f = fixture(), changes = normalizeManagement({ changes: [f.raw[1]] }, f.s, f.sources);
   applyManagement(f.s, changes, f.sources, f.chat);
   const record = Object.values(f.powers[1].managementRecords)[0];
   f.chat[1].mes += '你又读了几页。'; strict.equal(managementRecordCurrent(record, f.chat), true);
   strict.match(buildInjection(f.s, { chat: f.chat }), /封存安排/);
   f.chat[1].mes = '旧卷从未封存，这段旧正文被改写。'; strict.equal(managementRecordCurrent(record, f.chat), true);
-  strict.match(buildInjection(f.s, { chat: f.chat }), /"label":"封存安排"/);
+  strict.doesNotMatch(buildInjection(f.s, { chat: f.chat }), /"label":"封存安排"/); strict.ok(f.powers[1].managementRecords[record.id]);
 });
 test('manual calibration refuses money and stale forms', async () => {
   const f = appFixture(); f.app.openManagementRecord();

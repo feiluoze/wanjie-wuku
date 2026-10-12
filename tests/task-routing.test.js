@@ -4,7 +4,35 @@ import {fixture} from './mvu-fixture.js';
 import {taskConnection,normalizeTaskRoutes} from '../src/task-routing.js';
 import {getSettings,getApiKey,saveSettings,saveConnectionProfile,saveTaskRoutes,resolveTaskConnection,deleteConnectionProfile,getConnectionProfiles,accountSecrets,DEFAULT_SETTINGS} from '../src/host.js';
 import {ModelConnection} from '../src/model.js';
+import {AIActivity} from '../src/ai-activity.js';
+import {taskConnectionLabel} from '../src/task-routing.js';
 const conn=model=>({...DEFAULT_SETTINGS,mode:'custom',baseUrl:'https://example.test/v1',model});
+
+test('activity names the actual routed transport and retains it on failure without credentials',async()=>{
+ const f=fixture(),seen=[];globalThis.localStorage=f.storage;
+ const id=saveConnectionProfile({name:'构建方案',settings:conn('routed-builder'),apiKey:'private-route-key'},f.ctx);
+ saveTaskRoutes({setup:id},f.ctx);f.app.settings=getSettings(f.ctx);f.app.apiKey=getApiKey(f.ctx);
+ f.app.aiActivity=new AIActivity(s=>seen.push(s),{secret:()=>['private-route-key']});
+ let transport;
+ f.app.model.request=async(_prompt,{connection})=>{transport=connection;throw Error('模拟 HTTP 502');};
+ await assert.rejects(f.app.aiActivity.run('构建',()=>f.app.query({system:'s',user:'{}'},f.app.contextSnapshot(),{task:'setup'})),/502/);
+ assert.equal(transport.settings.model,'routed-builder');
+ assert.match(seen.at(-1).connections.setup,/世界书初始化 · 构建方案 · routed-builder/);
+ assert.equal(seen.at(-1).status,'error');assert(!JSON.stringify(seen).includes('private-route-key'));assert(!JSON.stringify(seen).includes('https://example.test'));
+});
+
+test('ST label does not claim a stale independent model; parallel roles stay distinct and reset next run',async()=>{
+ assert.match(taskConnectionLabel({task:'setup',profileName:'主连接',settings:{mode:'st',model:'stale-custom-model'}}),/跟随酒馆当前模型/);
+ assert(!taskConnectionLabel({task:'setup',settings:{mode:'st',model:'stale-custom-model'}}).includes('stale-custom-model'));
+ const seen=[],a=new AIActivity(s=>seen.push(s),{secret:()=>['HIDDEN_KEY']});
+ await a.run('高级',async()=>{
+  a.connection({task:'taishiWorld',profileName:'世界',settings:{mode:'custom',model:'pro'}});
+  a.connection({task:'taishiPeople',profileName:'人物',settings:{mode:'custom',model:'flash'}});
+  a.connection({task:'taishiSummary',profileName:'摘要',settings:{mode:'custom',model:'HIDDEN_KEY'}});
+ });
+ assert.equal(Object.keys(seen.at(-1).connections).length,3);assert(!JSON.stringify(seen).includes('HIDDEN_KEY'));
+ await a.run('下一个任务',async()=>{});assert.equal(seen.at(-1).connections,undefined);
+});
 test('all tasks default to current connection; explicit routes do not mutate it',()=>{
  const settings=conn('default'),p={...conn('record-model'),id:'a',name:'整理',apiKey:'record-key'};
  assert.equal(taskConnection('archive',settings,'current-key',[p]).settings.model,'default');

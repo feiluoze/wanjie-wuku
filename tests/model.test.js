@@ -4,6 +4,17 @@ import { ModelConnection, endpoints, modelEndpoints, normalizeModelList, chooseL
 
 const prompt = { system: '格式', user: '事实' };
 const settings = { mode: 'custom', baseUrl: 'https://example.test', model: 'model', timeoutSeconds: 10 };
+test('generation uses generous defaults and does not clamp 60000 to the old limit',async()=>{
+  for(const extra of [{},{maxTokens:60000,temperature:0.85},{maxTokens:4096,temperature:0.4}]){
+    let body;
+    const model=new ModelConnection({settings:()=>({...settings,...extra}),getKey:()=>'',fetchImpl:async(_url,request)=>{
+      body=JSON.parse(request.body);return {ok:true,json:async()=>({choices:[{message:{content:'{}'}}]})};
+    }});
+    await model.request(prompt);
+    strict.equal(body.max_tokens,extra.maxTokens??60000);
+    strict.equal(body.temperature,extra.temperature??0.85);
+  }
+});
 test('endpoint paths preserve a supplied v1 or complete endpoint', () => { strict.deepEqual(endpoints('https://example.test/v1/'), ['https://example.test/v1/chat/completions']); strict.equal(endpoints('https://example.test/chat/completions').length, 1); strict.equal(endpoints('https://example.test').length, 2); strict.throws(() => endpoints('javascript:alert(1)')); strict.throws(() => endpoints('https://secret@example.test')); });
 test('only a route mismatch permits the v1 fallback; no auth/rate/server retries', async () => {
   for (const status of [401, 429, 500, 404]) { const calls = []; const model = new ModelConnection({ context: () => null, settings: () => settings, getKey: () => 'session-key', fetchImpl: async (url, request) => { calls.push({ url, request }); return calls.length === 1 ? { ok: false, status } : { ok: true, json: async () => ({ choices: [{ message: { content: '{"operations":[]}' } }] }) }; } });

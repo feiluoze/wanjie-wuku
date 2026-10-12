@@ -13,7 +13,7 @@ test('fixed-operation preview disables execution until balance is explicitly kno
   Object.values(p.resources)[0].balance = '1'; strict.doesNotMatch(WorkbenchUI.prototype.detail(p, op, false), /data-action="execute" disabled/);
 });
 test('rendered workbench keeps settings, receipts, backups and explicit confirmation reachable', () => {
-  const ui = Object.create(WorkbenchUI.prototype); ui.panel = { innerHTML: '' }; ui.tab = 'operations'; ui.goal = '玩家目标';
+  const ui = Object.create(WorkbenchUI.prototype); ui.panel = { innerHTML: '', querySelectorAll:()=>[] }; ui.tab = 'operations'; ui.goal = '玩家目标';
   ui.render({ state: emptyState(), power: null, selected: null, operations: [], settings: { mode: 'off' }, bridge: true });
   for (const action of ['settings', 'manage', 'generate', 'sync', 'export', 'backup']) strict.match(ui.panel.innerHTML, new RegExp(`data-action="${action}"`));
   strict.match(ui.panel.innerHTML, /异步关闭/); strict.match(ui.panel.innerHTML, /玩家目标/);

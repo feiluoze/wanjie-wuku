@@ -22,7 +22,7 @@ test('bundled book has only latest named rules and keeps author text intact',()=
   assert.equal(entry('升变之印').entryId,'122');assert(!entry('绝对适应'));assert(!entry('自定义式'));
   assert(entry('绝对适应（新版）'));assert(entry('自定义'));
   assert.equal(builtinWorldbookInfo().authorEntries,120);
-  if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));assert.equal(author.length,120);for(const e of entries)assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content);}
+  if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));assert.equal(author.length,120);for(const e of entries){const override=builtinWorldbookInfo().overrides?.taishi;if(e.name.startsWith('太始天（完整版')&&override)assert.equal(hash(e.content),override.contentHash);else assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content);}}
   const copy=builtinEntries();copy[0].content='changed';assert.notEqual(builtinEntries()[0].content,'changed');
 });
 test('all latest rules have management configuration and 58 reviewed presets match',()=>{
@@ -39,6 +39,34 @@ test('catalog is available without chat and preserves customized material',()=>{
   const catalog=withBuiltinCatalog([fork]);assert.equal(catalog.length,120);assert.deepEqual(catalog[0],fork);
   assert.equal(stable(withBuiltinCatalog(catalog)),stable(catalog));
   const f=fixture();assert.equal(f.app.settings.catalog.filter(e=>e.book==='万界武库V4.1 · 内置').length,119);
+});
+
+test('official catalog copies collapse across books and prefer the source without (1)',()=>{
+  const primary=entry('万界网购');
+  const original={...primary,id:'original-shopping',book:'万界武库V4.1'};
+  const copy={...primary,id:'copy-shopping',book:'万界武库V4.1 (1)'};
+  for(const rows of [[copy,original,...entries],[...entries,copy,original],[copy,original]]){
+    const before=stable(rows),catalog=withBuiltinCatalog(rows);
+    const matches=catalog.filter(e=>e.name===primary.name);
+    assert.equal(matches.length,1);
+    assert(!/[（(]1[）)]$/.test(matches[0].book));
+    assert.equal(stable(rows),before);
+    assert.equal(stable(withBuiltinCatalog(catalog)),stable(catalog));
+  }
+  assert.equal(withBuiltinCatalog([copy,original]).find(e=>e.name===primary.name).id,original.id);
+  const standalone=withBuiltinCatalog([{...copy,book:'万界武库V4.1（1）'}]).find(e=>e.name===primary.name);
+  assert.equal(standalone.book,original.book);assert.equal(standalone.id,copy.id);
+  const saved=createPower(copy),savedBefore=stable(saved);
+  assert.equal(builtinPowerId(primary,{[saved.id]:saved}),saved.id);
+  assert.equal(stable(saved),savedBefore);
+});
+
+test('same-name player edits survive official-copy deduplication',()=>{
+  const primary=entry('万界网购');
+  const custom={...primary,id:'custom-shopping',book:'个人武库 (1)',content:primary.content+'\n玩家自定兑换规则。'};
+  const catalog=withBuiltinCatalog([{...primary,id:'copy',book:'万界武库V4.1 (1)'},custom,...entries]);
+  assert.equal(catalog.filter(e=>e.name===primary.name).length,2);
+  assert.deepEqual(catalog.find(e=>e.id===custom.id),custom);
 });
 test('old catalog upgrades in place and duplicate author seal is collapsed',{skip:!old},()=>{
   const catalog=withBuiltinCatalog(old);assert.equal(catalog.length,119);

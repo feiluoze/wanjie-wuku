@@ -58,7 +58,7 @@ for(const row of cases) {
     const changes=normalizeArchiveChanges({changes:[{...f.raw,archiveId:old.id}]},f.p,sources,f.chat);
     applyArchiveChanges(f.p,changes,sources,new Map([[0,old.id]]),f.chat);
     strict.equal(f.p.archiveReviewed[0].format,ARCHIVE_READ_FORMAT);strict.equal(archiveSources(f.chat,f.state,f.p).length,0);
-    const current=f.p.archives[old.id];strict.equal(current.source.anchors.length,2);strict.ok(current.source.anchors.some(a=>a.format===undefined));strict.equal(archiveCurrent(current,f.chat),true);validateState(f.state);
+    const current=f.p.archives[old.id];strict.equal(current.source.anchors.length,1);strict.equal(current.history[0].source.anchor.format,undefined);strict.equal(current.source.anchors[0].format,ARCHIVE_READ_FORMAT);strict.equal(archiveCurrent(current,f.chat),true);validateState(f.state);
   });
 }
 test('archive reader preserves settlement but excludes thought, choices, status and variable commands', ()=> {

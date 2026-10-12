@@ -19,7 +19,7 @@ test('incremental object review preserves identity, omitted fields and cumulativ
   strict.equal(changes[0].name, '耐寒工蜂');
   const saved = applyArchiveChanges(f.power, changes, f.sources, new Map([[0, f.r.id]]), f.ctx.chat)[0];
   strict.equal(saved.id, f.r.id); strict.equal(saved.fields.scale, '一小群'); strict.equal(saved.fields.location, '北坡');
-  strict.equal(saved.fields.traits, '耐寒、夜视'); strict.equal(saved.history.length, 1); strict.equal(saved.source.anchors.length, 2);
+  strict.equal(saved.fields.traits, '耐寒、夜视'); strict.equal(saved.history.length, 1); strict.equal(saved.source.anchors.length, 1);
   validateState(f.state); strict.equal(archiveCurrent(saved, f.ctx.chat), true);
   strict.equal(archiveSources(f.ctx.chat, f.state, f.power).some(s => s.index === 1), false);
   f.ctx.chat[1].mes += '耐寒工蜂又增加了搬运能力。';
@@ -68,4 +68,15 @@ test('archive prompt passes the real ST and independent API adapters without cha
     return { ok: true, json: async () => ({ choices: [{ message: { content: '{"changes":[]}' } }] }) };
   } });
   strict.equal(await model.request(prompt), '{"changes":[]}');
+});
+
+
+test('pending preview blocks a new manual review before another model request', async () => {
+  const f = setup(); await f.store.transact(next => { next.powers[f.power.id] = clone(f.power); next.historyAnchor = chatHashes(f.ctx.chat); });
+  f.app.settings.mode = 'st'; f.app.ui.showArchiveReview = () => {}; let calls = 0;
+  f.app.model.request = async () => { calls++; return JSON.stringify({changes:[f.raw]}); };
+  await f.app.reviewArchives(); const pending = f.app.pendingArchiveReview;
+  await strict.rejects(f.app.reviewArchives({rescan:true}), /已有待确认结果/);
+  strict.equal(calls, 1); strict.equal(f.app.pendingArchiveReview, pending);
+  strict.equal(f.store.read().powers[f.power.id].archives[f.r.id].fields.traits, '耐寒');
 });
