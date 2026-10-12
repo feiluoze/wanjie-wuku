@@ -86,12 +86,14 @@ test('quotes solely from planning or unchosen opportunities cannot establish a s
  assert.doesNotThrow(()=>assertFactEvidence('取得普通工具',source));
  assert.doesNotThrow(()=>assertFactEvidence('前往东部矿区','已经前往东部矿区。'+source));
 });
-test('declared adapters cannot silently fall back to generic unrelated records in strict review',()=>{
+test('declared adapters retain valid generic facts without guessing a dedicated category',()=>{
  const f=fixture(),p=createPower(builtinEntries().find(e=>e.name==='挂机'));
  assert.ok(creationConfig(p));f.state.powers[p.id]=p;
  const data={changes:[{type:'record',name:'旧通用条目',status:'active',fields:{description:'内容'},sourceIndex:0}]};
  const batch=normalizeArchiveBatch(data,p,archiveSources(f.ctx.chat,f.state,p),f.ctx.chat,'',f.state,{strictProtocol:true});
- assert.equal(batch.changes.length,0);assert.match(batch.issues[0].reason,/专用分类/);
+ assert.equal(batch.changes.length,1);assert.equal(batch.issues.length,0);assert.equal(batch.changes[0].specific,undefined);
+ const invalid=normalizeArchiveBatch({changes:[{...data.changes[0],recordId:'invented',details:{state:'内容'}}]},p,archiveSources(f.ctx.chat,f.state,p),f.ctx.chat,'',f.state,{strictProtocol:true});
+ assert.equal(invalid.changes.length,0);assert.equal(invalid.issues.length,1);
  const valid={...data.changes[0],recordId:'shadow',fields:{'行动与伤势':'已部署'}};
  const good=normalizeArchiveBatch({changes:[valid]},p,archiveSources(f.ctx.chat,f.state,p),f.ctx.chat,'',f.state,{strictProtocol:true});
  assert.equal(good.issues.length,0);assert.equal(good.changes[0].specific.fields.state,'已部署');
@@ -101,10 +103,20 @@ test('partial automatic review stops after one call, saves valid facts and retai
  await f.store.transact(s=>Object.assign(s.powers[f.power.id],{autoArchiveReview:true,autoArchiveSave:true,autoArchiveStart:0}));
  let calls=0;f.app.model.request=async()=>{calls++;return JSON.stringify({changes:[{type:'record',name:'新事实',status:'active',fields:{description:'已完成'},sourceIndex:1}],floorReviews:[{sourceIndex:1,status:'reviewed',changeCount:1}]});};
  f.app.schedulePlayerReview('normal');clearTimeout(f.app.playerReviewTimer);f.app.playerReviewTimer=null;await f.app.runPlayerReview();
- assert.equal(calls,1);const p=f.store.read().powers[f.power.id];assert.deepEqual(p.archiveReviewed.map(r=>r.index),[1]);assert.equal(Object.keys(p.archives).length,1);assert.match(f.app.archiveAutoStatus[f.power.id],/暂停/);
+ assert.equal(calls,1);const p=f.store.read().powers[f.power.id];assert.deepEqual(p.archiveReviewed.map(r=>r.index),[]);assert.equal(Object.keys(p.archives).length,1);assert.match(f.app.archiveAutoStatus[f.power.id],/暂停/);
 });
 test('default diagnostics export counts and codes without character names or quoted prose',()=>{
  const log=new RuntimeLog({storage:null});const ticket=log.begin('测试');
  log.step(ticket,'校验结果',{accepted:1,issues:[{kind:'成果',name:'私密角色',quote:'私密剧情句子',reason:'档案字段无效'}],skippedOwnership:[{name:'私密名字',ownerName:'私密势力'}]});
  const value=JSON.stringify(log.export());assert.doesNotMatch(value,/私密/);assert.match(value,/invalid_fields/);
+});
+
+
+test('a rejected candidate only blocks its uniquely resolved floor',()=>{
+ const f=fixture();f.ctx.chat.push({is_user:true,mes:'继续'},{is_user:false,mes:'第二件工具已交付。'});
+ const sources=archiveSources(f.ctx.chat,f.state,f.power);
+ const batch=normalizeArchiveBatch({changes:[{type:'record',name:'字段错误候选',status:'active',fields:{invalid:'值'},sourceIndex:2,quote:'第二件工具已交付。'}]},f.power,sources,f.ctx.chat,'',f.state);
+ assert.equal(batch.issues.length,1);assert.deepEqual(batch.blockedFloors,[2]);
+ const unknown=normalizeArchiveBatch({changes:[{type:'record',name:'来源不明候选',status:'active',fields:{invalid:'值'},sourceIndex:999,quote:'无法唯一定位的引用'}]},f.power,sources,f.ctx.chat,'',f.state);
+ assert.deepEqual(unknown.blockedFloors,sources.map(s=>s.index));
 });

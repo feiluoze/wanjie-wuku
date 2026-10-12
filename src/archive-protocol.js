@@ -1,7 +1,7 @@
 // Model-input protocol only. Persisted readers/hashes remain unchanged.
 import {withoutThoughts} from './archive-reader.js';
 import {assert} from './primitives.js';
-export const ARCHIVE_PROTOCOL_POLICY='按输入的 responseContract 返回 floorReviews，逐层核对，不得只检查最后一层。每层只返回一个 {sourceIndex:内部0基整数,status:"reviewed"或"uncertain",changeCount:本层返回的变化与进展总数}；漏查、冲突或归属不明为 uncertain，明确没有变化也必须报告。优先提取 sources.settlements.facts，再用 statusSnapshots 核对当前快照，content 仅补充叙事。opportunities 不代表玩家已选择、执行或到账。较新快照遗漏不代表删除旧成果；跨层重复不再次建档。已有记录复用 ID，各独立历史事件逐条保存。通用 fields 只能使用 fieldTypes[type] 的 ID；专用字段必须使用 recordSchemas 对应 recordId，并放在 details。已有专用分类的词条不要用普通技能或关系类别代替其记录范围；无法归类的内容说明并留待核对。每项明确 ownerPowerId，协作不转移归属。插件只归档已有事实，不执行结算。';
+export const ARCHIVE_PROTOCOL_POLICY='按输入的 responseContract 返回 floorReviews，逐层核对，不得只检查最后一层。每层只返回一个 {sourceIndex:内部0基整数,status:"reviewed"或"uncertain",changeCount:本层返回的变化与进展总数}；漏查、冲突或归属不明为 uncertain，明确没有变化也必须报告。优先提取 sources.settlements.facts，再用 statusSnapshots 核对当前快照，content 仅补充叙事。opportunities 不代表玩家已选择、执行或到账。较新快照遗漏不代表删除旧成果；跨层重复不再次建档。已有记录复用 ID，各独立历史事件逐条保存。通用 fields 只能使用 fieldTypes[type] 的 ID；专用字段必须使用 recordSchemas 对应 recordId，并放在 details。优先使用适合该事实的专用分类；无法可靠映射时可使用已有通用档案类型和合法字段保留事实，不猜测 recordId，不因缺少专用分类而丢弃成果。已有专用对象继续沿用原分类。每项明确 ownerPowerId，协作不转移归属。插件只归档已有事实，不执行结算。';
 
 export function evidenceParts(content){
  const clean=withoutThoughts(content).replace(/<(story_driver|combat_driver|acg_think)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi,'');
@@ -11,26 +11,33 @@ export function evidenceParts(content){
 }
 
 // Deterministic aliases only: declared IDs and UI labels, never guessed keys.
-export function canonicalFields(raw,types,definition){
+export function canonicalFields(raw,types,definition,{resolutions={}}={}){
  const allowed=types[raw.type];if(!allowed)return raw;
- const fields={},details={...(raw.details||{})};
+ const fields={},details={},conflicts=[];
  const resolve=(key,entries)=>entries.find(([id])=>id===key)?.[0]||entries.find(([,label])=>label===key)?.[0];
- for(const [key,value] of Object.entries(raw.fields||{})){
+ const equal=(a,b)=>typeof a==='string'&&typeof b==='string'?a.trim().replace(/\r\n/g,'\n')===b.trim().replace(/\r\n/g,'\n'):a===b;
+ const put=(target,section,id,label,value)=>{
+  const key=section+':'+id;
+  if(Object.hasOwn(target,id)&&!equal(target[id],value)){
+   if(Object.hasOwn(resolutions,key)){assert(typeof resolutions[key]==='string','修正字段必须为文字');target[id]=resolutions[key];}
+   else conflicts.push({key,section,id,label,left:target[id],right:value});
+  }else target[id]=value;
+ };
+ if(definition)for(const [key,value]of Object.entries(raw.details||{})){
+  const id=resolve(key,definition.fields.map(f=>[f.id,f.label]));assert(id,'专用字段不在声明中：'+key);
+  put(details,'details',id,definition.fields.find(f=>f.id===id).label,value);
+ }
+ for(const [key,value]of Object.entries(raw.fields||{})){
   const canonical=resolve(key,Object.entries(allowed));
   const specific=definition&&resolve(key,definition.fields.map(f=>[f.id,f.label]));
-  if(canonical){assert(!Object.hasOwn(fields,canonical)||fields[canonical]===value,'字段别名与标准字段值冲突');fields[canonical]=value;}
-  else if(specific){assert(!Object.hasOwn(details,specific)||details[specific]===value,'通用与专用字段值冲突');details[specific]=value;}
+  if(canonical)put(fields,'fields',canonical,allowed[canonical],value);
+  else if(specific)put(details,'details',specific,definition.fields.find(f=>f.id===specific).label,value);
   else throw Error('档案字段不在声明中：'+key+'；允许：'+Object.keys(allowed).join('、')+(definition?'；专用字段请放 details：'+definition.fields.map(f=>f.id).join('、'):''));
  }
+ if(conflicts.length){const error=Error('重复字段内容冲突：'+conflicts.map(c=>c.label).join('、')+'；可本地选择或手动修正，无需重新调用AI');error.fieldConflicts=conflicts;throw error;}
  if(definition){
-  const canonicalDetails={};for(const [key,value]of Object.entries(details)){
-   const id=resolve(key,definition.fields.map(f=>[f.id,f.label]));assert(id,'专用字段不在声明中：'+key);
-   assert(!Object.hasOwn(canonicalDetails,id)||canonicalDetails[id]===value,'专用字段别名冲突');canonicalDetails[id]=value;
-  }
-  // Preserve exact declared values as a display summary when a model supplies
-  // only dedicated fields. This is formatting, not inferred game state.
-  if(!Object.keys(fields).length&&Object.keys(canonicalDetails).length){const target=raw.type==='record'?'description':Object.keys(allowed)[0];fields[target]=Object.entries(canonicalDetails).map(([k,v])=>definition.fields.find(f=>f.id===k).label+'：'+v).join('\n');}
-  return {...raw,fields,details:canonicalDetails};
+  if(!Object.keys(fields).length&&Object.keys(details).length){const target=raw.type==='record'?'description':Object.keys(allowed)[0];fields[target]=Object.entries(details).map(([k,v])=>definition.fields.find(f=>f.id===k).label+'：'+v).join('\n');}
+  return {...raw,fields,details};
  }
  return {...raw,fields};
 }

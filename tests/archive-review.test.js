@@ -49,7 +49,7 @@ test('model review queries selected power only and confirmation uses captured ch
   f.app.settings.mode = 'st'; let calls = 0, pending;
   f.app.ui.showArchiveReview = p => { pending = p; };
   f.app.model.request = async prompt => { calls++; strict.match(prompt.user, /耐寒工蜂/); strict.doesNotMatch(prompt.user, /roleContract/); return JSON.stringify({ changes: [f.raw] }); };
-  await f.app.reviewArchives(); strict.equal(calls, 1); strict.equal(pending.changes.length, 1); strict.equal(f.replacementCount, 0);
+  await f.app.reviewArchives(); strict.equal(calls, 2); strict.equal(pending.changes.length, 1); strict.equal(f.replacementCount, 0);
   strict.equal(f.store.read().powers[f.power.id].archives[f.r.id].fields.traits, '耐寒');
   await f.store.transact(next => { next.powers[f.power.id].archives[f.r.id].fields.location = '南坡'; });
   f.app.refresh(); strict.equal(f.app.pendingArchiveReview, null);
@@ -77,6 +77,6 @@ test('pending preview blocks a new manual review before another model request', 
   f.app.model.request = async () => { calls++; return JSON.stringify({changes:[f.raw]}); };
   await f.app.reviewArchives(); const pending = f.app.pendingArchiveReview;
   await strict.rejects(f.app.reviewArchives({rescan:true}), /已有待确认结果/);
-  strict.equal(calls, 1); strict.equal(f.app.pendingArchiveReview, pending);
+  strict.equal(calls, 2); strict.equal(f.app.pendingArchiveReview, pending);
   strict.equal(f.store.read().powers[f.power.id].archives[f.r.id].fields.traits, '耐寒');
 });

@@ -105,8 +105,8 @@ test('MVU starting between backlog batches pauses remaining work and resumes wit
  for(let i=0;i<13;i++)f.ctx.chat.push({is_user:false,mes:'新增角色正文，记录当前经历。'});
  await f.store.transact(n=>{const p=n.powers[f.power.id];p.autoArchiveReview=true;p.autoArchiveSave=true;p.autoArchiveStart=0;p.archiveAuto={every:12,context:0};});
  f.app.model.request=async prompt=>{calls++;if(calls===1)parsing=true;return answer(prompt);};
- f.app.schedulePlayerReview('normal');await wait();assert.equal(calls,1);assert.equal(f.store.read().powers[f.power.id].archiveReviewed.length,12);assert.ok(f.app.playerAutoQueued);
- parsing=false;f.app.resumePlayerReview();await wait();assert.equal(calls,2);assert.equal(f.store.read().powers[f.power.id].archiveReviewed.length,14);assert.equal(f.app.playerAutoQueued,null);
+ f.app.schedulePlayerReview('normal');await wait();assert.equal(calls,1);assert.equal(f.store.read().powers[f.power.id].archiveReviewed.length,1);assert.ok(f.app.playerAutoQueued);
+ parsing=false;f.app.resumePlayerReview();await wait();assert.equal(calls,14);assert.equal(f.store.read().powers[f.power.id].archiveReviewed.length,14);assert.equal(f.app.playerAutoQueued,null);
 });
 
 

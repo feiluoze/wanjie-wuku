@@ -18,7 +18,7 @@ try{
   await a.store.transact(s=>s.powers[p.id]=p);a.powerId=p.id;a.ui.space='wuku';a.ui.setOpen(true);a.settings.mode='st';a.refresh();
   a.model.request=async prompt=>{
    const input=JSON.parse(prompt.user);if(JSON.stringify(input.sources).includes('仅供规划的未知奖励'))throw Error('planning leaked');
-   const index=input.sources.at(-1).index;return JSON.stringify({changes:[{name:'新事件',type:'record',status:'active',fields:{description:'已完成'},sourceIndex:index}],floorReviews:[{sourceIndex:index,status:'reviewed',changeCount:1}]});
+   const index=input.sources.at(-1).index;if(input.sources[0].content.includes('新事件'))return JSON.stringify({changes:[{name:'新事件',type:'record',status:'active',fields:{description:'已完成'},sourceIndex:index}],floorReviews:[{sourceIndex:index,status:'reviewed',changeCount:1}]});return JSON.stringify({changes:[],floorReviews:[{sourceIndex:index,status:'uncertain',changeCount:0}]});
   };await a.reviewArchives({rescan:true});
  });
  await page.getByText(/逐层核对结果 ·/).click();assert.match(await page.locator('.wjwk-dialog').innerText(),/待重查，不推进读取进度/);

@@ -804,6 +804,7 @@ export class WukuApp {
       case 'player-pending': return this.openPlayerReview();
       case 'player-auto-save': return this.togglePlayerAutoSave();
       case 'player-auto': return this.togglePlayerAuto();
+      case 'repair-archive-conflict': return this.repairArchiveConflict(data);
       case 'apply-archive-review': return this.applyArchiveReview(data);
       case 'terminal-memory': return this.openMemory(null,data.id);
       case 'memory-report': return this.openMemoryReport();

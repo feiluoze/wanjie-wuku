@@ -31,7 +31,7 @@ try{
       const existing=input.current.find(r=>r.name==='海蓝界');
       result=input.setupReferences?{changes:[
         ...['海蓝界','赤砂界'].map(name=>({name,type:'environment',status:'active',fields:{conditions:'成熟世界'},recordId:'world',details:{stage:'成熟',clock:'个人内历初始时点'},sourceIndex:-1})),
-        {name:'云岚',type:'member',status:'working',fields:{role:'太始天眷属',location:'海蓝界'},recordId:'companion',details:{world:'海蓝界',role:'主持灵圃',action:'建设灵圃',progress:'正在进行'},sourceIndex:-1}
+        {name:'云岚',type:'member',status:'working',fields:{role:'太始天眷属',location:'海蓝界'},recordId:'companion',details:{world:'海蓝界',role:'主持灵圃',action:'建设灵圃',progress:'正在进行'},settingRefs:[{book:input.attachedWorldbooks.books[0].name,id:input.attachedWorldbooks.books[0].entries[0].id,part:input.attachedWorldbooks.books[0].entries[0].part??1}],sourceIndex:-1}
       ]}:{changes:[{archiveId:existing.id,name:existing.name,type:existing.type,status:existing.status,fields:{conditions:'灵圃建设已推进百年，既有生态保留'},recordId:'world',details:{clock:'主世界确认推进百年'},sourceIndex:input.sources.at(-1).index}]};
     }else result={draft:{title:'灵圃后续发展方案',content:'先核对已建区域，安排云岚继续完善现有灵圃，不新增未经确认的资源。',conditions:'尚未执行；结果交正文落实。',ruleQuote:input.rules.slice(0,20)}};
     return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(result)}}]})};
