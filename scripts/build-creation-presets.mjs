@@ -11,7 +11,7 @@ const entries=importBook(await read('data/builtin-worldbook.json'));
 const targets=await read('data/creation-targets.json'), configs=await read('data/creation-adapters.json');
 for(const config of configs){
   const entry=entries.find(e=>e.name===targets[config.id]);assert(entry,'适配目标不存在：'+config.id);
-  config.target.primaryHashes=[hash(entry.content)];
+  config.target.primaryHashes=config.id==='wuku.primordial_world'?[...new Set([hash(entry.content),...config.target.primaryHashes])]:[hash(entry.content)];
   assert(config.operations.every(o=>entry.content.includes(o.ruleQuote)),'适配操作依据已改变：'+entry.name);
   validateAdapter(config);
 }
