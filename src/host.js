@@ -3,7 +3,7 @@ import { CONNECTION_FIELDS, themeId, connectionValues } from './preferences.js';
 import { MODULE_ID, ASYNC_MARKER, STATE_MARKER, assert, text, buildInjection, clone, emptyState, hash, stable, uid, validateState, stripVariableReceipts } from './core.js';
 import { hasVariableReceipt, hasStatusReceipt } from './receipt.js';
 
-import { normalizeTaskRoutes, taskConnection } from './task-routing.js';
+import { normalizeTaskRoutes, normalizeTaskFallbacks, taskConnection, taskConnectionPlan } from './task-routing.js';
 export const DEFAULT_SETTINGS = Object.freeze({ mode: 'off', baseUrl: '', model: '', ...GENERATION_DEFAULTS, autoSync: false, catalog: [], position: null, contextMessages: 8, theme:'follow', activeConnectionProfile:'' });
 export function getContext() {
   try { return globalThis.SillyTavern?.getContext?.() || null; } catch { return null; }
@@ -77,6 +77,7 @@ export async function saveSettings(value, ctx = getContext(), apiKey = getApiKey
   if(latest.connectionProfiles!==undefined)clean.connectionProfiles=clone(latest.connectionProfiles);
   else delete clean.connectionProfiles;
   if(latest.taskRoutes!==undefined)clean.taskRoutes=clone(latest.taskRoutes);
+  if(latest.taskFallbacks!==undefined)clean.taskFallbacks=clone(latest.taskFallbacks);
   clean.theme=themeId(clean.theme);
   clean.apiKey=String(apiKey||'').trim();persistAccountSettings(clean,ctx);
 }
@@ -106,11 +107,13 @@ export function applyConnectionProfile(id,ctx=getContext()) {
 }
 export function accountSecrets(ctx=getContext()){const s=savedSettings(ctx);return [s.apiKey,...(s.connectionProfiles||[]).map(p=>p.apiKey)].filter(Boolean);}
 export function resolveTaskConnection(task,ctx=getContext(),settings=getSettings(ctx),apiKey=getApiKey(ctx)){return taskConnection(task,settings,apiKey,savedSettings(ctx).connectionProfiles||[]);}
-export function saveTaskRoutes(routes,ctx=getContext()){const clean=clone(savedSettings(ctx));clean.taskRoutes=normalizeTaskRoutes(routes,getConnectionProfiles(ctx));persistAccountSettings(clean,ctx);}
+export function resolveTaskConnectionPlan(task,ctx=getContext(),settings=getSettings(ctx),apiKey=getApiKey(ctx)){return taskConnectionPlan(task,settings,apiKey,savedSettings(ctx).connectionProfiles||[]);}
+export function saveTaskRoutes(routes,ctx=getContext(),fallbacks){const clean=clone(savedSettings(ctx)),profiles=getConnectionProfiles(ctx);clean.taskRoutes=normalizeTaskRoutes(routes,profiles);clean.taskFallbacks=normalizeTaskFallbacks(fallbacks??clean.taskFallbacks??{},profiles,clean.taskRoutes);persistAccountSettings(clean,ctx);}
 export function deleteConnectionProfile(id,ctx=getContext()) {
   const clean=clone(savedSettings(ctx));assert((clean.connectionProfiles || []).some(p=>p.id===id),'连接方案已不存在');
   clean.connectionProfiles=clean.connectionProfiles.filter(p=>p.id!==id);
   if(clean.taskRoutes)for(const task of Object.keys(clean.taskRoutes))if(clean.taskRoutes[task]===id)clean.taskRoutes[task]='';
+  if(clean.taskFallbacks)for(const task of Object.keys(clean.taskFallbacks))clean.taskFallbacks[task]=clean.taskFallbacks[task].filter(value=>value!==id);
   // Keep the running connection intact when its saved shortcut is removed.
   if(clean.activeConnectionProfile===id)clean.activeConnectionProfile='';
   persistAccountSettings(clean,ctx);

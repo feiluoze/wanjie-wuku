@@ -1,5 +1,5 @@
 import {reviewHistory} from './archive-history.js';
-import {archivePreset,archiveResponseContract} from './archive-preset.js';
+import {archivePreset,archiveResponseContract,archiveScopePolicy} from './archive-preset.js';
 import {preparePersonSources,attachPersonSources} from './taishi-profile.js';
 import {assertStoryTime,recordStoryTime} from './taishi-time.js';
 import {TAISHI_KNOWLEDGE_POLICY} from './taishi-context.js';
@@ -62,6 +62,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   payload.moduleKind=isTaishi(power)?'taishi':isMmlc(power)?'mmlc':'wuku';
   payload.limits={changes:creationConfig(power)?.id==='wuku.precedent'?256:64,fieldCharacters:4000,terminalResults:24,creationResults:24};
   if(payload.taskMode!=='narrative')payload.readingPolicy={supplement:'只整理playerNote明确补充，不把sources或参考资料扩成新收益。',worldbook:'只提取本批所选世界书片段的原始设定；不是本轮结算，不自行续写。',draft:'仅按taishiDraft范围补全待确认草案，不冒充正文事实。',evolution:'仅按taishiEvolution范围和内部历时生成待确认发展候选，不冒充正文事实。'}[payload.taskMode];
+  payload.scopePolicy=archiveScopePolicy(payload);
   payload.responseContract=archiveResponseContract(payload);
   const preset=archivePreset(payload,{
     marker:ASYNC_MARKER,

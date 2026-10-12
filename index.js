@@ -1,10 +1,11 @@
+import {requestWithFallback} from './src/api-fallback.js';
 import {exportModule,validateModuleBackup,mergeModuleBackup,MODULE_NAMES} from './src/module-backup.js';
 import {archiveBranchMethods} from './src/archive-branch.js';
 import { spaceMethods, powerSpace, moduleEnabled } from './src/space-controller.js';
 import { mountEntry } from './src/entry.js';
 import { isTaishi } from './src/taishi.js';
 import {runTaishiWorkflow,TAISHI_ROLES} from './src/taishi-workflow.js';
-import { resolveTaskConnection, saveTaskRoutes, accountSecrets } from './src/host.js';
+import { resolveTaskConnectionPlan, saveTaskRoutes, accountSecrets } from './src/host.js';
 import { RuntimeLog } from './src/runtime-log.js';
 import { withBuiltinCatalog, upgradeBuiltinPower, builtinPowerId, removeCatalogBook } from './src/builtin-worldbook.js';
 import { aiWorldbookMethods, readReferencePacket } from './src/ai-worldbooks.js';
@@ -186,8 +187,9 @@ export class WukuApp {
   async query(prompt, snapshot, { task = 'general', taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {} } = {}) {
     assert(!this.destroyed, '插件实例已释放');
     assert(!this.busy, '已有查询进行中');
-    const connection = resolveTaskConnection(task,getContext(),this.settings,this.apiKey);this.requestSecrets=[this.apiKey,...accountSecrets()];
-    const roleConnections=taishiWorkflow?Object.fromEntries((workflowRetryRole?[workflowRetryRole]:TAISHI_ROLES).map(role=>[role,resolveTaskConnection(role,getContext(),this.settings,this.apiKey)])):null;
+    const connectionPlan = resolveTaskConnectionPlan(task,getContext(),this.settings,this.apiKey), connection=connectionPlan[0];this.requestSecrets=[this.apiKey,...accountSecrets()];
+    const rolePlans=taishiWorkflow?Object.fromEntries((workflowRetryRole?[workflowRetryRole]:TAISHI_ROLES).map(role=>[role,resolveTaskConnectionPlan(role,getContext(),this.settings,this.apiKey)])):null;
+    const roleConnections=rolePlans?Object.fromEntries(Object.entries(rolePlans).map(([role,plan])=>[role,plan[0]])):null;
     if(!taishiWorkflow)this.aiActivity?.connection(connection);
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
@@ -206,6 +208,12 @@ export class WukuApp {
       this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,references:reference.summary});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
+      const send=async(p,plan)=>requestWithFallback(plan,selected=>this.model.request(p,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
+        signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
+        onAttempt:selected=>{this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
+        onFailure:(selected,error)=>this.runtimeLog?.step(logId,'API尝试失败',{task:selected.task,attempt:selected.attempt,kind:error.transportKind||'non-transport',httpStatus:error.httpStatus}),
+        onSwitch:info=>this.runtimeLog?.step(logId,'切换备用API',{task:info.from.task,from:info.from.profileName,to:info.to.profileName,kind:info.kind,httpStatus:info.httpStatus})
+      });
       const invoke=async(p,role)=>{
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         this.store.assertCapture(captured);
@@ -213,14 +221,14 @@ export class WukuApp {
         this.aiActivity?.connection(selected);
         this.runtimeLog?.step(logId,'专职请求',{task:role,profile:selected.profileName,model:selected.settings.model||'酒馆当前连接'});
         this.runtimeLog?.capture(logId,'专职请求 '+role,p);
-        const reply=await this.model.request(p,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:role,...diagnostic})});
+        const reply=await send(p,rolePlans?.[role]||connectionPlan);
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         this.store.assertCapture(captured);
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
         return parseJSON(reply);
       };
-      const raw = taishiWorkflow?null:await this.model.request(actualPrompt, { signal: controller.signal, connection, onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',diagnostic) });
-      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).every(role=>roleConnections[role].settings.mode==='st'),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
+      const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
+      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});this.runtimeLog?.capture(logId,'原始返回',raw);
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');
@@ -624,7 +632,8 @@ export class WukuApp {
       case 'save-task-routes': {
         assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务结束');
         const routes=Object.fromEntries(Object.entries(data.values||{}).filter(([k])=>k.startsWith('route:')).map(([k,v])=>[k.slice(6),v]));
-        saveTaskRoutes(routes);this.settings=getSettings();this.ui.closeDialog();this.refresh();return this.notice('任务模型分流已保存；未指定的任务沿用当前连接。');
+        const fallbacks=Object.fromEntries(Object.keys(routes).map(task=>[task,[data.values?.['fallback1:'+task],data.values?.['fallback2:'+task]].filter(Boolean)]));
+        saveTaskRoutes(routes,getContext(),fallbacks);this.settings=getSettings();this.ui.closeDialog();this.refresh();return this.notice('任务主连接与备用顺序已保存；未配置备用的任务不会自动切换。');
       }
       case 'select-power': this.ui.space = powerSpace(this.store.read().powers[data.id]); this.powerId = data.id; this.plans = []; this.selected = null; return this.refresh();
       case 'select-operation': this.selected = this.ui.view.operations.find(op => op.id === data.id); return this.refresh();

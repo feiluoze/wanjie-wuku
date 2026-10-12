@@ -1,3 +1,4 @@
+import {transportFailure} from './api-fallback.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
 import { parseModelResponse } from './model-response.js';
 import { ASYNC_MARKER, assert, clone, publicPower } from './core.js';
@@ -116,7 +117,7 @@ export class ModelConnection {
       const cancelled = new Promise((_, reject) => {
         abortHandler = () => reject(new Error('查询已取消；酒馆请求可能仍在远端结束，本次返回不会写入档案'));
         if (signal?.aborted) abortHandler(); else signal?.addEventListener('abort', abortHandler, { once: true });
-        timer = setTimeout(() => reject(new Error('酒馆查询超时；本次返回不会写入档案')), seconds * 1000);
+        timer = setTimeout(() => reject(transportFailure('timeout','酒馆查询超时；本次返回不会写入档案')), seconds * 1000);
       });
       try { const result = await Promise.race([raw, cancelled]); assert(typeof result === 'string' && result.trim(), '模型没有返回正文'); return result; }
       finally { clearTimeout(timer); signal?.removeEventListener('abort', abortHandler); }
@@ -134,7 +135,7 @@ export class ModelConnection {
         const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
-        if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw new Error(`模型请求失败（HTTP ${response.status}）；本次没有改变账目`); }
+        if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }
         let data;
         try { data = await response.json(); } catch {
           if(controller.signal.aborted)throw new Error('cancelled');
@@ -146,8 +147,8 @@ export class ModelConnection {
       }
       throw new Error('接口路径不匹配');
     } catch (error) {
-      if (controller.signal.aborted) throw new Error(signal?.aborted ? '查询已取消，本次没有改变账目' : '查询超时，本次没有改变账目');
-      if (error instanceof TypeError) throw new Error('无法连接模型接口，请核对地址、网络及浏览器跨域许可');
+      if (controller.signal.aborted) {if(signal?.aborted)throw new DOMException('查询已取消，本次没有改变账目','AbortError');throw transportFailure('timeout','查询超时，本次没有改变账目');}
+      if (error instanceof TypeError) throw transportFailure('network','无法连接模型接口，请核对地址、网络及浏览器跨域许可');
       throw error;
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }

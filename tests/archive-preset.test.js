@@ -4,7 +4,7 @@ import {fixture} from './mvu-fixture.js';
 import {createPower,emptyState,stable} from '../src/core.js';
 import {MMLC_ENTRY} from '../src/mmlc.js';
 import {archivePrompt,archiveSources,normalizeArchiveBatch} from '../src/archive-review.js';
-import {archivePreset,archiveSummaryPreset,ARCHIVE_PRESET_ID} from '../src/archive-preset.js';
+import {archivePreset,archiveSummaryPreset,ARCHIVE_PRESET_ID,archiveScopePolicy} from '../src/archive-preset.js';
 import {floorCoverage} from '../src/archive-protocol.js';
 import {runTaishiWorkflow} from '../src/taishi-workflow.js';
 import {creationConfig} from '../src/creation-config.js';
@@ -73,4 +73,37 @@ test('specialist preset limits schemas and outputs and retains region, organizat
 test('task preset activates no extra calls or provider-specific roleplay and summary cannot claim persistence',()=>{
  const preset=archivePreset({taskMode:'narrative',explainRules:false});assert.doesNotMatch(preset.system,/<wjwk_guide>|VOID|3000字|预填充|EJS|RFC 6902/);
  const prompt=archiveSummaryPreset([{name:'原始候选'}],['有未解决问题']),input=JSON.parse(prompt.user);assert.equal(input.preset.mode,'summary');assert.deepEqual(input.changes,[{name:'原始候选'}]);assert.match(prompt.system,/未保存时不能声称已写入/);
+});
+
+
+test('generic mechanism scope precedes extraction and does not treat storage categories as ownership',()=>{
+ const f=fixture();f.power.rules='每日记录一次成功交付的情报。';
+ f.ctx.chat=[{is_user:false,mes:'<WJWK-settle>本轮收益：普通学习掌握语言；在另一能力的空间整理工具；每日情报已成功交付。\n后续机会：可以练习</WJWK-settle>'}];
+ const sources=archiveSources(f.ctx.chat,f.state,f.power,{rescan:true}),prompt=archivePrompt(f.power,sources,f.ctx.chat),input=JSON.parse(prompt.user);
+ assert.equal(input.scopePolicy.kind,'power-mechanism');
+ assert.match(prompt.system,/不整理角色全部经历/);
+ assert.match(prompt.system,/一份回执可含多个词条/);
+ assert.match(prompt.system,/只写ownerPowerId也不证明归属/);
+ assert.match(prompt.system,/分类缺失与归属缺失是两回事/);
+ assert.match(prompt.system,/不要求玩家亲自获得收益/);
+ assert.match(prompt.system,/已确认在本任务范围内/);
+ assert(prompt.system.indexOf('<wjwk_scope>')<prompt.system.indexOf('<wjwk_procedure>'));
+ // Preserve evidence for the model to distinguish ordinary skill/tool use from actual receipt.
+ assert.match(input.sources[0].settlements[0].facts,/普通学习掌握语言/);
+ assert.match(input.sources[0].settlements[0].facts,/每日情报已成功交付/);
+ assert.doesNotMatch(input.sources[0].settlements[0].facts,/可以练习/);
+ assert.match(prompt.system,/不按语言、空间等名称设置黑名单/);
+ assert.match(prompt.system,/只输出实际变化的字段/);
+});
+
+test('scope contracts preserve world state, cultivation assets and explicit non-story tasks',()=>{
+ assert.equal(archiveScopePolicy({moduleKind:'taishi'}).kind,'world-state');
+ assert.match(archiveScopePolicy({moduleKind:'taishi'}).boundary,/不要求每条世界事实都由金手指触发/);
+ assert.equal(archiveScopePolicy({moduleKind:'mmlc'}).kind,'cultivation-state');
+ assert.match(archiveScopePolicy({moduleKind:'mmlc'}).boundary,/道场、设施、物资/);
+ for(const taskMode of ['supplement','worldbook','draft','evolution']){
+  const payload={taskMode,moduleKind:'wuku'};
+  assert.equal(archiveScopePolicy(payload).kind,taskMode);
+  assert.doesNotMatch(archivePreset(payload).system,/<wjwk_scope>/);
+ }
 });
