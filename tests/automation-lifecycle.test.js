@@ -1,3 +1,4 @@
+import {completeReview} from './review-response-fixture.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './mvu-fixture.js';
@@ -17,7 +18,7 @@ test('floating cancel guards stale task buttons and commits, then rejects a late
  await f.app.action('ai-task-cancel',{taskId});assert.equal(f.app.busy,false);assert.equal(f.app.aiActivity.current,null);
  response.resolve(answer());await rejected;assert.equal(f.app.pendingArchiveReview,null);assert.equal(f.store.read().revision,revision);
 });
-const answer=()=>JSON.stringify({changes:[]});
+const answer=prompt=>completeReview(prompt);
 
 test('cancelled old request cannot clear a newer request or report old validation phase',async()=>{
  const f=setup(),old=deferred(),fresh=deferred();let calls=0;const phases=[];
@@ -30,7 +31,7 @@ test('cancelled old request cannot clear a newer request or report old validatio
 });
 
 test('cancel before queued review starts performs no API call',async()=>{
- const f=setup();let calls=0;f.app.model.request=async()=>{calls++;return answer();};
+ const f=setup();let calls=0;f.app.model.request=async prompt=>{calls++;return answer(prompt);};
  const work=f.app.reviewArchives();const rejected=assert.rejects(work,{name:'AbortError'});f.app.cancel();await rejected;
  assert.equal(calls,0);assert.equal(f.app.pendingArchiveReview,null);assert.equal(f.app.archiveReviewJob,null);
 });
@@ -42,7 +43,7 @@ test('repeated manual review shares one request and leaves one preview',async()=
 });
 
 test('review claim spans asynchronous save and blocks other review intent',async()=>{
- const f=setup(),saving=deferred();await f.app.togglePlayerAutoSave();f.app.model.request=async()=>answer();
+ const f=setup(),saving=deferred();await f.app.togglePlayerAutoSave();f.app.model.request=async prompt=>answer(prompt);
  f.app.commitArchiveReview=async()=>{await saving.promise;};
  const work=f.app.reviewArchives({automatic:true,autoSave:true});await wait(10);assert.equal(f.app.busy,false);assert.ok(f.app.archiveReviewJob);
  await assert.rejects(async()=>f.app.reviewArchives({rescan:true}),/已有成果整理/);
@@ -94,7 +95,7 @@ test('cancelled response cannot create preview even when transport resolved befo
 });
 
 test('archive-only manual review does not change MVU data or write count',async()=>{
- const f=setup();const before=JSON.stringify(f.getRaw());f.app.model.request=async()=>answer();await f.app.reviewArchives();
+ const f=setup();const before=JSON.stringify(f.getRaw());f.app.model.request=async prompt=>answer(prompt);await f.app.reviewArchives();
  assert.equal(JSON.stringify(f.getRaw()),before);assert.equal(f.replacementCount,0);
 });
 
@@ -103,7 +104,7 @@ test('MVU starting between backlog batches pauses remaining work and resumes wit
  const f=setup();let parsing=false,calls=0;f.engine.isDuringExtraAnalysis=()=>parsing;
  for(let i=0;i<13;i++)f.ctx.chat.push({is_user:false,mes:'新增角色正文，记录当前经历。'});
  await f.store.transact(n=>{const p=n.powers[f.power.id];p.autoArchiveReview=true;p.autoArchiveSave=true;p.autoArchiveStart=0;p.archiveAuto={every:12,context:0};});
- f.app.model.request=async()=>{calls++;if(calls===1)parsing=true;return answer();};
+ f.app.model.request=async prompt=>{calls++;if(calls===1)parsing=true;return answer(prompt);};
  f.app.schedulePlayerReview('normal');await wait();assert.equal(calls,1);assert.equal(f.store.read().powers[f.power.id].archiveReviewed.length,12);assert.ok(f.app.playerAutoQueued);
  parsing=false;f.app.resumePlayerReview();await wait();assert.equal(calls,2);assert.equal(f.store.read().powers[f.power.id].archiveReviewed.length,14);assert.equal(f.app.playerAutoQueued,null);
 });
@@ -111,6 +112,6 @@ test('MVU starting between backlog batches pauses remaining work and resumes wit
 
 test('review freezes selected power before deferred start',async()=>{
  const f=setup();await f.store.transact(n=>{const other=createPower(MMLC_ENTRY);n.powers[other.id]=other;});
- f.app.model.request=async prompt=>{assert.equal(JSON.parse(prompt.user).rules,f.power.rules);return answer();};
+ f.app.model.request=async prompt=>{assert.equal(JSON.parse(prompt.user).rules,f.power.rules);return answer(prompt);};
  const work=f.app.reviewArchives();f.app.powerId=MMLC_ENTRY.id;await work;assert.equal(f.app.pendingArchiveReview.powerId,f.power.id);
 });

@@ -84,6 +84,15 @@ test('confirming a balance needs only its actual value, not a note or ability fo
   await f.app.action('save-baseline', { values: { [`balance:${r.id}`]:'12', [`floor:${r.id}`]:'0', assetName:'', reason:'' } });
   const s = f.app.store.read(); strict.equal(s.powers[f.p.id].resources[r.id].balance, '12'); strict.match(s.transactions.at(-1).changes.join(' '), /玩家核对/);
 });
+test('manual correction assigns exact balance and records its reason without any model call or repeated debit',async()=>{
+ const f=setup();f.app.ui.showBaseline=()=>{};let calls=0;f.app.model.request=async()=>{calls++;throw Error('must not run');};
+ await f.app.openBaseline();const r=Object.values(f.p.resources)[0];
+ const values={ [`balance:${r.id}`]:'56000.123456',[`floor:${r.id}`]:'0',reason:'玩家核对交易后的实际余额'};
+ await f.app.action('save-baseline',{values});
+ const state=f.app.store.read();strict.equal(state.powers[f.p.id].resources[r.id].balance,'56000.123456');strict.equal(calls,0);
+ strict.equal(state.transactions.at(-1).type,'manual');strict.match(state.transactions.at(-1).changes.join(' '),/玩家核对交易后的实际余额/);
+ await strict.rejects(f.app.action('save-baseline',{values}));strict.equal(f.app.store.read().powers[f.p.id].resources[r.id].balance,'56000.123456');
+});
 test('all-power balance confirmation isolates identical resource identifiers between powers', async () => {
   const f = setup(); f.app.ui.showBalances = () => {}; await f.app.openBalances(); const r = Object.values(f.p.resources)[0], blue = Object.values(f.blue.resources)[0];
   await f.app.action('save-balances', { values: { [`balance:${f.p.id}:${r.id}`]:'7', [`balance:${f.blue.id}:${blue.id}`]:'9' } });

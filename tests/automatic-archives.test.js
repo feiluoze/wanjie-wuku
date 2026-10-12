@@ -1,3 +1,4 @@
+import {completeReview} from './review-response-fixture.js';
 import test from 'node:test';
 import strict from 'node:assert/strict';
 import { fixture } from './mvu-fixture.js';
@@ -5,7 +6,7 @@ import { archiveSources, applyArchiveChanges } from '../src/archive-review.js';
 import { normalizeArchiveRange, archiveRangeBounds } from '../src/archive-scope.js';
 import { validateState, clone, chatHashes, hash, stable } from '../src/core.js';
 const wait=()=>new Promise(r=>setTimeout(r,500));
-function response(f,changes=true){return JSON.stringify({changes:changes?[{type:'skill',name:'拂风绵掌',status:'active',fields:{level:'已掌握'},sourceIndex:0,quote:'你已掌握拂风绵掌',ruleQuote:f.power.rules.slice(0,20)}]:[]});}
+function response(f,changes=true){return completeReview(null,{changes:changes?[{type:'skill',name:'拂风绵掌',status:'active',fields:{level:'已掌握'},sourceIndex:0,quote:'你已掌握拂风绵掌',ruleQuote:f.power.rules.slice(0,20)}]:[]});}
 test('manual rescan rereads reviewed floors without erasing incremental cursors',async()=>{
  const f=fixture(),sources=archiveSources(f.ctx.chat,f.state,f.power);applyArchiveChanges(f.power,[],sources,new Map(),f.ctx.chat);
  strict.equal(archiveSources(f.ctx.chat,f.state,f.power).length,0);strict.equal(archiveSources(f.ctx.chat,f.state,f.power,{rescan:true}).length,1);
