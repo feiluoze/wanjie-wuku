@@ -1,9 +1,11 @@
+import {archiveBranchMethods} from './src/archive-branch.js';
 import { spaceMethods, powerSpace, moduleEnabled } from './src/space-controller.js';
 import { mountEntry } from './src/entry.js';
 import { isTaishi } from './src/taishi.js';
+import {runTaishiWorkflow,TAISHI_ROLES} from './src/taishi-workflow.js';
 import { resolveTaskConnection, saveTaskRoutes, accountSecrets } from './src/host.js';
 import { RuntimeLog } from './src/runtime-log.js';
-import { withBuiltinCatalog, upgradeBuiltinPower, builtinPowerId } from './src/builtin-worldbook.js';
+import { withBuiltinCatalog, upgradeBuiltinPower, builtinPowerId, removeCatalogBook } from './src/builtin-worldbook.js';
 import { aiWorldbookMethods, readReferencePacket } from './src/ai-worldbooks.js';
 import { attachReferences } from './src/ai-worldbooks-data.js';
 import { archiveToolMethods } from './src/archive-tools.js';
@@ -15,7 +17,7 @@ import { outboxSummary } from './src/outbox.js';
 import { creationMethods } from './src/creation.js';
 import { terminalMethods } from './src/terminal.js';
 import { MMLC_ENTRY, isMmlc } from './src/mmlc.js';
-import { MODULE_ID, VERSION, assert, amount, normAmount, hash, stable, clone, uid, key, importBook, createPower, upgradeResources, chatHashes, historyChanged, continuesMessage, storyText, narrativeMessages, builtInOperations, normalizeOperation, applyOperation, parseJSON, extractPanelBalances, validateState } from './src/core.js';
+import { MODULE_ID, VERSION, assert, amount, normAmount, hash, stable, clone, uid, key, importBook, createPower, upgradeResources, chatHashes, historyChanged, continuesMessage, storyText, narrativeMessages, builtInOperations, normalizeOperation, applyOperation, parseJSON, extractPanelBalances, validateState, setAssetRemoved } from './src/core.js';
 import { getContext, getSettings, getApiKey, saveSettings, getConnectionProfiles, saveConnectionProfile, applyConnectionProfile, deleteConnectionProfile, resolveAccount, events, scope, worldInfoNames, loadBook, ChatStore, installInjection, verifyRoleSaved, verifyReceiptSaved } from './src/host.js';
 import { ModelConnection, operationPrompt, reconcilePrompt, roleMappingPrompt, endpoints, chooseListedModel } from './src/model.js';
 import { queueAction, unsettledNarrative } from './src/narrative.js';
@@ -51,7 +53,7 @@ export class WukuApp {
     assert(!document.getElementById('wjwk-root'), '操作台已经存在');
     try {
       this.ui = new WorkbenchUI({ action: (name, data) => this.action(name, data), settings: () => this.settings });
-      this.bridge = installInjection({ store: this.store, onRequest: evidence => { this.observeMemoryRequest(evidence); this.observeCreationRequest(evidence); this.observeTerminalRequest(evidence); }, onStatus: message => { this.bridgeStatus = message; }, extraInjection: state => this.roleInjection(state) + this.narrativeInjection(state) + this.memoryInjection(state) + this.terminalInjection(state) + this.creationInjection(state) });
+      this.bridge = installInjection({ store: this.store, injectionChat:()=>this.memoryContextChat(), onRequest: evidence => { this.observeMemoryRequest(evidence); this.observeCreationRequest(evidence); this.observeTerminalRequest(evidence); }, onStatus: message => { this.bridgeStatus = message; }, extraInjection: state => this.roleInjection(state) + this.narrativeInjection(state) + this.memoryInjection(state) + this.terminalInjection(state) + this.creationInjection(state) });
       this.storeListener = () => this.refresh(); this.store.listeners.add(this.storeListener);
       this.attachChatHooks();
       this.refresh();
@@ -97,11 +99,11 @@ export class WukuApp {
       }
       this.mainBusy = true; await this.beginNarrative(type); this.refresh();
     });
-    listen('GENERATION_STOPPED', async () => { this.finishMemoryRequest('stopped'); this.creationAttempt=null; this.terminalAttempt = null; this.memoryAttempt = null; this.mainBusy = false; if (this.continuation) this.continuation.ready = true; await this.stopNarrative(); this.refresh(); this.scheduleRoleRead(); });
-    listen('GENERATION_ENDED', async () => { this.finishMemoryRequest('ended'); if(this.creationAttempt)this.creationAttempt.ended=true; this.mainBusy = false; await this.completeCreation(); if(this.terminalAttempt){this.terminalAttempt.ended=true;await this.completeTerminal();} if (this.memoryAttempt && this.memoryGenerationType !== 'quiet') { this.memoryAttempt.ended = true; if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); } if (this.narrativeAttempt) { this.narrativeAttempt.ended = true; await this.completeNarrative(); } this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(this.narrativeGenerationType); if (this.settings.autoSync && this.settings.mode !== 'off') this.scheduleSync(); });
-    for (const name of ['MESSAGE_EDITED', 'MESSAGE_DELETED', 'MESSAGE_SWIPED']) listen(name, () => { this.continuation = null; this.refresh(); this.scheduleRoleRead(); });
+    listen('GENERATION_STOPPED', async () => { this.finishMemoryRequest('stopped'); this.creationAttempt=null; this.terminalAttempt = null; this.memoryAttempt = null; this.mainBusy = false; if (this.continuation) this.continuation.ready = true; await this.stopNarrative(); await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); });
+    listen('GENERATION_ENDED', async () => { this.finishMemoryRequest('ended'); if(this.creationAttempt)this.creationAttempt.ended=true; this.mainBusy = false; await this.completeCreation(); if(this.terminalAttempt){this.terminalAttempt.ended=true;await this.completeTerminal();} if (this.memoryAttempt && this.memoryGenerationType !== 'quiet') { this.memoryAttempt.ended = true; if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); } if (this.narrativeAttempt) { this.narrativeAttempt.ended = true; await this.completeNarrative(); } await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(this.narrativeGenerationType); if (this.settings.autoSync && this.settings.mode !== 'off') this.scheduleSync(); });
+    for (const name of ['MESSAGE_EDITED', 'MESSAGE_DELETED', 'MESSAGE_SWIPED']) listen(name, async () => { this.continuation = null; await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); });
     listen('MESSAGE_RECEIVED', () => { this.refresh(); this.scheduleRoleRead(); });
-    listen('CHARACTER_MESSAGE_RENDERED', async (index, type) => { if(this.creationAttempt&&(!type||type===this.creationAttempt.type)){this.creationAttempt.rendered=Number(index);await this.completeCreation();} if(this.terminalAttempt&&(!type||type===this.terminalAttempt.type)){this.terminalAttempt.rendered=Number(index);await this.completeTerminal();} if (this.memoryAttempt && (!type || type === this.memoryAttempt.type)) { this.memoryAttempt.rendered = Number(index); if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); } if (this.continuation?.index === Number(index) && (type === 'continue' || !type && !this.mainBusy)) this.continuation.ready = true; if (this.narrativeAttempt && (!type || ['normal', 'continue', 'regenerate', 'swipe'].includes(type))) { this.narrativeAttempt.rendered = Number(index); await this.completeNarrative(); } this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(type); });
+    listen('CHARACTER_MESSAGE_RENDERED', async (index, type) => { if(this.creationAttempt&&(!type||type===this.creationAttempt.type)){this.creationAttempt.rendered=Number(index);await this.completeCreation();} if(this.terminalAttempt&&(!type||type===this.terminalAttempt.type)){this.terminalAttempt.rendered=Number(index);await this.completeTerminal();} if (this.memoryAttempt && (!type || type === this.memoryAttempt.type)) { this.memoryAttempt.rendered = Number(index); if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); } if (this.continuation?.index === Number(index) && (type === 'continue' || !type && !this.mainBusy)) this.continuation.ready = true; if (this.narrativeAttempt && (!type || ['normal', 'continue', 'regenerate', 'swipe'].includes(type))) { this.narrativeAttempt.rendered = Number(index); await this.completeNarrative(); } await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(type); });
   }
   contextSnapshot() { const ctx = getContext(); return { ctx, state: this.store.read(), hashes: chatHashes(ctx.chat), chatKey: scope(ctx).key }; }
   names(ctx = getContext()) { return { user: ctx?.name1 || '{{user}}', character: ctx?.name2 || '{{char}}' }; }
@@ -167,7 +169,7 @@ export class WukuApp {
       'continuation', 'roleDraft', 'powerId', 'pendingSync', 'restoreCandidate',
       'pendingManagement', 'managementDraft', 'adapterDraft', 'archiveDraft',
       'pendingArchiveReview', 'memoryDraft', 'memoryAttempt', 'manualStoryDraft',
-      'logTask', 'referenceDraft', 'referenceLast', 'archiveToolRequest', 'archiveToolDraft', 'workflowDraft', 'creationAttempt', 'creationDraft', 'creationRequest', 'outboxCapture',
+      'logTask', 'referenceDraft', 'referenceLast', 'archiveToolRequest', 'archiveToolDraft', 'workflowDraft', 'creationAttempt', 'creationDraft', 'creationRequest', 'taishiDraft', 'taishiWorkflowDraft', 'taishiPeopleDraft', 'taishiEvolutionDraft', 'taishiBuildDraft', 'outboxCapture',
       'terminalAttempt', 'terminalDraft', 'terminalRequest', 'selected',
     ]) if (name in this) this[name] = null;
     this.mainBusy = false; this.roleReadPending = false; this.roleError = '';
@@ -180,10 +182,12 @@ export class WukuApp {
     if (this.archiveReviewJob) { this.archiveReviewJob.cancelled = true; this.archiveReviewJob = null; }
     this.aiActivity?.cancel(); this.modelListController?.abort();
   }
-  async query(prompt, snapshot, { task = 'general' } = {}) {
+  async query(prompt, snapshot, { task = 'general', taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {} } = {}) {
     assert(!this.destroyed, '插件实例已释放');
     assert(!this.busy, '已有查询进行中');
     const connection = resolveTaskConnection(task,getContext(),this.settings,this.apiKey);this.requestSecrets=[this.apiKey,...accountSecrets()];
+    const roleConnections=taishiWorkflow?Object.fromEntries((workflowRetryRole?[workflowRetryRole]:TAISHI_ROLES).map(role=>[role,resolveTaskConnection(role,getContext(),this.settings,this.apiKey)])):null;
+    if(!taishiWorkflow)this.aiActivity?.connection(connection);
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
     const contextHash = hash(stable(snapshot.hashes));
@@ -191,7 +195,8 @@ export class WukuApp {
     this.runtimeLog?.step(logId,'准备请求',{task,profile:connection.profileName,mode:connection.settings.mode,model:connection.settings.model||'酒馆当前连接',revision:captured.revision});
     try {
       this.aiActivity?.phase('准备附加世界书');
-      const reference=snapshot.state.aiWorldbooks?await readReferencePacket(snapshot.state.aiWorldbooks,{ctx:snapshot.ctx,signal:controller.signal}):{payload:{books:[]},summary:[],characters:0,fingerprint:""};
+      assert(!referenceBatch||prompt.setupReferences,'分批参考仅供太始天底稿任务');
+      const reference=referenceBatch||(snapshot.state.aiWorldbooks?await readReferencePacket(snapshot.state.aiWorldbooks,{ctx:snapshot.ctx,signal:controller.signal}):{payload:{books:[]},summary:[],characters:0,fingerprint:""});
       if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat)))===contextHash,'准备世界书期间剧情已变化，请重试');
       if(prompt.setupReferences)assert(reference.payload.books.some(b=>b.entries.length),'请先选择并保存个人世界书条目；尚未调用模型');
@@ -200,14 +205,28 @@ export class WukuApp {
       this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,references:reference.summary});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
-      const raw = await this.model.request(actualPrompt, { signal: controller.signal, connection });
+      const invoke=async(p,role)=>{
+        if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
+        this.store.assertCapture(captured);
+        const selected=roleConnections?.[role]||connection;
+        this.aiActivity?.connection(selected);
+        this.runtimeLog?.step(logId,'专职请求',{task:role,profile:selected.profileName,model:selected.settings.model||'酒馆当前连接'});
+        this.runtimeLog?.capture(logId,'专职请求 '+role,p);
+        const reply=await this.model.request(p,{signal:controller.signal,connection:selected});
+        if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
+        this.store.assertCapture(captured);
+        this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
+        return parseJSON(reply);
+      };
+      const raw = taishiWorkflow?null:await this.model.request(actualPrompt, { signal: controller.signal, connection });
+      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).every(role=>roleConnections[role].settings.mode==='st'),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});this.runtimeLog?.capture(logId,'原始返回',raw);
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');
       if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
-      return { data: parseJSON(raw), captured, contextHash, logId };
+      return { data, captured, contextHash, logId };
     } catch(error){this.runtimeLog?.step(logId,'请求失败',{error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
@@ -396,6 +415,14 @@ export class WukuApp {
     this.settings.catalog = withBuiltinCatalog([...this.settings.catalog.filter(e => !bookNames.has(e.book)), ...entries]);
     await saveSettings(this.settings); await this.manage(); this.notice(`已读取 ${entries.length} 条完整正文，请选择主词条和附加约束。`);
   }
+  async removeReadBook(name) {
+    assert(!this.busy && !this.mainBusy && !this.committing, '请等待当前操作完成后移除世界书');
+    const next = {...this.settings, catalog: removeCatalogBook(this.settings.catalog, name)};
+    await saveSettings(next);
+    this.settings = next;
+    await this.manage();
+    this.notice('已移除插件中读取的世界书；酒馆原书、已接入金手指及档案保留，需要时可重新读取。');
+  }
   async prepareResources() {
     let captured; try { captured = this.store.capture(); } catch { return; }
     return this.store.transact(next => {
@@ -519,6 +546,12 @@ export class WukuApp {
     if (['save-baseline', 'save-balances', 'register', 'toggle-power', 'delete-power', 'confirm-delete-power', 'confirm-rebase'].includes(name)) assert(!(this.store.read().roleWrites || []).some(w => w.status === 'pending'), '请先处理待完成的角色写回，再修改武库事实');
     const snapshot = () => this.contextSnapshot(), power = () => this.store.read().powers[this.powerId];
     switch (name) {
+      case 'asset-remove':
+      case 'asset-restore': {
+        const s=this.ensureStable();assert(!this.busy,'请等待当前任务完成');const p=s.state.powers[this.powerId];assert(p?.active,'请先选择当前词条');
+        await this.store.transact(next=>{const label=setAssetRemoved(next.powers[p.id],data.id,name==='asset-remove');this.record(next,`${name==='asset-remove'?'移除':'恢复'}背包登记：${label}`,['只调整插件背包登记，数量与历史回执保留；不退款、不执行使用动作、不修改角色变量。'],'setup',p.id);},{captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}});
+        this.selected=null;this.plans=[];this.refresh();return this.notice(name==='asset-remove'?'已移除背包登记，可在“已用完或已移除”中恢复。':'已恢复背包登记，原数量不变。');
+      }
       case 'runtime-log-open': this.ui.showRuntimeLog(this.runtimeLog);return;
       case 'runtime-log-detail': this.runtimeLog.detail=Boolean(data.enabled);return;
       case 'runtime-log-clear': this.runtimeLog.clear();this.ui.showRuntimeLog(this.runtimeLog);return;
@@ -564,7 +597,29 @@ export class WukuApp {
       case 'space-mmlc': return this.action('add-mmlc', {});
       case 'space-taishi': return this.openTaishi();
       case 'taishi-section': return this.selectTaishiSection(data.section);
+      case 'taishi-workflow-retry': return this.retryTaishiWorkflow(data.stage);
+      case 'taishi-workflow-cancel': return this.cancel();
+      case 'taishi-workflow-discard': this.cancel(); this.pendingArchiveReview=null; this.ui.closeDialog(); this.refresh(); return this.resumePlayerReview();
       case 'taishi-setup': return this.initializeTaishi();
+      case 'taishi-build-run': return this.runTaishiBuild();
+      case 'taishi-build-select': return this.selectTaishiBuildReferences();
+      case 'taishi-build-skip': return this.skipTaishiBuild();
+      case 'taishi-build-restart': return this.restartTaishiBuild();
+      case 'taishi-build-dismiss': return this.dismissTaishiBuild();
+      case 'taishi-create-world': return this.openTaishiDraft('world');
+      case 'taishi-add-companion': return this.openTaishiDraft('companion');
+      case 'taishi-draft-submit': return this.submitTaishiDraft(data.values || {});
+      case 'taishi-draft-dismiss': return this.dismissTaishiDraft();
+      case 'taishi-development': return this.openTaishiDevelopment();
+      case 'taishi-autonomy-save': return this.saveTaishiAutonomy(data.values);
+      case 'taishi-story-evolve': return this.evolveTaishiStory(data.id);
+      case 'taishi-evolve': return this.evolveTaishi(data.values);
+      case 'taishi-development-dismiss': return this.dismissTaishiDevelopment();
+      case 'taishi-people-dismiss': this.taishiPeopleDraft=null; return this.resumePlayerReview();
+      case 'taishi-people': return this.openTaishiPeople();
+      case 'taishi-people-save': return this.saveTaishiPeople(data.values);
+      case 'taishi-advanced': return this.openTaishiAdvanced();
+      case 'taishi-workflow-save': return this.saveTaishiWorkflow(data.values);
       case 'save-task-routes': {
         assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务结束');
         const routes=Object.fromEntries(Object.entries(data.values||{}).filter(([k])=>k.startsWith('route:')).map(([k,v])=>[k.slice(6),v]));
@@ -606,6 +661,7 @@ export class WukuApp {
         this.roleDraft = null; this.roleError = ''; this.ui.closeDialog(); this.refresh(); return this.notice('角色接入已解除，待写回记录停止执行。已记账的投入未自动返还，已写回的角色状态保留。');
       }
       case 'read-book': assert(data.values.book, '请选择世界书'); return this.catalog(importBook(await loadBook(data.values.book), data.values.book));
+      case 'remove-read-book': return this.removeReadBook(data.book);
       case 'import-book': assert(data.file.size <= 16 * 1024 * 1024, '世界书文件超过16MB'); return this.catalog(importBook(JSON.parse(await data.file.text()), data.file.name.replace(/\.json$/i, '')));
       case 'register': {
         const s = snapshot(); const selectedEntry = this.settings.catalog.find(e => e.id === data.values.primary); assert(selectedEntry, '主词条不存在');
@@ -615,7 +671,7 @@ export class WukuApp {
         const registered = createPower(entry, companions);
         await this.store.transact(next => {
           const old = next.powers[registered.id]; if (old) upgradeBuiltinPower(old);
-          if (old) { if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
+          if (old) { if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if(old.taishiWorkflow!==undefined)registered.taishiWorkflow=old.taishiWorkflow; if(old.taishiPeople)registered.taishiPeople=clone(old.taishiPeople); if(old.taishiBuild)registered.taishiBuild=clone(old.taishiBuild); if(old.taishiTime)registered.taishiTime=clone(old.taishiTime); if(old.taishiAutonomy!==undefined)registered.taishiAutonomy=old.taishiAutonomy; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
           autoAssociateAdapter(registered,this.associationLibrary());
           next.powers[registered.id] = registered;
           if (!Object.keys(s.state.powers).length) { next.syncCursor = s.ctx.chat.length; next.managementStart = s.ctx.chat.length; next.historyAnchor = s.hashes; }
@@ -766,6 +822,12 @@ export class WukuApp {
       case 'save-favorite': return this.saveFavorite();
       case 'use-favorite': { const a = this.store.read().favoriteActions?.find(a => a.id === data.id); assert(a && this.store.read().powers[a.powerId]?.active, '常用行动对应词条尚未启用'); this.powerId = a.powerId; this.ui.goal = a.goal; this.plans = []; this.selected = null; this.refresh(); return this.notice('已填入常用意图，请按当前剧情生成新的方案。'); }
       case 'delete-favorite': await this.store.transact(next => { next.favoriteActions = (next.favoriteActions || []).filter(a => a.id !== data.id); }, { facts: false }); return this.refresh();
+      case 'ai-task-cancel': {
+        const current=this.aiActivity?.current;
+        if(!current||current.status!=='running'||String(current.id)!==String(data.taskId))return;
+        assert(!this.committing,'结果正在提交，请等待完成；已保存内容不能通过取消撤销');
+        this.cancel();this.refresh();return this.notice('已取消当前插件任务，未提交的返回不会保存；沿用酒馆连接时远端可能仍在结束。');
+      }
       case 'cancel': this.cancel(); return this.notice('查询已取消，本次没有改变账目。');
       case 'open-workflow': return this.openWorkflow(data);
       case 'save-workflow': return this.saveWorkflow(data);
@@ -790,7 +852,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 
