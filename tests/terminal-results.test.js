@@ -1,3 +1,4 @@
+import {completeReview} from './review-response-fixture.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { clone,hash,stable,archiveText,validateState } from '../src/core.js';
@@ -31,7 +32,7 @@ test('unselected progress blocks only its source floor from review advancement',
  const f=await setup(),s=f.store.read(),p=clone(f.power),sources=archiveSources(f.ctx.chat,s,p,{rescan:true});applyArchiveChanges(p,[],sources,new Map(),f.ctx.chat,{blockedFloors:new Set([1])});assert.ok(!p.archiveReviewed.some(a=>a.index===1));assert.ok(p.archiveReviewed.some(a=>a.index===0));
 });
 test('one existing review request includes progress and saves atomically with archives',async()=>{
- const f=await setup();let calls=0;f.app.model.request=async prompt=>{calls++;assert.equal(JSON.parse(prompt.user).terminalOrders[0].id,f.order.id);return JSON.stringify({changes:[],terminalResults:[proposal(f)]});};
+ const f=await setup();let calls=0;f.app.model.request=async prompt=>{calls++;assert.equal(JSON.parse(prompt.user).terminalOrders[0].id,f.order.id);return completeReview(prompt,{changes:[],terminalResults:[proposal(f)]});};
  await f.store.transact(s=>{s.powers[f.power.id].autoArchiveReview=true;s.powers[f.power.id].autoArchiveSave=true;});
  await f.app.reviewArchives({powerId:f.power.id,rescan:true,autoSave:true});assert.equal(calls,1);assert.equal(f.store.read().terminalOrders[0].progress.status,'working');assert.ok(f.store.read().powers[f.power.id].archiveReviewed.some(a=>a.index===1));
 });

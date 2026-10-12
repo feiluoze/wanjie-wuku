@@ -1,3 +1,4 @@
+import {completeReview} from './review-response-fixture.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture} from './mvu-fixture.js';
@@ -9,7 +10,7 @@ const row=role=>({name:role==='taishiWorld'?'海蓝界':'云岚',type:role==='ta
 async function setup(){
   const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};
   await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);f.calls=[];
-  f.fail=new Set(['taishiPeople']);f.app.model.request=async(p,{connection})=>{const role=connection.task;f.calls.push(role);if(f.fail.has(role))throw Error(role+' 超时');return JSON.stringify(role==='taishiSummary'?{message:'世界与人物候选'}:{changes:[row(role)]});};return f;
+  f.fail=new Set(['taishiPeople']);f.app.model.request=async(p,{connection})=>{const role=connection.task;f.calls.push(role);if(f.fail.has(role))throw Error(role+' 超时');return completeReview(p,role==='taishiSummary'?{message:'世界与人物候选'}:{changes:[row(role)]});};return f;
 }
 const pending=f=>f.app.pendingArchiveReview;
 

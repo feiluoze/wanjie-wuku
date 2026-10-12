@@ -23,7 +23,7 @@ test('balance confirmation auto-prefills unknown resources, preserves known ledg
   const ui = Object.create(WorkbenchUI.prototype); let html; ui.dialog = (_title, body) => { html = body; };
   const power = { name: '蝴蝶效应', resources: { a: { id:'a',name:'因果点',balance:null,floor:'0' }, b: { id:'b',name:'已有点数',balance:'8',floor:'0' } } };
   ui.showBaseline(power, { a: { balance:'12',source:'第2条模型回复',evidence:'因果点余额：12' }, b: { balance:'100',source:'旧面板' } });
-  strict.match(html, /name="balance:a" value="12"/); strict.match(html, /name="balance:b" value="8"/); strict.match(html, /原文：因果点余额：12/); strict.doesNotMatch(html, /required/); strict.match(html, /确认这些余额并开始/);
+  strict.match(html, /name="balance:a" value="12"/); strict.match(html, /name="balance:b" value="8"/); strict.match(html, /原文：因果点余额：12/); strict.doesNotMatch(html, /required/); strict.match(html, /保存手动修正/);
 });
 test('model selector renders hostile IDs as inert option text', () => { const ui = Object.create(WorkbenchUI.prototype), select = { innerHTML:'' }; ui.modelIds = ['chat-model','<img src=x onerror=alert(1)>']; ui.modal = { querySelector: s => s === '[data-model-list]' ? select : { value:'chat-model' } }; ui.filterModels(''); strict.doesNotMatch(select.innerHTML, /<img/); strict.match(select.innerHTML, /&lt;img/); strict.match(select.innerHTML, /selected/); });
 test('action preview separates immediate story from deferred settlement and preserves the selected intent', () => {
@@ -33,4 +33,16 @@ test('action preview separates immediate story from deferred settlement and pres
 test('narrative panel exposes retry and evidence without treating any reply as confirmed',()=>{
   const state=emptyState();state.narrativeActions=[{id:'op_test',label:'<script>测试</script>',intent:'玩家选择',status:'waiting'}];const ui=Object.create(WorkbenchUI.prototype);let html=ui.narratives(state,false,'st');strict.match(html,/展开待承接行动/);strict.doesNotMatch(html,/<script>/);strict.match(html,/不再扣费/);
   Object.assign(state.narrativeActions[0],{status:'presented',result:{index:1,excerpt:'<img src=x>正文'}});html=ui.narratives(state,false,'st');strict.match(html,/待核对/);strict.match(html,/检查正文覆盖/);strict.match(html,/正文已承接/);strict.doesNotMatch(html,/<img/);
+});
+
+
+test('optional MVU read errors stay in setup unless the current chat is linked', () => {
+  const ui = Object.create(WorkbenchUI.prototype);
+  ui.panel = {innerHTML:'',querySelectorAll:()=>[]}; ui.tab='operations';ui.capturePanel=()=>null;
+  const state=emptyState(), warning='未检测到可用 MVU 接口';
+  const view={state,power:null,operations:[],settings:{mode:'off'},bridge:true,roleError:warning};
+  ui.render(view); strict.doesNotMatch(ui.panel.innerHTML,/未检测到可用 MVU 接口/);
+  strict.match(ui.rolePanel({state,error:warning},[]),/未检测到可用 MVU 接口/);
+  state.roleLink={bindings:{},roots:[]};ui.render(view);strict.match(ui.panel.innerHTML,/未检测到可用 MVU 接口/);
+  state.roleLink=null;ui.render(view);strict.doesNotMatch(ui.panel.innerHTML,/未检测到可用 MVU 接口/);
 });
