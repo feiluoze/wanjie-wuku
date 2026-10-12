@@ -1,3 +1,4 @@
+import {taishiScope,taishiProjection,TAISHI_KNOWLEDGE_POLICY} from './taishi-context.js';
 import {moveArchiveOwnership} from './archive-ownership.js';
 import { journalSnapshot, saveArchiveUndo } from './archive-journal.js';
 import { validateSpecific } from './state-validation.js';
@@ -26,15 +27,16 @@ export function archivePanel(power) {
   return p.verified && ({ domain: { title: '领域概览', defaultType: 'environment' }, member: { title: '成员概览', defaultType: 'member' }, growth: { title: '成长概览', defaultType: 'skill' }, relationship: { title: '契约概览', defaultType: 'bond' } })[p.family] || { title: '当前成果', defaultType: 'record' };
 }
 export function sceneArchiveContext(power, chat, query = '') {
-  const all = Object.values(power.archives || {}), valid = all.filter(r => archiveCurrent(r, chat));
+  const all = Object.values(power.archives || {}), valid = all.filter(r => archiveContextCurrent(r, chat));
+  const scope=taishiScope(power,valid,query), scoped=scope?valid.filter(scope.includes):valid;
   const q = query.normalize('NFKC').toLowerCase(), items = []; let used = 0;
   const score = r => q.includes(r.name.normalize('NFKC').toLowerCase()) ? 2 : r.fields.location && q.includes(r.fields.location.toLowerCase()) ? 1 : 0;
-  for (const r of [...valid].sort((a, b) => score(b) - score(a) || b.updatedAt - a.updatedAt || a.id.localeCompare(b.id))) {
-    const item = { id: r.id, name: r.name, type: r.type, status: r.status, fields: clone(r.fields),...(r.specific?{specific:clone(r.specific)}:{}) }, size = JSON.stringify(item).length;
+  for (const r of [...scoped].sort((a, b) => score(b) - score(a) || b.updatedAt - a.updatedAt || a.id.localeCompare(b.id))) {
+    const item = scope?taishiProjection(r):{ id: r.id, name: r.name, type: r.type, status: r.status, fields: clone(r.fields),...(r.specific?{specific:clone(r.specific)}:{}) }, size = JSON.stringify(item).length;
     if (items.length >= 24 || used + size > 16000) continue;
     items.push(item); used += size;
   }
-  return { items, validTotal: valid.length, omittedCount: valid.length - items.length, excludedStaleCount: all.length - valid.length };
+  return { items, validTotal: valid.length, omittedCount: scoped.length - items.length, excludedStaleCount: all.length - valid.length,...(scope?{excludedScopeCount:valid.length-scoped.length,informationPolicy:TAISHI_KNOWLEDGE_POLICY}:{}) };
 }
 const normalizedName = name => name.normalize('NFKC').replace(/\s/g, '').toLowerCase();
 export const archiveNames = record => [...new Set([record.name, ...(record.history || []).map(r=>r.name)].map(normalizedName))];
@@ -86,6 +88,20 @@ export function archiveEvidenceText(value, anchor = {}) {
 export const isArchiveDialogue = message => Boolean(message && !message.is_user && (!message.is_system || message.extra?.bbs_hidden === true));
 // Saved records are player data. Source metadata never expires or hides them.
 export function archiveCurrent(record, _chat) { return Boolean(record); }
+// Visibility and prompt eligibility are separate: never delete player history
+// merely because its story branch changed.
+export function archiveContextCurrent(record,chat){
+  if(!record)return false;
+  if(!Array.isArray(chat))return true;
+  const versions=[...(record.history||[]),record];
+  let start=0;
+  for(let i=0;i<versions.length;i++)if(versions[i].source?.type==='manual'||versions[i].source?.contextReset===true)start=i;
+  return versions.slice(start).every(row=>{
+    const source=row.source;if(source?.type!=='story')return true;
+    const anchors=[source.anchor,...(source.anchors||[])].filter(Boolean);
+    return anchors.length>0&&anchors.every(a=>{const m=chat[a.index];return isArchiveDialogue(m)&&(m.swipe_id??0)===a.swipeId&&hash(archiveEvidenceText(m.mes??m.content??'',a).slice(0,a.length))===a.textHash;});
+  });
+}
 export function archiveSource(chat, note) {
   const index = chat.findLastIndex(isArchiveDialogue);
   const m = chat[index];

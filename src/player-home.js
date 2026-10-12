@@ -2,7 +2,7 @@ export { normalizePlayerGuide, currentPlayerGuide } from './player-guide.js';
 import { archiveSources } from './archive-review.js';
 import { normalizeArchiveAuto } from './archive-scope.js';
 import { assert, text, stable, hash, chatHashes } from './core.js';
-import { archiveCurrent } from './archives.js';
+import { archiveContextCurrent as archiveCurrent } from './archives.js';
 
 // Rule explanations describe possibilities, never ownership or completed events.
 
@@ -57,7 +57,7 @@ export const playerHomeMethods = {
     catch { return true; } // An available but unreadable parser must not be treated as ready.
   },
   resumePlayerReview() {
-    if (!this.playerAutoQueued || this.playerAutoRunning || this.playerReviewTimer || this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.archiveToolRequest || this.referenceDraft) return;
+    if (!this.playerAutoQueued || this.playerAutoRunning || this.playerReviewTimer || this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.taishiDraft || this.taishiEvolutionDraft || this.taishiPeopleDraft || this.taishiBuildDraft || this.archiveToolRequest || this.referenceDraft) return;
     if (this.archiveUpdateWaiting()) {
       this.archiveAutoStatus ||= {};
       let changed = false;
@@ -72,7 +72,7 @@ export const playerHomeMethods = {
     const now = this.contextSnapshot();
     if(this.settings.mode==='off'||now.chatKey!==capture.chatKey||now.state.id!==capture.stateId){this.playerAutoQueued=null;return;}
     // Keep queued work while other operations finish; refresh resumes it when idle.
-    if (this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.archiveToolRequest || this.referenceDraft) return;
+    if (this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.taishiDraft || this.taishiEvolutionDraft || this.taishiPeopleDraft || this.taishiBuildDraft || this.archiveToolRequest || this.referenceDraft) return;
     if (this.archiveUpdateWaiting()) { this.resumePlayerReview(); return; }
     const id = stable(capture); this.playerAutoQueued = null;
     if (this.lastPlayerAuto === id) return;

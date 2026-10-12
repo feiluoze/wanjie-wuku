@@ -50,3 +50,13 @@ export function validateTerminalState(state){
  state.terminalOrders ||= [];assert(Array.isArray(state.terminalOrders)&&state.terminalOrders.length<=1000,'终端安排数量无效');const seen=new Set();
  for(const o of state.terminalOrders){assert(o&&typeof o.id==='string'&&!seen.has(o.id)&&Object.hasOwn(TERMINAL_KINDS,o.kind)&&['queued','presented','cancelled'].includes(o.status),'终端安排状态无效');seen.add(o.id);assert(state.transactions.some(t=>t.id===o.id&&t.powerId===o.powerId),'终端安排缺少确认记录');assert(text(o.title,120)&&text(o.target,300)&&text(o.task,2000)&&text(o.ruleQuote,1200),'终端安排内容无效');assert(Array.isArray(o.subjectIds)&&o.subjectIds.length>0&&o.subjectIds.length<=8&&Array.isArray(o.subjects)&&o.subjects.length===o.subjectIds.length&&new Set(o.subjectIds).size===o.subjectIds.length,'终端安排参与对象无效');for(const r of o.subjects)assert(o.subjectIds.includes(r.id)&&text(r.name,200)&&r.fields&&typeof r.fields==='object','终端对象快照无效');assert(Number.isSafeInteger(o.createdAt)&&o.createdAt>0,'终端安排时间无效');if(o.story)assert(Number.isSafeInteger(o.story.index)&&o.story.index>=0&&Number.isSafeInteger(o.story.swipeId)&&o.story.swipeId>=0&&typeof o.story.textHash==='string','终端正文位置无效');if(o.status==='presented')assert(o.story,'终端安排缺少正文');validateTerminalProgress(o);}
 }
+
+export function validateTaishiTime(value){
+ if(value===undefined)return;
+ assert(value&&Object.keys(value).length===1&&Array.isArray(value.receipts)&&value.receipts.length<=512,'正文历时记录无效');
+ const ids=new Set();
+ for(const r of value.receipts){
+  assert(r&&Object.keys(r).every(k=>['id','worldId','anchor'].includes(k))&&/^[a-f0-9]{16}$/.test(r.id)&&!ids.has(r.id)&&typeof r.worldId==='string'&&r.worldId.length>0&&r.worldId.length<=200,'正文历时标识无效');ids.add(r.id);
+  const a=r.anchor;assert(a&&Object.keys(a).every(k=>['index','swipeId','length','textHash'].includes(k))&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>0&&/^[a-f0-9]{16}$/.test(a.textHash),'正文历时来源无效');
+ }
+}

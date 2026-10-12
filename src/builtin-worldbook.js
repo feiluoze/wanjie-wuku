@@ -1,11 +1,21 @@
 import { BUILTIN_WORLDBOOK as book } from './builtin-worldbook-data.js';
-import { clone, hash, stable } from './primitives.js';
+import { assert, clone, hash, stable } from './primitives.js';
+export const BUILTIN_BOOK_NAME = book.entries[0].book;
+export function importedCatalogBooks(catalog = []) {
+  const counts = new Map();
+  for (const entry of catalog) if (entry.book && entry.book !== BUILTIN_BOOK_NAME) counts.set(entry.book, (counts.get(entry.book) || 0) + 1);
+  return [...counts].map(([name, count]) => ({name, count}));
+}
+export function removeCatalogBook(catalog, name) {
+  assert(name && name !== BUILTIN_BOOK_NAME && importedCatalogBooks(catalog).some(b => b.name === name), '请选择已读取的世界书；内置库无需移除');
+  return withBuiltinCatalog(catalog.filter(entry => entry.book !== name));
+}
 const byName = new Map(book.entries.map(e=>[e.name,e]));
 const byHash = new Map(book.entries.map(e=>[hash(e.content),e]));
 const previous = new Map(book.legacy.map(e=>[e.contentHash,e]));
 const oldBindings = new Set(book.legacyAdapterDigests);
 const targetFor = body => byHash.get(hash(body)) || byName.get(previous.get(hash(body))?.target);
-export const builtinWorldbookInfo = () => ({version:book.version,sourceSha256:book.sourceSha256,authorEntries:book.authorEntries,entries:book.entries.length});
+export const builtinWorldbookInfo = () => ({version:book.version,sourceSha256:book.sourceSha256,authorEntries:book.authorEntries,entries:book.entries.length,...(book.overrides?{overrides:clone(book.overrides)}:{})});
 export const builtinEntries = () => clone(book.entries);
 // Reading the renamed author file must not create a second copy of the same power.
 export function builtinPowerId(entry, powers = {}) {
@@ -14,16 +24,24 @@ export function builtinPowerId(entry, powers = {}) {
   return Object.values(powers).find(p=>targetFor(p.primaryRules ?? p.rules ?? '')?.entryId===target.entryId)?.id || entry.id;
 }
 
-// Preserve imported identities and custom material; supply missing official rules.
+// Collapse recognized official rules across imported books, preferring a source
+// without a download-copy suffix. Never deduplicate custom rules by name alone.
 export function withBuiltinCatalog(catalog = []) {
-  const result = [], seen = new Set(), available = new Set();
+  const result = [], seen = new Set(), available = new Set(), preferred = new Map();
+  const copySuffix = /\s*[（(]\d+[）)]\s*$/;
+  for (const entry of catalog) {
+    const target = targetFor(entry.content || '');
+    if (!target) continue;
+    const current = preferred.get(target.entryId);
+    if (!current || (copySuffix.test(current.book || '') && !copySuffix.test(entry.book || ''))) preferred.set(target.entryId, entry);
+  }
   for (const entry of catalog) {
     const target = targetFor(entry.content || '');
     if (!target) { result.push(clone(entry)); continue; }
-    const key = entry.book+'\n'+target.name;
-    if (seen.has(key)) continue;
-    seen.add(key); available.add(target.name);
-    result.push({...clone(entry),name:target.name,entryId:target.entryId,content:target.content,auxiliary:target.auxiliary});
+    if (seen.has(target.entryId)) continue;
+    seen.add(target.entryId); available.add(target.name);
+    const selected = preferred.get(target.entryId);
+    result.push({...clone(selected),book:(selected.book || '').replace(copySuffix,''),name:target.name,entryId:target.entryId,content:target.content,auxiliary:target.auxiliary});
   }
   result.push(...builtinEntries().filter(e=>!available.has(e.name)));
   return result;

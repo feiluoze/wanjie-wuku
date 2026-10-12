@@ -5,7 +5,7 @@ const preset = CREATION_PRESETS.find(c => c.id === 'wuku.primordial_world');
 export const isTaishi = power => Boolean(power && preset.target.primaryHashes.includes(hash(power.primaryRules ?? power.rules ?? '')));
 export const TAISHI_SECTIONS = Object.freeze([
   {id:'worlds',title:'诸界',hint:'每个世界自己的格局、时间与变化'},
-  {id:'companions',title:'眷属',hint:'人物的所在、职责、行动与关系'},
+  {id:'companions',title:'眷属与人物',hint:'人物的所在、职责、行动与关系；普通人物不自动缔约'},
   {id:'civilizations',title:'众生与文明',hint:'区域、族群、组织与文明成果'},
   {id:'development',title:'发展事项',hint:'正在推进的建设、研究与跨界安排'},
   {id:'available',title:'可调用成果',hint:'世界内现存的资源、知识与支持'},
@@ -16,9 +16,9 @@ const field = (id,label,description=label+'；仅记明确现状，不猜数值'
 // Keep original adapter and record IDs so old values/history need no migration.
 export function taishiConfig(base = preset) {
   const c=clone(base);
-  if(c.version==='1.0.0')c.version='1.1.0';
+  if(['1.0.0','1.1.0'].includes(c.version))c.version='1.2.0';
   const additions={
-    world:[field('connections','界域联通'),field('limits','世界边界与禁制')],
+    world:[field('connections','界域联通'),field('limits','世界边界与禁制'),field('overview','世界概况'),field('geography','区域与地理'),field('era','时代与社会'),field('factions','主要势力'),field('resources','资源与经济轮廓'),field('events','当前局势与事件')],
     inhabitants:[field('world','所属世界')],
     available:[field('world','所属世界')],
     growth:[field('world','反馈来路与所属世界')]
@@ -35,6 +35,13 @@ export function taishiConfig(base = preset) {
     {id:'companion',label:'眷属与行动',description:'仅记录具有明确太始天身份的人物；同伴不自动成为眷属。',fields:[field('world','所在世界'),field('location','具体所在'),field('role','身份与职责'),field('action','当前行动'),field('progress','行动进展'),field('relationship','关系与约定'),field('limits','限制与未决事项')]},
     {id:'development',label:'发展事项',description:'每项建设、研究或跨界安排独立追踪，计划和已完成分开。',fields:[field('world','所属世界'),field('participants','参与者'),field('goal','目标'),field('progress','实际进展'),field('result','已形成成果'),field('next','后续事项'),field('limits','限制与阻碍')]}
   ])if(!c.records.some(x=>x.id===r.id))c.records.push(r);
+  const companion=c.records.find(r=>r.id==='companion');
+  if(companion){
+    companion.description='眷属与相关人物独立建档；普通人物、拟邀约者与已缔约眷属明确区分，不自动缔约。';
+    for(const f of [field('profile','基础档案'),field('abilities','能力与专长'),field('goals','长期目标'),field('social','社交关系'),field('knowledge','知道与不知道'),field('recent_memory','近期记忆'),field('settled_memory','沉淀记忆'),field('core_memory','核心记忆'),field('origin','设定来源')])if(!companion.fields.some(x=>x.id===f.id))companion.fields.push(f);
+    const knowledge=companion.fields.find(f=>f.id==='knowledge');
+    if(knowledge)knowledge.description='分开记录已知、未知、误信和获知途径（亲历/告知者/公开消息/已确认能力）；传闻不等于真相。未登记不代表全知，同世界与社交关系不自动传递秘密。';
+  }
   return c;
 }
 export function taishiSection(record) {

@@ -1,3 +1,4 @@
+import {taskConnectionLabel} from './task-routing.js';
 // Transient UI state only. Never persisted to chat or sent to a model.
 export class AIActivity {
   constructor(emit, { now = () => performance.now(), secret = () => '' } = {}) {
@@ -10,6 +11,11 @@ export class AIActivity {
     this.current = null; this.publish(task);
   }
   phase(message) { if (this.current) { this.current.phase = message; this.publish(this.current); } }
+  connection(connection) {
+    if (!this.current) return;
+    const task=this.current;task.connections ||= {};
+    task.connections[connection.task]=this.safe(taskConnectionLabel(connection));this.publish(task);
+  }
   warning(message) { if(this.current)this.current.warning=this.safe(message); }
   problem(message) { if (this.current) this.current.problem = this.safe(message); }
   safe(value) {

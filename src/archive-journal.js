@@ -1,10 +1,10 @@
 // Bounded, one-step undo. No host or controller dependencies.
 import { assert, clone, stable, hash } from './primitives.js';
-const META = ['archiveReviewed', 'playerGuide', 'lastArchiveUpdate', 'autoArchiveStart'];
+const META = ['archiveReviewed', 'playerGuide', 'lastArchiveUpdate', 'autoArchiveStart', 'taishiPeople', 'taishiBuild', 'taishiTime'];
 const safe = s => typeof s === 'string' && s.length > 0 && s.length <= 200 && !['__proto__','constructor','prototype'].includes(s);
 const digest = v => hash(stable(v === undefined ? null : v));
 const selections = (state, id) => Object.fromEntries(Object.entries(state.archiveMemory?.selections || {}).filter(([k]) => k.startsWith(id + '/')));
-const related = (state,id) => ({ terminalOrders:(state.terminalOrders||[]).filter(o=>o.powerId===id), creations:(state.creations||[]).filter(o=>o.powerId===id), selections:selections(state,id) });
+const related = (state,id) => ({...(state.powers[id]?.taishiBuild?{taishiBuild:state.powers[id].taishiBuild}:{}), terminalOrders:(state.terminalOrders||[]).filter(o=>o.powerId===id), creations:(state.creations||[]).filter(o=>o.powerId===id), selections:selections(state,id),...(state.powers[id]?.taishiPeople?{taishiPeople:state.powers[id].taishiPeople}:{}) });
 export function journalSnapshot(state, id) {
  const p=state.powers[id]; assert(p,'词条不存在');
  return clone({archives:p.archives||{}, meta:Object.fromEntries(META.map(k=>[k,p[k]??null])), ...related(state,id)});

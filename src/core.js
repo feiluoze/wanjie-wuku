@@ -1,5 +1,7 @@
+import {validateTaishiTime} from './state-validation.js';
 import { ARCHIVE_READ_FORMAT, withoutThoughts, statusSnapshots } from './archive-reader.js';
 export { ARCHIVE_READ_FORMAT } from './archive-reader.js';
+import {validateTaishiBuild} from './taishi-build.js';
 import { validateAIWorldbooks } from './ai-worldbooks-data.js';
 import { validateArchiveUndo } from './archive-journal.js';
 import { validateSpecific, validateCreations, validateTerminalState } from './state-validation.js';
@@ -12,9 +14,10 @@ import { validateAdapterBinding } from './adapters.js';
 import { normalizeArchiveRange, normalizeArchiveAuto } from './archive-scope.js';
 import { isMmlc, MMLC_ID, MMLC_MODULES } from './mmlc.js';
 import { isTaishi } from './taishi.js';
+import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.0';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -253,7 +256,7 @@ export function parseJSON(raw) {
 function list(value, max, label) { assert(Array.isArray(value) && value.length <= max, `${label}格式无效`); return value; }
 function positive(value) { const n = amount(value); assert(n > 0n, '投入或取得数量必须大于零'); return decimal(n); }
 export function consumableAsset(asset) {
-  return Boolean(asset) && asset.permanent !== true && !/能力|功法|技艺|技能|强化|血脉|体质/.test(asset.kind || '');
+  return Boolean(asset) && !asset.removed && asset.permanent !== true && !/能力|功法|技艺|技能|强化|血脉|体质/.test(asset.kind || '');
 }
 export function normalizeOperation(raw, power, state, contextHash, { event = false, evidenceText = '' } = {}) {
   assert(!isMmlc(power), '漫漫长路只统计成果，不参与执行或结算');
@@ -271,7 +274,7 @@ export function normalizeOperation(raw, power, state, contextHash, { event = fal
     if (type === 'resource_credit') { const id = key(e.id); assert(power.resources[id], '收益指向了不存在的资源'); return { type, id, amount: positive(e.amount) }; }
     if (type === 'asset_grant') return { type, name: text(e.name, 200), kind: text(e.kind || '成果', 100), description: text(e.description, 8000), quantity: positive(e.quantity || '1'), permanent: e.permanent === true };
     if (type === 'field_set') return { type, key: key(e.key), label: text(e.label || e.key, 200), value: text(String(e.value), 8000) };
-    if (type === 'asset_update') { const id = key(e.id); assert(power.assets[id], '更新指向了不存在的物品或能力'); return { type, id, description: text(e.description, 8000) }; }
+    if (type === 'asset_update') { const id = key(e.id); assert(power.assets[id]&&!power.assets[id].removed, '更新指向了不存在或已移除的物品或能力'); return { type, id, description: text(e.description, 8000) }; }
     throw new Error('模型返回了首版不支持的效果类别');
   });
   assert(effects.length || costs.length, '没有实际变化的操作不需要执行');
@@ -305,7 +308,7 @@ export function canAfford(power, operation) {
   for (const [k, total] of costTotals(operation)) {
     const colon = k.indexOf(':'), kind = k.slice(0, colon), id = k.slice(colon + 1);
     const item = (kind === 'resource' ? power.resources : power.assets)[id];
-    if (!item) return { ok: false, reason: '投入对象已不存在' };
+    if (!item || kind === 'asset' && item.removed) return { ok: false, reason: '投入对象已不存在或已移除' };
     if (kind === 'asset' && !consumableAsset(item)) return { ok: false, reason: '永久成果或可复用能力不能作为消耗品' };
     const balance = kind === 'resource' ? item.balance : item.quantity;
     if (balance === null || balance === undefined) return { ok: false, reason: `${item.name}余额尚未确定` };
@@ -329,7 +332,7 @@ export function applyOperation(state, operation, contextHash, anchor, { allowEve
   // Validate the entire effect list before changing a single balance.
   for (const e of operation.effects) {
     if (e.type === 'resource_credit') assert(power.resources[e.id]?.balance !== null && power.resources[e.id]?.balance !== undefined, '收益资源缺少原余额，不能猜测入账');
-    if (e.type === 'asset_update') assert(power.assets[e.id], '待更新资产已经不存在');
+    if (e.type === 'asset_update') assert(power.assets[e.id]&&!power.assets[e.id].removed, '待更新资产已经不存在或已移除');
   }
   const changes = [];
   for (const [k, total] of costTotals(operation)) {
@@ -342,7 +345,7 @@ export function applyOperation(state, operation, contextHash, anchor, { allowEve
     if (e.type === 'resource_credit') { const r = power.resources[e.id]; assert(r.balance !== null, `${r.name}缺少原余额，不能猜测入账`); const before = r.balance; r.balance = decimal(amount(before) + amount(e.amount)); changes.push(`${r.name}：${before} → ${r.balance}`); }
     else if (e.type === 'asset_grant') {
       const specification = stable({ name: e.name, kind: e.kind, description: e.description, permanent: e.permanent });
-      const existing = Object.values(power.assets).find(a => a.specification === specification);
+      const existing = Object.values(power.assets).find(a => !a.removed && a.specification === specification);
       if (existing) existing.quantity = decimal(amount(existing.quantity) + amount(e.quantity));
       else { const id = uid('asset'); power.assets[id] = { id, name: e.name, kind: e.kind, description: e.description, quantity: e.quantity, permanent: e.permanent, specification }; }
       changes.push(`${e.name} +${e.quantity}；${e.description}`);
@@ -357,8 +360,18 @@ export function applyOperation(state, operation, contextHash, anchor, { allowEve
 export function managementRecordCurrent(record, _chat) {
   return Boolean(record);
 }
+export function managementContextCurrent(record,chat){
+  if(!record)return false;
+  const s=record.source;if(!Array.isArray(chat)||s?.type!=='story')return true;
+  const m=chat[s.index];return Boolean(m&&!m.is_user&&!m.is_system&&(m.swipe_id??0)===s.swipeId&&hash(storyText(m.mes??m.content??'').slice(0,s.length))===s.textHash);
+}
+export function setAssetRemoved(power,id,removed){
+  const asset=power?.assets?.[key(id)];assert(asset,'背包登记已不存在');
+  assert(typeof removed==='boolean','背包操作无效');
+  asset.removed=removed;return asset.name;
+}
 export function publicPower(power, chat = null) {
-  return { id: power.id, name: power.name, active: power.active, ...publicWorkflows(power, chat), resources: clone(power.resources), fields: clone(power.fields), assets: clone(power.assets), managementRecords: Object.fromEntries(Object.entries(power.managementRecords || {}).filter(([, r]) => r.status === 'active' && (!Array.isArray(chat) || managementRecordCurrent(r, chat))).map(([id, r]) => [id, { label: r.label, category: r.category, value: r.value }])), fixedQuotes: clone(power.fixedQuotes) };
+  return { id: power.id, name: power.name, active: power.active, ...publicWorkflows(power, chat), resources: clone(power.resources), fields: clone(power.fields), assets: clone(Object.fromEntries(Object.entries(power.assets).filter(([,a])=>!a.removed&&amount(a.quantity)>0n))), managementRecords: Object.fromEntries(Object.entries(power.managementRecords || {}).filter(([, r]) => r.status === 'active' && (!Array.isArray(chat) || managementContextCurrent(r, chat))).map(([id, r]) => [id, { label: r.label, category: r.category, value: r.value }])), fixedQuotes: clone(power.fixedQuotes) };
 }
 export function buildInjection(state, names = {}) {
   const powers = Object.values(state.powers).filter(p => !isMmlc(p) && (!isTaishi(p) || p.active)), enabled = powers.filter(p => p.active);
@@ -425,6 +438,12 @@ export function validateState(data) {
     if (p.autoArchiveStart !== undefined) assert(Number.isSafeInteger(p.autoArchiveStart) && p.autoArchiveStart >= 0, '自动更新起点无效');
     if (p.archiveReadRange !== undefined) p.archiveReadRange = normalizeArchiveRange(p.archiveReadRange);
     if (p.autoArchiveSave !== undefined) assert(typeof p.autoArchiveSave === 'boolean', '自动保存设置无效');
+    validatePeopleControls(p.taishiPeople);
+    validateTaishiBuild(p.taishiBuild);validateTaishiTime(p.taishiTime);
+    validateAIWorldbooks(p.taishiBuildReferences);
+    if(p.taishiBuildReferences)assert(p.taishiBuildReferences.mode==='manual','太始天构建须明确选择世界书和词条');
+    if(p.taishiAutonomy!==undefined)assert(typeof p.taishiAutonomy==='boolean','自主发展设置无效');
+    if (p.taishiWorkflow !== undefined) assert(typeof p.taishiWorkflow === 'boolean', '太始天高级工作流设置无效');
     if (p.autoArchiveReview !== undefined) assert(typeof p.autoArchiveReview === 'boolean', '自动整理设置无效');
     if (p.playerGuide) {
       assert(typeof p.playerGuide.ruleVersion === 'string' && /^[a-f0-9]{16}$/.test(p.playerGuide.ruleVersion) && text(p.playerGuide.summary, 400).trim(), '玩法说明无效');
@@ -445,6 +464,7 @@ export function validateState(data) {
         assert(row.fields && typeof row.fields === 'object' && !Array.isArray(row.fields) && Object.keys(row.fields).length <= 10 && Object.values(row.fields).some(Boolean), '经营档案缺少实际内容');
         for (const [field, value] of Object.entries(row.fields)) { key(field); text(value, 4000); }
         assert(['manual', 'story'].includes(row.source?.type) && text(row.source.note, 600).trim(), '经营档案缺少人工核对来源');
+        assert(row.source.contextReset===undefined||typeof row.source.contextReset==='boolean','档案重核标记无效');
         if (row.source.type === 'story') { text(row.source.quote || '', 4000); text(row.source.ruleQuote || '', 1200); }
         for (const a of [row.source.anchor, ...list(row.source.anchors || [], 1000, '档案来源')].filter(Boolean)) assert(Number.isSafeInteger(a.index) && a.index >= 0 && Number.isSafeInteger(a.swipeId) && a.swipeId >= 0 && (a.length === undefined || Number.isSafeInteger(a.length) && a.length >= 0) && /^[a-f0-9]{16}$/.test(a.textHash) && (a.format === undefined || a.format === ARCHIVE_TEXT_FORMAT || a.format === ARCHIVE_READ_FORMAT), '经营档案剧情位置无效');
         assert(row === r || row.history === undefined, '档案历史不可嵌套');
@@ -471,7 +491,7 @@ export function validateState(data) {
     for (const map of [p.resources, p.fields, p.assets]) assert(map && typeof map === 'object' && !Array.isArray(map), '词条状态无效');
     for (const [rId, r] of Object.entries(p.resources)) { key(rId); assert(r.id === rId, '资源标识不一致'); text(r.name, 200); const floor = amount(r.floor ?? '0'); if (r.balance !== null) assert(amount(r.balance) >= floor, '资源余额低于允许的最低余额'); }
     for (const [fieldId, f] of Object.entries(p.fields)) { key(fieldId); text(f.label, 200); text(f.value, 8000); }
-    for (const [assetId, a] of Object.entries(p.assets)) { key(assetId); assert(a.id === assetId, '所得标识不一致'); text(a.name, 200); text(a.description, 8000); assert(amount(a.quantity) >= 0n, '库存数量无效'); }
+    for (const [assetId, a] of Object.entries(p.assets)) { key(assetId); assert(a.id === assetId, '所得标识不一致'); text(a.name, 200); text(a.description, 8000); assert(amount(a.quantity) >= 0n, '库存数量无效'); assert(a.removed===undefined||typeof a.removed==='boolean','背包移除标记无效'); }
     list(p.quotes || [], 1000, '方案'); list(p.fixedQuotes || [], 10000, '已定报价');
     assert(typeof p.active === 'boolean', '接入状态无效');
     p.fixedQuotes ||= [];

@@ -15,7 +15,7 @@ export function normalizeSpecific(raw,power,before,{recovery=false}={}){
  assert(!before?.specific||before.specific.adapterId===config.id&&before.specific.recordId===definition.id,'已有对象不能自动换成另一种专用统计身份');
  if(isMmlc(power))assert(definition.id===(raw.module||mmlcModule(before||raw)),'漫漫长路专用字段必须归入同一个模块');
  const patch={};for(const [k,v]of Object.entries(raw.details)){assert(typeof v==='string'&&v.length<=4000,'专用统计只接收正文中的文字，不推算数值');patch[k]=v.trim();}
- if(recovery)assert(Object.entries(before?.specific?.fields||{}).every(([k,v])=>!v||patch[k]),'旧专用统计来源失效，需AI从当前正文重新确认全部已有字段');
+ 
  const fields=recovery?patch:{...before?.specific?.fields,...patch};
  const labels={...before?.specific?.labels,...Object.fromEntries(definition.fields.map(f=>[f.id,f.label]))};
  const result={adapterId:config.id,recordId:definition.id,version:config.version,label:definition.label,labels,fields};validateSpecific(result);return result;

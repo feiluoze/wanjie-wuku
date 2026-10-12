@@ -1,9 +1,10 @@
+import { GENERATION_DEFAULTS } from './preferences.js';
 import { CONNECTION_FIELDS, themeId, connectionValues } from './preferences.js';
 import { MODULE_ID, ASYNC_MARKER, STATE_MARKER, assert, text, buildInjection, clone, emptyState, hash, stable, uid, validateState, stripVariableReceipts } from './core.js';
 import { hasVariableReceipt, hasStatusReceipt } from './receipt.js';
 
 import { normalizeTaskRoutes, taskConnection } from './task-routing.js';
-export const DEFAULT_SETTINGS = Object.freeze({ mode: 'off', baseUrl: '', model: '', temperature: 0.4, maxTokens: 4096, timeoutSeconds: 90, autoSync: false, catalog: [], position: null, contextMessages: 8, theme:'follow', activeConnectionProfile:'' });
+export const DEFAULT_SETTINGS = Object.freeze({ mode: 'off', baseUrl: '', model: '', ...GENERATION_DEFAULTS, autoSync: false, catalog: [], position: null, contextMessages: 8, theme:'follow', activeConnectionProfile:'' });
 export function getContext() {
   try { return globalThis.SillyTavern?.getContext?.() || null; } catch { return null; }
 }
@@ -289,11 +290,11 @@ export function requestMemorySnapshot(value, marker = 'WJWK_ARCHIVE_MEMORY_V1') 
   const packet = blocks.join('\n');
   return { packet: packet.slice(0,marker==='WJWK_ARCHIVE_MEMORY_V1'?12000:14000), chars: packet.length, blocks: blocks.length, signature: hash(packet) };
 }
-export function installInjection({ context = getContext, store, onStatus = () => {}, extraInjection = () => '', onRequest = () => {} }) {
+export function installInjection({ context = getContext, store, onStatus = () => {}, extraInjection = () => '', onRequest = () => {}, injectionChat = null }) {
   const ctx = context(), { source, types } = events(ctx);
   const cleanup = [];
   const observe = (kind, read) => { try { onRequest({ kind, read }); } catch { /* Diagnostics must never block generation. */ } };
-  const injection = () => { try { const c = context(); const state = store.read(); return buildInjection(state, { user: c.name1, character: c.name2, chat: c.chat }) + extraInjection(state); } catch { return ''; } };
+  const injection = () => { try { const c = context(); const state = store.read(); return buildInjection(state, { user: c.name1, character: c.name2, chat: injectionChat?injectionChat():c.chat }) + extraInjection(state); } catch { return ''; } };
   const listen = (event, handler) => { if (!source?.on || !event) return false; source.on(event, handler); cleanup.push(() => source.removeListener?.(event, handler)); return true; };
   const chat = listen(types.CHAT_COMPLETION_PROMPT_READY, data => {
     if (data?.dryRun || !Array.isArray(data?.chat) || data.chat.some(m => (typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join('\n') : '').includes(ASYNC_MARKER))) return;

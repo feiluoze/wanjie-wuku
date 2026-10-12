@@ -1667,11 +1667,12 @@ export const CREATION_PRESETS=[
     "format": "wjwk-adapter",
     "schemaVersion": 1,
     "id": "wuku.primordial_world",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "name": "太始天成果总览适配",
-    "description": "仅匹配V4.1太始天完整版；AI在既有整理中填充长期成果，无新增必填表单。",
+    "description": "匹配太始天完整版及已识别旧版；保留既有档案与历史。",
     "target": {
       "primaryHashes": [
+        "0bb859728a7b7542",
         "b1b08f870bb5e019"
       ]
     },
@@ -1681,7 +1682,7 @@ export const CREATION_PRESETS=[
         "kind": "plan",
         "label": "拟定世界发展方向",
         "instruction": "依据当前世界格局拟定生态、族群、文明、源流或建设安排；可为首次定设补足核心构想，不要求玩家填技术字段。时间只按剧情确认的外界历时与当时倍率分段推进，变速不倒改历史，局部加速不充当主世界千年资格。阶段由真实结构与相应升阶劫确认，荒地经过时间不能直接变成繁荣文明。本次输出待正文落实的方案，不自动推进时间、改设、升阶、发放资源或神通。",
-        "ruleQuote": "已经形成的资源",
+        "ruleQuote": "已有知识、设施与法则可直接调用",
         "output": "plan",
         "recordIds": [
           "world",

@@ -1,3 +1,4 @@
+import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
 import { ASYNC_MARKER, assert, clone, publicPower } from './core.js';
 
 const FORMAT = `输出一个纯 JSON 对象，不输出 HTML、脚本、Markdown、剧情或思考过程。
@@ -101,7 +102,7 @@ export class ModelConnection {
   async request(prompt, { signal, connection } = {}) {
     const settings = clone(connection?.settings || this.settings());
     assert(settings.mode !== 'off', '异步模型已关闭；可在连接设置中自行启用');
-    const seconds = bounded(settings.timeoutSeconds, 10, 300, 90);
+    const seconds = requestTimeoutSeconds(settings, connection?.task);
     if (settings.mode === 'st') {
       assert(!this.rawPending, '上一笔酒馆请求仍在结束中，请稍后再试');
       const ctx = this.context(); assert(typeof ctx?.generateRaw === 'function', '当前酒馆未提供原始生成接口，请使用独立连接');
@@ -128,7 +129,7 @@ export class ModelConnection {
     try {
       const urls = endpoints(settings.baseUrl);
       for (let i = 0; i < urls.length; i++) {
-        const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, 0.4), max_tokens: Math.round(bounded(settings.maxTokens, 256, 32768, 4096)), stream: false, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
+        const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
         assert(response.ok, `模型请求失败（HTTP ${response.status}）；本次没有改变账目`);
