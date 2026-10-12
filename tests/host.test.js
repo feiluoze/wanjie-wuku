@@ -11,6 +11,18 @@ function fixture({ deny = false, badSave = false } = {}) {
   return { ctx, store, memory, handlers };
 }
 test('server save is verified against read-back data rather than save return value', async () => { const { store } = fixture(); const result = await store.transact(s => { s.syncCursor = 1; }); strict.equal(result.save.verified, true); strict.equal(store.read().revision, 1); });
+test('a stale first read is checked once more without replaying save or mutation', async()=>{
+ const {store,ctx}=fixture();let reads=0,saves=0,mutations=0;const original=ctx.saveChat;
+ ctx.saveChat=async()=>{saves++;await original();};
+ store.fetchImpl=async()=>({ok:true,json:async()=>[{chat_metadata:++reads===1?{}:clone(ctx.chatMetadata)}]});
+ const r=await store.transact(s=>{mutations++;s.syncCursor=1;});
+ strict.equal(r.save.verified,true);strict.equal(reads,2);strict.equal(saves,1);strict.equal(mutations,1);
+});
+test('unverified save diagnostics identify missing state without recording private contents',async()=>{
+ const {store}=fixture({badSave:true});const reports=[];store.onPersistence=r=>reports.push(r);
+ await store.transact(s=>{s.syncCursor=1;});strict.deepEqual(reports[0].verification,{attempts:2,reason:'missing'});
+ strict.equal('state' in reports[0],false);
+});
 test('swallowed host save failure still preserves one durable local transaction and reports unverified', async () => { const { store, ctx, memory } = fixture({ badSave: true }); const result = await store.transact(s => { s.syncCursor = 1; }); strict.equal(result.save.verified, false); strict.match(result.save.note, /本机备份/); ctx.chatMetadata = {}; strict.equal(store.read().syncCursor, 1); strict.equal(memory.size, 1); });
 test('local persistence failure falls back to verified host storage', async () => {
   const { store, memory } = fixture({ deny: true }); const reports = []; store.onPersistence = report => reports.push(report);
