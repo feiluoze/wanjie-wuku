@@ -1,4 +1,5 @@
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
+import { parseModelResponse } from './model-response.js';
 import { ASYNC_MARKER, assert, clone, publicPower } from './core.js';
 
 const FORMAT = `输出一个纯 JSON 对象，不输出 HTML、脚本、Markdown、剧情或思考过程。
@@ -99,7 +100,8 @@ export class ModelConnection {
       throw error;
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }
-  async request(prompt, { signal, connection } = {}) {
+  async request(prompt, { signal, connection, onResponse = () => {} } = {}) {
+    const report = value => { try { onResponse(value); } catch { /* Diagnostics never change a request outcome. */ } };
     const settings = clone(connection?.settings || this.settings());
     assert(settings.mode !== 'off', '异步模型已关闭；可在连接设置中自行启用');
     const seconds = requestTimeoutSeconds(settings, connection?.task);
@@ -132,10 +134,15 @@ export class ModelConnection {
         const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
-        assert(response.ok, `模型请求失败（HTTP ${response.status}）；本次没有改变账目`);
-        const data = await response.json(), content = data?.choices?.[0]?.message?.content;
-        const result = typeof content === 'string' ? content : Array.isArray(content) ? content.filter(x => x.type === 'text').map(x => x.text || '').join('') : '';
-        assert(result.trim(), '接口没有返回可用正文；请核对模型与OpenAI兼容接口'); return result;
+        if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw new Error(`模型请求失败（HTTP ${response.status}）；本次没有改变账目`); }
+        let data;
+        try { data = await response.json(); } catch {
+          if(controller.signal.aborted)throw new Error('cancelled');
+          report({httpStatus:response.status,format:'invalid-json'});
+          throw new Error('接口响应不是完整 JSON，可能返回了流式数据或被网关截断；本次未提交，不会自动重试');
+        }
+        const parsed = parseModelResponse(data,response.status ?? 200); report(parsed.diagnostic);
+        assert(!parsed.error,parsed.error); return parsed.content;
       }
       throw new Error('接口路径不匹配');
     } catch (error) {

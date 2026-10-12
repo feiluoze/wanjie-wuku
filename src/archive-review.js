@@ -208,7 +208,8 @@ export const archiveReviewMethods = {
     if (!(taishiWorkflow&&batch.issues.length) && !options.setupReferences && options.autoSave && !reviewed.creationResults.some(c=>c.recovery) && !reviewed.changes.some(c => c.recovery) && !reviewed.terminalResults.some(c => c.recovery)) {
       assert(!this.pendingArchiveReview, '已有待确认结果，自动更新暂停');
       const committed = await this.commitArchiveReview(reviewed, new Map(reviewed.changes.map((c, i) => [i, c.id])), { automatic: true });
-      this.archiveAutoStatus ||= {}; this.archiveAutoStatus[power.id] = '已保存本批成果';
+      this.archiveAutoStatus ||= {}; this.archiveAutoStatus[power.id] = committed?.save?.verified===false?'本机已保存，酒馆待核实':'已保存本批成果';
+      if(committed?.save?.verified===false)this.runtimeLog?.patch(result.logId,{partial:true});
       return this.notice(`${reviewed.issues.length?'部分更新已保存，'+reviewed.issues.length+' 项待重查（见运行日志）。':''}自动更新已保存：${reviewed.changes.length} 项成果、${reviewed.terminalResults.length} 项安排进展、${reviewed.creationResults.length} 项拟定进展。${reviewed.skippedOwnership.length?' 已跳过 '+reviewed.skippedOwnership.length+' 项其他金手指对象。':''}${committed?.save?.verified === false ? committed.save.note : ''}`);
     }
     this.pendingArchiveReview = reviewed;
@@ -234,8 +235,9 @@ export const archiveReviewMethods = {
     assert(!pending.changes.length && !pending.terminalResults?.length && !pending.creationResults?.length || chosen.size || terminalChosen.size || creationChosen.size, '请选择要保存的变化；取消不会推进核对进度');
     assert([...terminalChosen].every(i=>Number.isInteger(i)&&i>=0&&i<(pending.terminalResults||[]).length),'安排结果选择项无效');
     assert([...chosen.keys()].every(i => Number.isInteger(i) && i >= 0 && i < pending.changes.length), '选择项无效');
-    await this.commitArchiveReview(pending, chosen, {terminalChosen,creationChosen});
-    this.runtimeLog?.patch(pending.logId,{status:pending.issues?.length?'部分保存':'已保存'});this.pendingArchiveReview = null; this.ui.closeDialog(); this.notice(pending.taishiBuild?'所选底稿已保存；从世界书构建入口查看批次进度并继续。':pending.issues?.length?'有效成果已保存；未通过的条目留待重查，详情见运行日志。':'所选成果与进展已保存；未勾选的变化留待下次核对。'); this.refresh();
+    const committed=await this.commitArchiveReview(pending, chosen, {terminalChosen,creationChosen});
+    const unverified=committed?.save?.verified===false;
+    this.runtimeLog?.patch(pending.logId,{status:unverified?'本机已保存，酒馆待核实':pending.issues?.length?'部分保存':'已保存'});this.pendingArchiveReview = null; this.ui.closeDialog(); this.notice(unverified?committed.save.note:pending.taishiBuild?'所选底稿已保存；从世界书构建入口查看批次进度并继续。':pending.issues?.length?'有效成果已保存；未通过的条目留待重查，详情见运行日志。':'所选成果与进展已保存；未勾选的变化留待下次核对。'); this.refresh();
   },
   async commitArchiveReview(pending, chosen, { automatic = false, terminalChosen = new Set(),creationChosen=new Set() } = {}) {
     this.ensureStable();

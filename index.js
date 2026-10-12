@@ -212,13 +212,13 @@ export class WukuApp {
         this.aiActivity?.connection(selected);
         this.runtimeLog?.step(logId,'专职请求',{task:role,profile:selected.profileName,model:selected.settings.model||'酒馆当前连接'});
         this.runtimeLog?.capture(logId,'专职请求 '+role,p);
-        const reply=await this.model.request(p,{signal:controller.signal,connection:selected});
+        const reply=await this.model.request(p,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:role,...diagnostic})});
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         this.store.assertCapture(captured);
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
         return parseJSON(reply);
       };
-      const raw = taishiWorkflow?null:await this.model.request(actualPrompt, { signal: controller.signal, connection });
+      const raw = taishiWorkflow?null:await this.model.request(actualPrompt, { signal: controller.signal, connection, onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',diagnostic) });
       const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).every(role=>roleConnections[role].settings.mode==='st'),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});this.runtimeLog?.capture(logId,'原始返回',raw);
@@ -681,6 +681,7 @@ export class WukuApp {
         if (Object.keys(registered.resources).length) { this.notice('已接入并识别资源，核对当前余额后即可开始。'); return this.openBaseline(); }
         return this.notice('词条已接入，无固定数值资源；能力直接在正文使用，可在管理页记录重要变化。');
       }
+      case 'archive-edit-open': return this.ui.openArchiveEditor();
       case 'baseline': return this.openBaseline();
       case 'balances': return this.openBalances();
       case 'extract-balances': {

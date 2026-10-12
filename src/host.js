@@ -215,20 +215,28 @@ export class ChatStore {
     ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = clone(state);
     this.lastSave = { verified: false, local, note: local ? '已提交本机账本，正在核对酒馆保存…' : '本机备份不可用，正在尝试酒馆保存…', at: Date.now(), chatKey: captured.key };
     if (local) for (const listener of this.listeners) { try { listener(); } catch { /* Preserve the committed checkpoint. */ } }
-    let verified = false, server = '接口不可用';
+    let verified = false, server = '接口不可用', verification = null;
     if (typeof save === 'function') {
       try { await timeout(Promise.resolve(save.call(ctx)), 12000, '酒馆保存超时'); server = '已调用'; }
       catch { server = '保存报错或超时'; }
       // A host can throw after writing. Read-back remains the authority.
       try {
-        const saved = await readSavedMetadata(ctx, captured, this.fetchImpl);
-        verified = saved?.id === state.id && saved.writeVersion === state.writeVersion && stable(saved) === stable(state);
+        for (let attempt=0;attempt<2;attempt++) {
+          assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
+          const saved = await readSavedMetadata(ctx, captured, this.fetchImpl);
+          assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
+          verified = saved?.id === state.id && saved.writeVersion === state.writeVersion && stable(saved) === stable(state);
+          verification={attempts:attempt+1,reason:verified?'matched':!saved?'missing':saved.id!==state.id?'different-state':saved.writeVersion!==state.writeVersion?'different-write-version':'different-content'};
+          if(verified||attempt===1)break;
+          // Read again only; never replay a mutation or force overwrite the chat.
+          await new Promise(resolve=>setTimeout(resolve,200));
+        }
         server = verified ? '落盘核对成功' : '落盘内容未匹配';
       } catch { server += '，落盘读取失败'; }
     }
     const note = verified ? (local ? '已保存，并核对酒馆落盘' : `已保存到酒馆并核对成功；浏览器${storageError}，本机备份暂不可用`) : local ? '已保存本机备份；酒馆落盘未核实，可稍后重试保存' : `浏览器${storageError}，酒馆保存也未确认；档案暂留本页，请重试酒馆保存或导出档案，刷新前请先处理`;
     this.lastSave = { verified, local, note, at: Date.now(), chatKey: captured.key };
-    if (!local || !verified) report({ local, storageError, server, verified });
+    if (!local || !verified) report({ local, storageError, server, verified, verification });
     if (!local && !verified) {
       this.pendingSaves.set(captured.key, clone(state));
       for (const listener of this.listeners) { try { listener(); } catch { /* Keep pending data exportable. */ } }
