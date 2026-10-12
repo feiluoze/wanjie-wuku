@@ -1,3 +1,4 @@
+import {exportModule,validateModuleBackup,mergeModuleBackup,MODULE_NAMES} from './src/module-backup.js';
 import {archiveBranchMethods} from './src/archive-branch.js';
 import { spaceMethods, powerSpace, moduleEnabled } from './src/space-controller.js';
 import { mountEntry } from './src/entry.js';
@@ -839,13 +840,14 @@ export class WukuApp {
       case 'save-management': return this.saveManagementRecord(data);
       case 'sync': return this.sync();
       case 'apply-sync': return this.applySync();
+      case 'export-all':
       case 'export': {
-        const s = snapshot(); const blob = new Blob([JSON.stringify({ format: 'wjwk-backup', version: VERSION, exportedAt: new Date().toISOString(), chatKey: s.chatKey, state: s.state }, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = `万界武库-档案-${new Date().toISOString().replace(/[:.]/g, '-')}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); return;
+        const s = snapshot(),scope=this.ui.space||'wuku',payload=name==='export-all'?{format:'wjwk-backup',version:VERSION,exportedAt:new Date().toISOString(),chatKey:s.chatKey,state:s.state}:exportModule(s.state,scope); const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = `${name==='export-all'?'完整聊天':MODULE_NAMES[scope]}-档案-${new Date().toISOString().replace(/[:.]/g, '-')}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); return;
       }
       case 'backup': return this.ui.showBackup();
-      case 'import-backup': assert(data.file.size <= 32 * 1024 * 1024, '备份文件超过32MB'); { const raw = JSON.parse(await data.file.text()); assert(raw.format === 'wjwk-backup', '这不是武库导出的备份'); this.restoreCandidate = validateState(clone(raw.state)); for (const p of Object.values(this.restoreCandidate.powers)) { upgradeBuiltinPower(p); upgradeResources(p, this.settings.catalog); } return this.ui.showRestorePreview(this.restoreCandidate); }
-      case 'confirm-restore': assert(!this.busy && !this.mainBusy && this.restoreCandidate, '当前不能恢复档案'); await this.store.restore(this.restoreCandidate, chatHashes(getContext().chat)); this.restoreCandidate = null; this.pendingManagement = null; this.managementDraft = null; this.workflowDraft = null; this.plans = []; this.ui.closeDialog(); this.refresh(); return this.notice(`档案已恢复。${this.store.lastSave.note}`);
+      case 'import-backup': assert(data.file.size <= 32 * 1024 * 1024, '备份文件超过32MB'); { const raw = JSON.parse(await data.file.text()); assert(['wjwk-backup','wjwk-module-backup'].includes(raw.format), '这不是武库导出的备份'); this.restoreModule=raw.format==='wjwk-module-backup'?validateModuleBackup(raw).module:null; this.restoreCandidate = validateState(clone(raw.state)); {const captured=snapshot();this.restoreCapture={chatKey:captured.chatKey,stateId:captured.state.id,revision:captured.state.revision};} for (const p of Object.values(this.restoreCandidate.powers)) { upgradeBuiltinPower(p); upgradeResources(p, this.settings.catalog); } return this.ui.showRestorePreview(this.restoreCandidate,this.restoreModule); }
+      case 'confirm-restore': assert(!this.busy && !this.mainBusy && !this.committing && this.restoreCandidate, '当前不能恢复档案'); if(this.restoreModule){const raw={format:'wjwk-module-backup',module:this.restoreModule,state:this.restoreCandidate};await this.store.transact(next=>{const merged=mergeModuleBackup(next,raw,{currentHashes:chatHashes(getContext().chat)});Object.assign(next,merged);},{captured:this.restoreCapture});}else await this.store.restore(this.restoreCandidate, chatHashes(getContext().chat)); this.restoreModule=null; this.restoreCapture=null; this.restoreCandidate = null; this.pendingManagement = null; this.managementDraft = null; this.workflowDraft = null; this.plans = []; this.ui.closeDialog(); this.refresh(); return this.notice(`档案已恢复。${this.store.lastSave.note}`);
       case 'retry-save': await this.store.retrySave(); this.refresh(); return this.notice(this.store.lastSave?.note || '档案没有变化');
       case 'save-position': this.settings.position = { x: data.x, y: data.y }; return saveSettings(this.settings);
       default: throw new Error('未知操作');
