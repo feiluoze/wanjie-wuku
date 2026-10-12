@@ -15,6 +15,14 @@ export function ownershipContext(state={},power){
 export function foreignArchiveOwner(raw,power,state={}){
  const others=Object.values(state.powers||{}).filter(p=>p.id!==power.id),declared=raw?.ownerPowerId;
  if(declared && declared!==power.id)return {id:declared,name:state.powers?.[declared]?.name||'其他或未明归属',reason:'AI标明属于其他金手指'};
+ // Explicit protocol headings are ownership evidence for every module, even
+ // when the model incorrectly labels the current power as owner.
+ const powers=[power,...others],alias=p=>nameKey(p.name).replace(/[（(].*$/,'');
+ const markers=[...String(raw?.quote||'').matchAll(/【([^】·]+)(?:·[^】]*)?】/g)].map(m=>nameKey(m[1]));
+ const tagged=powers.filter(p=>markers.includes(alias(p)));
+ if(tagged.length===1&&tagged[0].id!==power.id)return {id:tagged[0].id,name:tagged[0].name,reason:'引用的结算或状态标题明确属于其他金手指'};
+ const prefixed=others.filter(p=>alias(p).length>=2&&nameKey(raw?.name).startsWith(alias(p)));
+ if(prefixed.length===1&&!nameKey(raw?.name).startsWith(alias(power)))return {id:prefixed[0].id,name:prefixed[0].name,reason:'对象名称明确以其他已接入金手指命名'};
  if(!isMmlc(power)&&!isTaishi(power))return null;
  const name=nameKey(raw?.name);if(!name)return null;
  // The goldfinger itself is not an estate; no prose/hash/quote validation here.

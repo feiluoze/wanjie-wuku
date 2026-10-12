@@ -23,7 +23,7 @@ export function evolutionConsequence(change,power={}){
 export function evolutionWorld(power,evolution){
   assert(evolution&&typeof evolution==='object'&&!Array.isArray(evolution)&&Object.keys(evolution).every(k=>['worldId','elapsed','unit'].includes(k)),'自主发展参数无效');
   assert(typeof evolution.worldId==='string'&&Number.isFinite(evolution.elapsed)&&evolution.elapsed>0&&evolution.elapsed<=1e9&&Object.hasOwn(TAISHI_TIME_UNITS,evolution.unit),'请填写有效内部历时与单位');
-  const r=power.archives?.[evolution.worldId];assert(r?.specific?.recordId==='world'&&r.type==='environment'&&r.status!=='ended','请选择已有且未结束的世界');return r;
+  const r=power.archives?.[evolution.worldId];assert(r?.specific?.recordId==='world'&&r.status!=='ended','请选择已有且未结束的世界');return r;
 }
 export function evolutionInstruction(power,evolution){
   if(!evolution)return '';

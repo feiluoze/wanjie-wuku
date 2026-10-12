@@ -10700,6 +10700,954 @@ export const CREATION_PRESETS=[
         }
       ]
     }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.harvest",
+    "version": "1.0.0",
+    "name": "多倍收获系统专用适配",
+    "description": "原始事实、实际结算及待兑现权益分开保存；档案整理不操作资源账本。",
+    "target": {
+      "primaryHashes": [
+        "6bc41afcb98e7aa4"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "根据实际状态拟定可选方向，仅为计划；不执行能力、不推算结算、不自动发奖或扣款。",
+        "ruleQuote": "【多倍收获系统】，是与{{user}}本源相连的收获倍增权柄。",
+        "output": "plan",
+        "recordIds": [
+          "harvest",
+          "retained"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "harvest",
+        "label": "收获与结算",
+        "description": "每次真实新收获一个对象；原始收获与最终收益属于同次结算，不将系统增幅再次作为新收获。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "原始收获与来源",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的原始收获与来源；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "final",
+            "label": "正文确认的最终收益",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的正文确认的最终收益；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "delivered",
+            "label": "已交付部分",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已交付部分；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "pending",
+            "label": "尚未交付部分",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的尚未交付部分；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "settlement",
+            "label": "结算依据与状态",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的结算依据与状态；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "retained",
+        "label": "待兑现权益",
+        "description": "只登记已成立未交付权益；关联原收获，补交更新同一权益，不重复发放。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "关联收获",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的关联收获；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "remaining",
+            "label": "未交付剩余",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的未交付剩余；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "condition",
+            "label": "交付条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的交付条件；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "delivered",
+            "label": "后续实际交付",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的后续实际交付；未知留空，不推算、不执行。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "多倍收获系统 · 事实与结算",
+      "summary": "查看实际成果、结算依据与保留事项；档案文字不等于资源账本变动。",
+      "sections": [
+        {
+          "id": "harvest",
+          "label": "收获与结算",
+          "description": "每次真实新收获一个对象；原始收获与最终收益属于同次结算，不将系统增幅再次作为新收获。",
+          "recordIds": [
+            "harvest"
+          ]
+        },
+        {
+          "id": "retained",
+          "label": "待兑现权益",
+          "description": "只登记已成立未交付权益；关联原收获，补交更新同一权益，不重复发放。",
+          "recordIds": [
+            "retained"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.cost_reduction",
+    "version": "1.0.0",
+    "name": "代价减免专用适配",
+    "description": "原始事实、实际结算及待兑现权益分开保存；档案整理不操作资源账本。",
+    "target": {
+      "primaryHashes": [
+        "1108a8b99c87ee05"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "根据实际状态拟定可选方向，仅为计划；不执行能力、不推算结算、不自动发奖或扣款。",
+        "ruleQuote": "「代价减免」，是{{user}}专属的代价压缩权柄。",
+        "output": "plan",
+        "recordIds": [
+          "cost",
+          "intent"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "cost",
+        "label": "行动与实际代价",
+        "description": "一项行动一次结算；原标准、减免后实际承担和成败分开，不能把节省额当新收入或自动退款。",
+        "fields": [
+          {
+            "id": "action",
+            "label": "实际行动",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际行动；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "standard",
+            "label": "正文确认的原标准",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的正文确认的原标准；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "paid",
+            "label": "实际承担的代价",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际承担的代价；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "result",
+            "label": "实际结果与成败",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际结果与成败；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "remaining",
+            "label": "残留损耗与恢复事项",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的残留损耗与恢复事项；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "intent",
+        "label": "待执行行动",
+        "description": "希望采取的行动仍为planned，尝试为working；低成本不保证成功，也不把外界等待时间视为已缩短。",
+        "fields": [
+          {
+            "id": "action",
+            "label": "行动目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的行动目标；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "condition",
+            "label": "必要条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的必要条件；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "cost",
+            "label": "待确认自身成本",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的待确认自身成本；未知留空，不推算、不执行。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "代价减免 · 事实与结算",
+      "summary": "查看实际成果、结算依据与保留事项；档案文字不等于资源账本变动。",
+      "sections": [
+        {
+          "id": "cost",
+          "label": "行动与实际代价",
+          "description": "一项行动一次结算；原标准、减免后实际承担和成败分开，不能把节省额当新收入或自动退款。",
+          "recordIds": [
+            "cost"
+          ]
+        },
+        {
+          "id": "intent",
+          "label": "待执行行动",
+          "description": "希望采取的行动仍为planned，尝试为working；低成本不保证成功，也不把外界等待时间视为已缩短。",
+          "recordIds": [
+            "intent"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.all_rewards",
+    "version": "1.0.0",
+    "name": "我全都要专用适配",
+    "description": "原始事实、实际结算及待兑现权益分开保存；档案整理不操作资源账本。",
+    "target": {
+      "primaryHashes": [
+        "9dcb8de032f902a6"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "根据实际状态拟定可选方向，仅为计划；不执行能力、不推算结算、不自动发奖或扣款。",
+        "ruleQuote": "「我全都要」，是{{user}}独有的全选权柄。",
+        "output": "plan",
+        "recordIds": [
+          "reward_group",
+          "compatibility",
+          "retained"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "reward_group",
+        "label": "奖励结算组",
+        "description": "同一次已赢得奖励一个组，选项与配套分别列明；同组只确认一次，不纳入其他独立未完成任务。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "已成立奖励来源",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立奖励来源；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "options",
+            "label": "本次可选奖励",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的本次可选奖励；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "expanded",
+            "label": "已有功能与直接配套",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已有功能与直接配套；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "delivered",
+            "label": "实际交付",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际交付；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "pending",
+            "label": "待交付权益",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的待交付权益；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "compatibility",
+        "label": "重要兼容",
+        "description": "实际成立的兼容关系，关联原奖励组；不当成第二份奖励。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "关联奖励组",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的关联奖励组；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "rewards",
+            "label": "兼容收益",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的兼容收益；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "effect",
+            "label": "实际共存方式",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际共存方式；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "retained",
+        "label": "待交付权益",
+        "description": "已成立但未交付，不冒充现有库存；后续领取只更新剩余及交付状态。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "关联奖励组",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的关联奖励组；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "remaining",
+            "label": "待交付内容",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的待交付内容；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "condition",
+            "label": "承载与交付条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的承载与交付条件；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "delivered",
+            "label": "实际补交",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际补交；未知留空，不推算、不执行。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "我全都要 · 事实与结算",
+      "summary": "查看实际成果、结算依据与保留事项；档案文字不等于资源账本变动。",
+      "sections": [
+        {
+          "id": "reward_group",
+          "label": "奖励结算组",
+          "description": "同一次已赢得奖励一个组，选项与配套分别列明；同组只确认一次，不纳入其他独立未完成任务。",
+          "recordIds": [
+            "reward_group"
+          ]
+        },
+        {
+          "id": "compatibility",
+          "label": "重要兼容",
+          "description": "实际成立的兼容关系，关联原奖励组；不当成第二份奖励。",
+          "recordIds": [
+            "compatibility"
+          ]
+        },
+        {
+          "id": "retained",
+          "label": "待交付权益",
+          "description": "已成立但未交付，不冒充现有库存；后续领取只更新剩余及交付状态。",
+          "recordIds": [
+            "retained"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.exponential",
+    "version": "1.0.0",
+    "name": "指数增长专用适配",
+    "description": "原始事实、实际结算及待兑现权益分开保存；档案整理不操作资源账本。",
+    "target": {
+      "primaryHashes": [
+        "448605e63351521e"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "根据实际状态拟定可选方向，仅为计划；不执行能力、不推算结算、不自动发奖或扣款。",
+        "ruleQuote": "【指数增长】，是与{{user}}本源绑定的双轴成长权柄。",
+        "output": "plan",
+        "recordIds": [
+          "axis",
+          "settlement",
+          "delta",
+          "exchange"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "axis",
+        "label": "双轴成长",
+        "description": "肉体与灵魂各保存当前完整状态；原基准、永久成长与临时强化分开，不从近似倍率反推点数。",
+        "fields": [
+          {
+            "id": "axis",
+            "label": "肉体或灵魂主轴",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的肉体或灵魂主轴；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "baseline",
+            "label": "初始基准",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的初始基准；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "points",
+            "label": "当前永久点数与进度",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前永久点数与进度；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "overflow",
+            "label": "本区间溢出已发记录与储备",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的本区间溢出已发记录与储备；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "temporary",
+            "label": "临时强化",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的临时强化；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "settlement",
+        "label": "成长与事件结算",
+        "description": "同一成长、节点或事件一个对象；重复扫描复用原ID，不再次计算回馈。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "实际成长或事件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际成长或事件；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "growth",
+            "label": "新增永久成长",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的新增永久成长；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "reward",
+            "label": "实际势差与节点奖励",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际势差与节点奖励；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "state",
+            "label": "已结算状态与依据",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已结算状态与依据；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "delta",
+        "label": "势差账户快照",
+        "description": "保存正文明确余额和累计状态，不将本快照再次作为收入；负余额可为已用预支，不擅自清零。",
+        "fields": [
+          {
+            "id": "balance",
+            "label": "正文确认的Δ余额",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的正文确认的Δ余额；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "spent",
+            "label": "累计实际消费",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的累计实际消费；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "advance",
+            "label": "当前预支总上限与已用额度",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前预支总上限与已用额度；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "remainder",
+            "label": "累计应得已发与尾差",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的累计应得已发与尾差；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "milestones",
+            "label": "已成立里程碑与越阶计数",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立里程碑与越阶计数；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "exchange",
+        "label": "兑换与保留事项",
+        "description": "每笔实际兑换分别记录，支付与交付及后续成长分开；目标或委托不提前扣款。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "兑换或委托对象",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的兑换或委托对象；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "paid",
+            "label": "实际支付",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际支付；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "received",
+            "label": "实际交付",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际交付；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "pending",
+            "label": "暂存与待完成内容",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的暂存与待完成内容；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "authorization",
+            "label": "预支或持续委托授权",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的预支或持续委托授权；未知留空，不推算、不执行。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "指数增长 · 事实与结算",
+      "summary": "查看实际成果、结算依据与保留事项；档案文字不等于资源账本变动。",
+      "sections": [
+        {
+          "id": "axis",
+          "label": "双轴成长",
+          "description": "肉体与灵魂各保存当前完整状态；原基准、永久成长与临时强化分开，不从近似倍率反推点数。",
+          "recordIds": [
+            "axis"
+          ]
+        },
+        {
+          "id": "settlement",
+          "label": "成长与事件结算",
+          "description": "同一成长、节点或事件一个对象；重复扫描复用原ID，不再次计算回馈。",
+          "recordIds": [
+            "settlement"
+          ]
+        },
+        {
+          "id": "delta",
+          "label": "势差账户快照",
+          "description": "保存正文明确余额和累计状态，不将本快照再次作为收入；负余额可为已用预支，不擅自清零。",
+          "recordIds": [
+            "delta"
+          ]
+        },
+        {
+          "id": "exchange",
+          "label": "兑换与保留事项",
+          "description": "每笔实际兑换分别记录，支付与交付及后续成长分开；目标或委托不提前扣款。",
+          "recordIds": [
+            "exchange"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.mass_energy",
+    "version": "1.0.0",
+    "name": "质能转换专用适配",
+    "description": "原始事实、实际结算及待兑现权益分开保存；档案整理不操作资源账本。",
+    "target": {
+      "primaryHashes": [
+        "1ebe4208b99f1500"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "根据实际状态拟定可选方向，仅为计划；不执行能力、不推算结算、不自动发奖或扣款。",
+        "ruleQuote": "质能转换，是{{user}}专属的质能法则支配权能。",
+        "output": "plan",
+        "recordIds": [
+          "source",
+          "creation",
+          "arrangement"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "source",
+        "label": "源量与当前承载",
+        "description": "同份源量一个对象，更新当前承载；实体和已取回同份源量不得同时当作两份可用库存。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "真实来源",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的真实来源；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "amount",
+            "label": "当前可用份额",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前可用份额；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "carrier",
+            "label": "当前能量或实体承载",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前能量或实体承载；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "released",
+            "label": "已释放待回收份额",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已释放待回收份额；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "recovered",
+            "label": "实际已回收份额",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际已回收份额；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "creation",
+        "label": "重要造物",
+        "description": "每项造物分别记录，关联投入和当前归属；实际重新转换后更新原造物，不保留重复可用份额。",
+        "fields": [
+          {
+            "id": "source",
+            "label": "对应源量及实际投入",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的对应源量及实际投入；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "features",
+            "label": "实际功能与数量",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际功能与数量；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "owner",
+            "label": "当前归属",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前归属；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "condition",
+            "label": "当前承载状态与缺口",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前承载状态与缺口；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "arrangement",
+        "label": "持续安排",
+        "description": "仅记录已授权安排与实际运行，不根据电脑时间自动推进；累计外界作用与当前源量分开。",
+        "fields": [
+          {
+            "id": "intent",
+            "label": "既定意图与保护对象",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的既定意图与保护对象；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "condition",
+            "label": "运行条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的运行条件；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "period",
+            "label": "实际运行时段",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际运行时段；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "effect",
+            "label": "累计外界作用",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的累计外界作用；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "pending",
+            "label": "未完成与待回收内容",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的未完成与待回收内容；未知留空，不推算、不执行。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "质能转换 · 事实与结算",
+      "summary": "查看实际成果、结算依据与保留事项；档案文字不等于资源账本变动。",
+      "sections": [
+        {
+          "id": "source",
+          "label": "源量与当前承载",
+          "description": "同份源量一个对象，更新当前承载；实体和已取回同份源量不得同时当作两份可用库存。",
+          "recordIds": [
+            "source"
+          ]
+        },
+        {
+          "id": "creation",
+          "label": "重要造物",
+          "description": "每项造物分别记录，关联投入和当前归属；实际重新转换后更新原造物，不保留重复可用份额。",
+          "recordIds": [
+            "creation"
+          ]
+        },
+        {
+          "id": "arrangement",
+          "label": "持续安排",
+          "description": "仅记录已授权安排与实际运行，不根据电脑时间自动推进；累计外界作用与当前源量分开。",
+          "recordIds": [
+            "arrangement"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.story_points",
+    "version": "1.0.0",
+    "name": "故事点专用适配",
+    "description": "原始事实、实际结算及待兑现权益分开保存；档案整理不操作资源账本。",
+    "target": {
+      "primaryHashes": [
+        "c66fd315acfe25e7"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "根据实际状态拟定可选方向，仅为计划；不执行能力、不推算结算、不自动发奖或扣款。",
+        "ruleQuote": "「故事点」，是{{user}}独有的叙事货币，也是直接批改现实的权柄。",
+        "output": "plan",
+        "recordIds": [
+          "account",
+          "income",
+          "revision",
+          "intent"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "account",
+        "label": "点数账户快照",
+        "description": "只保存正文确认的余额与周期位置；不因激活规则、刷新或电脑日期自动入账。",
+        "fields": [
+          {
+            "id": "balance",
+            "label": "已确认故事点余额",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已确认故事点余额；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "activation",
+            "label": "实际激活入账记录",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际激活入账记录；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "cycle",
+            "label": "权柄自身已结算周期位置",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的权柄自身已结算周期位置；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "income",
+        "label": "周期入账",
+        "description": "每个实际完成的自身周期或明确连续周期段一个对象；同周期不重复入账，外界历史重现不是新周期。",
+        "fields": [
+          {
+            "id": "period",
+            "label": "已完成自身周期或连续区间",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已完成自身周期或连续区间；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "amount",
+            "label": "实际入账总额",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际入账总额；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "state",
+            "label": "入账依据与已结算状态",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的入账依据与已结算状态；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "revision",
+        "label": "已成立修正",
+        "description": "每次已决定、已支付且实际成立的修正一个对象；同目标再次付点的新修订另记，旧消费保留。",
+        "fields": [
+          {
+            "id": "target",
+            "label": "修正目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的修正目标；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "before",
+            "label": "旧事实",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的旧事实；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "after",
+            "label": "已成立新事实及因果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立新事实及因果；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "tier",
+            "label": "本次档位",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的本次档位；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "paid",
+            "label": "实际消耗",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际消耗；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "previous",
+            "label": "关联前次修订",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的关联前次修订；未知留空，不推算、不执行。"
+          }
+        ]
+      },
+      {
+        "id": "intent",
+        "label": "待决定版本",
+        "description": "设想与未执行修正保留planned，尚未成功尝试保留working；不足点不扣款，不提前改变现实。",
+        "fields": [
+          {
+            "id": "target",
+            "label": "目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的目标；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "desired",
+            "label": "希望的新版本",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的希望的新版本；未知留空，不推算、不执行。"
+          },
+          {
+            "id": "condition",
+            "label": "待决定与未满足条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的待决定与未满足条件；未知留空，不推算、不执行。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "故事点 · 事实与结算",
+      "summary": "查看实际成果、结算依据与保留事项；档案文字不等于资源账本变动。",
+      "sections": [
+        {
+          "id": "account",
+          "label": "点数账户快照",
+          "description": "只保存正文确认的余额与周期位置；不因激活规则、刷新或电脑日期自动入账。",
+          "recordIds": [
+            "account"
+          ]
+        },
+        {
+          "id": "income",
+          "label": "周期入账",
+          "description": "每个实际完成的自身周期或明确连续周期段一个对象；同周期不重复入账，外界历史重现不是新周期。",
+          "recordIds": [
+            "income"
+          ]
+        },
+        {
+          "id": "revision",
+          "label": "已成立修正",
+          "description": "每次已决定、已支付且实际成立的修正一个对象；同目标再次付点的新修订另记，旧消费保留。",
+          "recordIds": [
+            "revision"
+          ]
+        },
+        {
+          "id": "intent",
+          "label": "待决定版本",
+          "description": "设想与未执行修正保留planned，尚未成功尝试保留working；不足点不扣款，不提前改变现实。",
+          "recordIds": [
+            "intent"
+          ]
+        }
+      ]
+    }
   }
 ];
 export const CREATION_PRESET_COMPATIBILITY=[

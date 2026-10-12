@@ -19,7 +19,7 @@ export function taishiConfig(base = preset) {
   const c=clone(base);
   if(['1.0.0','1.1.0'].includes(c.version))c.version='1.2.0';
   const additions={
-    world:[field('connections','界域联通'),field('limits','世界边界与禁制'),field('overview','世界概况'),field('geography','区域与地理'),field('era','时代与社会'),field('factions','主要势力'),field('resources','资源与经济轮廓'),field('events','当前局势与事件')],
+    world:[field('connections','界域联通'),field('limits','世界边界与禁制'),field('overview','世界概况'),field('geography','区域与地理'),field('era','时代与社会'),field('factions','主要势力'),field('resources','资源与经济轮廓'),field('events','当前局势与事件'),field('abilities','能力体系'),field('combat_style','战斗方式'),field('crafts','能力与技艺'),field('ability_title','能力分区名称','玩家可自定显示名称，不改变能力事实'),field('source_profile','世界书原文片段','仅程序按所选引用复制，AI不得填写')],
     inhabitants:[field('world','所属世界')],
     available:[field('world','所属世界')],
     growth:[field('world','反馈来路与所属世界')]
@@ -36,6 +36,8 @@ export function taishiConfig(base = preset) {
     {id:'companion',label:'眷属与行动',description:'仅记录具有明确太始天身份的人物；同伴不自动成为眷属。',fields:[field('world','所在世界'),field('location','具体所在'),field('role','身份与职责'),field('action','当前行动'),field('progress','行动进展'),field('relationship','关系与约定'),field('limits','限制与未决事项')]},
     {id:'development',label:'发展事项',description:'每项建设、研究或跨界安排独立追踪，计划和已完成分开。',fields:[field('world','所属世界'),field('participants','参与者'),field('goal','目标'),field('progress','实际进展'),field('result','已形成成果'),field('next','后续事项'),field('limits','限制与阻碍')]}
   ])if(!c.records.some(x=>x.id===r.id))c.records.push(r);
+  for(const [id,label,description] of [['region','区域','只记录明确区域与地理现状'],['organization','组织与势力','仅记录明确存在的独立组织，不把世界简介里的名称扩写成事实'],['event','事件','实际事件与计划区分；本版只登记概况，不自动推演因果']])if(!c.records.some(r=>r.id===id))c.records.push({id,label,description,fields:[field('world','所属世界'),field('location','所在区域'),field('overview','当前概况'),field('participants','明确参与者'),field('result','实际结果与状态'),field('limits','限制与未知事项')]});
+  for(const r of c.records)if(r.id!=='world'&&!r.fields.some(f=>f.id==='world_id'))r.fields.push(field('world_id','所属世界档案ID','仅填写输入current中存在的world档案ID；未知留空，不能编造ID'));
   const companion=c.records.find(r=>r.id==='companion');
   if(companion){
     companion.description='眷属与相关人物独立建档；普通人物、拟邀约者与已缔约眷属明确区分，不自动缔约。';
@@ -47,7 +49,7 @@ export function taishiConfig(base = preset) {
 }
 export function taishiSection(record) {
   const id=record.specific?.recordId;
-  const declared={world:'worlds',companion:'companions',development:'development',inhabitants:'civilizations',available:'available',growth:'growth'}[id];
+  const declared={world:'worlds',companion:'companions',development:'development',inhabitants:'civilizations',region:'civilizations',organization:'civilizations',event:'development',available:'available',growth:'growth'}[id];
   if(declared)return declared;
   if(record.type==='member'||record.type==='bond')return 'companions';
   return record.type==='research'?'development':'other';
@@ -86,5 +88,5 @@ export function protectTaishiBaseline(batch) {
   return batch;
 }
 export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。每个实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
-世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。关联世界使用已知完整名称；未知留空。
+世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。区域region、独立组织organization和事件event按明确资料独立记录，不把概述扩写为虚构细节。世界能力体系使用abilities、战斗combat_style、日常技艺crafts；未知留空。关联世界使用已知完整名称，已有world档案存在时填写其world_id，不猜测ID。
 各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`;

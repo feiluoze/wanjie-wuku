@@ -36,6 +36,7 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
         current.changes.push(row);
       }
       current.issues.push(...validateChanges(current.changes,role).map(i=>failed(role,i.reason,'专职校验',i.name)));
+      current.floorReviews=Array.isArray(data.floorReviews)?data.floorReviews:[];
       current.message=String(data.message||'').slice(0,1500);current.status=current.issues.length?'failed':'success';
     }catch(error){check();current.issues.push(failed(role,error.message||'任务失败'));}
   };
@@ -60,5 +61,10 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
   // A deferred summary is visible and blocks progress until explicitly generated.
   if(state.stages.taishiSummary.status==='pending')issues.push(failed('taishiSummary','摘要尚未生成；完成专职后可单独生成','等待汇总'));
   const message=state.stages.taishiSummary.status==='success'?state.stages.taishiSummary.message:TAISHI_ROLES.slice(0,2).map(role=>state.stages[role].message).filter(Boolean).join('；');
-  return {changes,message,workflowIssues:issues,workflowState:state};
+  const floorReviews=(input.sources||[]).map(s=>{
+    const rows=TAISHI_ROLES.slice(0,2).map(role=>(state.stages[role].floorReviews||[]).filter(r=>r.sourceIndex===s.index));
+    const reviewed=rows.every(r=>r.length===1&&r[0].status==='reviewed'&&Number.isSafeInteger(r[0].changeCount)&&r[0].changeCount>=0);
+    return {sourceIndex:s.index,status:reviewed?'reviewed':'uncertain',changeCount:reviewed?rows.reduce((sum,r)=>sum+r[0].changeCount,0):0};
+  });
+  return {changes,message,floorReviews,workflowIssues:issues,workflowState:state};
 }

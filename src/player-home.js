@@ -98,6 +98,7 @@ export const playerHomeMethods = {
           try { await this.reviewArchives({silent:true,autoSave:Boolean(p.autoArchiveSave),automatic:true,powerId}); }
           catch(error){const current=this.contextSnapshot();if(this.playerAutoRunning!==run||current.chatKey!==capture.chatKey||current.state.id!==capture.stateId||error?.name==='AbortError')break;this.archiveAutoStatus[powerId]=`更新暂停：${error.message}`;this.notice(`${p.name}自动更新未完成：${error.message}。可手动重查，失败不会自动重试API。`,true);break;}
           if (this.playerAutoRunning !== run) break;
+          if(this.archiveAutoIncomplete?.[powerId]){this.archiveAutoStatus[powerId]='部分楼层待重查，自动整理已暂停';this.archiveAutoIncomplete[powerId]=false;break;}
           if(!p.autoArchiveSave||this.pendingArchiveReview){this.archiveAutoStatus[powerId]='等待确认';break;}
           const after=this.contextSnapshot(),next=archiveSources(after.ctx.chat,after.state,after.state.powers[powerId] || p,{automatic:true});
           if(next.length&&stable(next)===stable(sources)){this.archiveAutoStatus[powerId]='本批进度未前进，请手动重查';break;}

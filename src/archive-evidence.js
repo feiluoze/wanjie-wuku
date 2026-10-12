@@ -6,11 +6,14 @@ function literalSpan(content, quote) {
  return content.slice(positions[index],positions[index+needle.length-1]+1);
 }
 
-// Optional provenance for display/logging. Never reject an AI update on literal matching.
+// Explicit indices may carry paraphrases. Missing/invalid indices need unique
+// evidence; never silently attach an unknown fact to the newest reply.
 export function resolveArchiveEvidence(rawIndex, quote, sources, playerNote='') {
  const index=Number(rawIndex),reference=typeof quote==='string'?quote.trim():'';
  if(playerNote)return {manual:true,source:{content:playerNote},quote:reference||playerNote.slice(0,4000),index:-1};
- const source=sources.find(s=>s.index===index)||sources.find(s=>reference&&s.content.includes(reference))||sources.at(-1);
- if(!source)return {manual:true,source:{content:''},quote:reference,index:-1};
+ if(!sources.length&&rawIndex===undefined)return {manual:true,source:{content:''},quote:reference,index:-1};
+ const matches=reference?sources.filter(s=>literalSpan(s.content,reference)):[];
+ const source=(matches.length===1?matches[0]:null)||sources.find(s=>Number.isSafeInteger(index)&&s.index===index)||(sources.length===1?sources[0]:null);
+ if(!source)throw Error('来源楼层缺失或不在本批，且无法唯一定位引用；未归到最新楼层，请重查');
  return {manual:false,source,quote:literalSpan(source.content,reference)||reference,index:source.index};
 }

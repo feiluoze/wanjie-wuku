@@ -5,9 +5,10 @@ export { validateSpecific } from './state-validation.js';
 import {assert,clone,stable,text} from './core.js';
 import {creationConfig} from './creation-config.js';
 import {archiveCurrent} from './archives.js';
+import {worldForRecord} from './taishi-world.js';
 const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
 
-export function normalizeSpecific(raw,power,before,{recovery=false}={}){
+export function normalizeSpecific(raw,power,before,{recovery=false,chat=[]}={}){
  if(isMmlc(power)&&before?.specific)assert((raw.module||mmlcModule(before))===before.specific.recordId,'已有漫漫长路专用档案不能自动改换模块身份');
  if(raw.recordId===undefined&&raw.details===undefined){assert(!recovery||!before?.specific,'旧专用统计来源失效，需AI重新确认专用字段');return before?.specific?clone(before.specific):undefined;}
  const config=creationConfig(power),definition=config?.records.find(r=>r.id===raw.recordId);
@@ -18,6 +19,10 @@ export function normalizeSpecific(raw,power,before,{recovery=false}={}){
  const patch={};for(const [k,v]of Object.entries(raw.details)){assert(typeof v==='string'&&v.length<=4000,'专用统计只接收正文中的文字，不推算数值');patch[k]=v.trim();}
  
  const fields=recovery?patch:{...before?.specific?.fields,...patch};
+ if(config.id==='wuku.primordial_world'&&definition.id!=='world'){
+  if(fields.world_id)assert(power.archives?.[fields.world_id]?.specific?.recordId==='world','所属世界ID不存在或不是世界档案，请核对后重试');
+  else if(fields.world){const world=worldForRecord(power,{specific:{fields}},chat);if(world)fields.world_id=world.id;}
+ }
  const labels={...before?.specific?.labels,...Object.fromEntries(definition.fields.map(f=>[f.id,f.label]))};
  const result={adapterId:config.id,recordId:definition.id,version:config.version,label:definition.label,labels,fields};validateSpecific(result);return result;
 }
