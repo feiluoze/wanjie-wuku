@@ -308,3 +308,13 @@
 .wjwk .wjwk-brief-grid{display:block;column-count:2;column-gap:16px}.wjwk .wjwk-brief-card{break-inside:avoid;margin:0 0 16px}.wjwk .wjwk-brief-hero{padding:18px}.wjwk .wjwk-brief-card dl>div{padding:7px 0}.wjwk .wjwk-help,.wjwk .wjwk-support-panel{margin:12px 0;border:1px solid var(--wk-line);border-radius:10px;padding:0 14px}.wjwk .wjwk-help>summary,.wjwk .wjwk-support-panel>summary,.wjwk [data-journey-details]>summary{cursor:pointer;padding:12px 0;min-height:44px;box-sizing:border-box}.wjwk .wjwk-help p{line-height:1.65}@media(max-width:640px){.wjwk .wjwk-brief-grid{column-count:1}.wjwk .wjwk-brief-card{margin-bottom:12px}}
 .wjwk[data-appearance="taishi"] .wjwk-player-hero{display:block;padding:20px}.wjwk[data-appearance="taishi"] .wjwk-home-primary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:16px;max-width:760px;gap:8px;flex-shrink:1}.wjwk[data-appearance="taishi"] .wjwk-home-primary>small{grid-column:1/-1}.wjwk[data-appearance="taishi"] .wjwk-home-primary>button{white-space:normal;min-width:0;width:100%;margin:0}.wjwk [data-world-outline] dd{white-space:pre-wrap;line-height:1.65;overflow-wrap:anywhere}
 .wjwk .wjwk-section-actions{grid-column:1/-1}.wjwk .wjwk-section-actions>summary{padding:10px 0;cursor:pointer;min-height:44px;box-sizing:border-box}.wjwk .wjwk-section-actions[open]{display:flex;flex-direction:column;gap:8px}.wjwk .wjwk-section-actions>button{white-space:normal}
+
+/* View state only: minimizing never aborts an AI task or destroys its dialog. */
+.wjwk .wjwk-fab-fold{position:fixed;right:24px;bottom:151px;z-index:2100;padding:6px 12px;min-height:32px;background:var(--wk-soft)!important}
+.wjwk .wjwk-edge-tab{position:fixed;right:0;top:55%;z-index:2300;width:44px;min-height:72px;padding:8px 4px;border-radius:12px 0 0 12px;background:var(--wk-soft)!important;overflow-wrap:anywhere}
+#wjwk-root>.wjwk-fab-fold,#wjwk-root>.wjwk-edge-tab{pointer-events:auto}
+.wjwk[data-minimized="true"]>.wjwk-fab,.wjwk[data-minimized="true"]>.wjwk-fab-fold,.wjwk[data-minimized="true"]>.wjwk-ai-activity,.wjwk[data-minimized="true"]>.wjwk-modal{display:none!important}
+.wjwk .wjwk-library-pages{display:flex;justify-content:space-between;gap:12px;margin-top:16px}
+@media(max-width:720px){.wjwk .wjwk-fab-fold{right:15px;bottom:140px}}
+
+@media(max-width:520px){.wjwk .wjwk-ai-activity{top:max(92px,env(safe-area-inset-top));max-height:45dvh;overflow:auto}}

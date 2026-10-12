@@ -9616,6 +9616,1090 @@ export const CREATION_PRESETS=[
         }
       ]
     }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.precedent",
+    "version": "1.0.0",
+    "name": "早有先例专用适配",
+    "description": "独立对象分类保存，已有事实与计划分开；不执行能力、不自动结算。",
+    "target": {
+      "primaryHashes": [
+        "22401b0c233122d8"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "结合已有事实拟定可选行动；仅为计划，不宣称已经取得成果，不自动执行或结算。",
+        "ruleQuote": "「早有先例」，是将真实历史转化为现实依据的特殊权柄。",
+        "output": "plan",
+        "recordIds": [
+          "precedent",
+          "invocation",
+          "new_history"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "precedent",
+        "label": "独立先例",
+        "description": "一条真实发生的历史事实一个对象，标题用事件与结果区分；多条先例不得合成最近先例总表。",
+        "fields": [
+          {
+            "id": "event",
+            "label": "历史事件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的历史事件；未知留空，不猜测。"
+          },
+          {
+            "id": "origin",
+            "label": "历史来源与世界",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的历史来源与世界；未知留空，不猜测。"
+          },
+          {
+            "id": "result",
+            "label": "已成立结果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立结果；未知留空，不猜测。"
+          },
+          {
+            "id": "correspondence",
+            "label": "适用对应关系",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的适用对应关系；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "适用边界",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的适用边界；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "invocation",
+        "label": "援引记录",
+        "description": "每次实际援引单独记录，用发生场景或时点区分；引用原先例名称，不因再次使用重复建立先例。",
+        "fields": [
+          {
+            "id": "precedent",
+            "label": "援引的先例",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的援引的先例；未知留空，不猜测。"
+          },
+          {
+            "id": "scene",
+            "label": "本次场景",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的本次场景；未知留空，不猜测。"
+          },
+          {
+            "id": "action",
+            "label": "本次行动",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的本次行动；未知留空，不猜测。"
+          },
+          {
+            "id": "outcome",
+            "label": "实际结果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际结果；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "对应条件与限制",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的对应条件与限制；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "new_history",
+        "label": "新成立事实",
+        "description": "本轮真正完成、可成为未来先例的新事实；同一事实已登记为先例时复用原档案，不重复建两份。",
+        "fields": [
+          {
+            "id": "event",
+            "label": "实际完成的事件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际完成的事件；未知留空，不猜测。"
+          },
+          {
+            "id": "result",
+            "label": "已成立结果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立结果；未知留空，不猜测。"
+          },
+          {
+            "id": "origin",
+            "label": "发生世界与时点",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的发生世界与时点；未知留空，不猜测。"
+          },
+          {
+            "id": "reusable",
+            "label": "正文明确的可援引范围",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的正文明确的可援引范围；未知留空，不猜测。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "先例库",
+      "summary": "分类查看已保存对象；完整档案库支持搜索、筛选与分页。旧通用档案保留，可核对后再整理。",
+      "sections": [
+        {
+          "id": "precedent",
+          "label": "独立先例",
+          "description": "一条真实发生的历史事实一个对象，标题用事件与结果区分；多条先例不得合成最近先例总表。",
+          "recordIds": [
+            "precedent"
+          ]
+        },
+        {
+          "id": "invocation",
+          "label": "援引记录",
+          "description": "每次实际援引单独记录，用发生场景或时点区分；引用原先例名称，不因再次使用重复建立先例。",
+          "recordIds": [
+            "invocation"
+          ]
+        },
+        {
+          "id": "new_history",
+          "label": "新成立事实",
+          "description": "本轮真正完成、可成为未来先例的新事实；同一事实已登记为先例时复用原档案，不重复建两份。",
+          "recordIds": [
+            "new_history"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.biocomputer",
+    "version": "1.0.0",
+    "name": "生物计算机专用适配",
+    "description": "独立对象分类保存，已有事实与计划分开；不执行能力、不自动结算。",
+    "target": {
+      "primaryHashes": [
+        "c885200c23254e52"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "结合已有事实拟定可选行动；仅为计划，不宣称已经取得成果，不自动执行或结算。",
+        "ruleQuote": "「生物计算机」，是与{{user}}的生命共同生长的身载智能。它存在于{{user}}的生命与意识之中，能够保存和检索一切已得信息，复制知识与经验，并以不断增长的算力参与思考、战斗、学习与推演。{{user}}的生命越强大，这颗脑中之脑能够理解、连接和处理的世界便越广大。",
+        "output": "plan",
+        "recordIds": [
+          "knowledge",
+          "connection",
+          "computation",
+          "model"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "knowledge",
+        "label": "知识与经验",
+        "description": "每份独立知识或经验分别保存，未验证推演不能当作已掌握知识。",
+        "fields": [
+          {
+            "id": "subject",
+            "label": "知识或经验对象",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的知识或经验对象；未知留空，不猜测。"
+          },
+          {
+            "id": "source",
+            "label": "取得来源",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的取得来源；未知留空，不猜测。"
+          },
+          {
+            "id": "mastery",
+            "label": "实际掌握程度",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际掌握程度；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "已知边界",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已知边界；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "connection",
+        "label": "网络接入",
+        "description": "一条已建立信息域连接一个对象。",
+        "fields": [
+          {
+            "id": "network",
+            "label": "网络与信息域",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的网络与信息域；未知留空，不猜测。"
+          },
+          {
+            "id": "access",
+            "label": "已获权限",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已获权限；未知留空，不猜测。"
+          },
+          {
+            "id": "condition",
+            "label": "接入状态",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的接入状态；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "访问限制",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的访问限制；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "computation",
+        "label": "运算与推演",
+        "description": "每个独立运算任务分别保存，目标与实际结果分开。",
+        "fields": [
+          {
+            "id": "goal",
+            "label": "任务目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的任务目标；未知留空，不猜测。"
+          },
+          {
+            "id": "basis",
+            "label": "输入与依据",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的输入与依据；未知留空，不猜测。"
+          },
+          {
+            "id": "progress",
+            "label": "当前进展",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前进展；未知留空，不猜测。"
+          },
+          {
+            "id": "result",
+            "label": "已取得结果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已取得结果；未知留空，不猜测。"
+          },
+          {
+            "id": "uncertainty",
+            "label": "未证事项",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的未证事项；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "model",
+        "label": "模型与统合成果",
+        "description": "实际建立的模型或生命统合成果，不能把预演可能性当成现实所得。",
+        "fields": [
+          {
+            "id": "subject",
+            "label": "模型或统合对象",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的模型或统合对象；未知留空，不猜测。"
+          },
+          {
+            "id": "scope",
+            "label": "覆盖范围",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的覆盖范围；未知留空，不猜测。"
+          },
+          {
+            "id": "result",
+            "label": "实际成果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际成果；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "限制与未验证内容",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的限制与未验证内容；未知留空，不猜测。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "信息与运算库",
+      "summary": "分类查看已保存对象；完整档案库支持搜索、筛选与分页。旧通用档案保留，可核对后再整理。",
+      "sections": [
+        {
+          "id": "knowledge",
+          "label": "知识与经验",
+          "description": "每份独立知识或经验分别保存，未验证推演不能当作已掌握知识。",
+          "recordIds": [
+            "knowledge"
+          ]
+        },
+        {
+          "id": "connection",
+          "label": "网络接入",
+          "description": "一条已建立信息域连接一个对象。",
+          "recordIds": [
+            "connection"
+          ]
+        },
+        {
+          "id": "computation",
+          "label": "运算与推演",
+          "description": "每个独立运算任务分别保存，目标与实际结果分开。",
+          "recordIds": [
+            "computation"
+          ]
+        },
+        {
+          "id": "model",
+          "label": "模型与统合成果",
+          "description": "实际建立的模型或生命统合成果，不能把预演可能性当成现实所得。",
+          "recordIds": [
+            "model"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.sage",
+    "version": "1.0.0",
+    "name": "大贤者专用适配",
+    "description": "独立对象分类保存，已有事实与计划分开；不执行能力、不自动结算。",
+    "target": {
+      "primaryHashes": [
+        "9937f69414f80dbc"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "结合已有事实拟定可选行动；仅为计划，不宣称已经取得成果，不自动执行或结算。",
+        "ruleQuote": "大贤者，是与{{user}}心智共生的伴生智慧。它能与{{user}}对话，也能在{{user}}观察世界、运用力量与遭遇危险时，自行解析问题、并列思考、校准操作，将已经能够做到的事做得更快、更稳、更好。",
+        "output": "plan",
+        "recordIds": [
+          "verified",
+          "analysis",
+          "parallel",
+          "delegation"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "verified",
+        "label": "已验证知识",
+        "description": "一项经过正文验证的原理或操作一个对象，推测另归推演。",
+        "fields": [
+          {
+            "id": "principle",
+            "label": "已验证原理",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已验证原理；未知留空，不猜测。"
+          },
+          {
+            "id": "evidence",
+            "label": "验证经历",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的验证经历；未知留空，不猜测。"
+          },
+          {
+            "id": "application",
+            "label": "可复用操作",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的可复用操作；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "已知边界",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已知边界；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "analysis",
+        "label": "解析与推演",
+        "description": "一项解析一个对象，已知、结论与未知分别保存。",
+        "fields": [
+          {
+            "id": "subject",
+            "label": "解析对象",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的解析对象；未知留空，不猜测。"
+          },
+          {
+            "id": "basis",
+            "label": "观察与依据",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的观察与依据；未知留空，不猜测。"
+          },
+          {
+            "id": "conclusion",
+            "label": "推演结论",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的推演结论；未知留空，不猜测。"
+          },
+          {
+            "id": "unknown",
+            "label": "尚待验证",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的尚待验证；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "parallel",
+        "label": "并列任务",
+        "description": "每个并列任务单独保存，不能把任务清单合成一项。",
+        "fields": [
+          {
+            "id": "goal",
+            "label": "任务目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的任务目标；未知留空，不猜测。"
+          },
+          {
+            "id": "progress",
+            "label": "当前进展",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前进展；未知留空，不猜测。"
+          },
+          {
+            "id": "result",
+            "label": "实际结果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际结果；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "阻碍与条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的阻碍与条件；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "delegation",
+        "label": "授权托管",
+        "description": "只记录实际授权的持续安排，不自动执行。",
+        "fields": [
+          {
+            "id": "scope",
+            "label": "授权范围",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的授权范围；未知留空，不猜测。"
+          },
+          {
+            "id": "rules",
+            "label": "托管条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的托管条件；未知留空，不猜测。"
+          },
+          {
+            "id": "condition",
+            "label": "执行状况",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的执行状况；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "禁止与停止条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的禁止与停止条件；未知留空，不猜测。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "解析与并列任务",
+      "summary": "分类查看已保存对象；完整档案库支持搜索、筛选与分页。旧通用档案保留，可核对后再整理。",
+      "sections": [
+        {
+          "id": "verified",
+          "label": "已验证知识",
+          "description": "一项经过正文验证的原理或操作一个对象，推测另归推演。",
+          "recordIds": [
+            "verified"
+          ]
+        },
+        {
+          "id": "analysis",
+          "label": "解析与推演",
+          "description": "一项解析一个对象，已知、结论与未知分别保存。",
+          "recordIds": [
+            "analysis"
+          ]
+        },
+        {
+          "id": "parallel",
+          "label": "并列任务",
+          "description": "每个并列任务单独保存，不能把任务清单合成一项。",
+          "recordIds": [
+            "parallel"
+          ]
+        },
+        {
+          "id": "delegation",
+          "label": "授权托管",
+          "description": "只记录实际授权的持续安排，不自动执行。",
+          "recordIds": [
+            "delegation"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.human_game",
+    "version": "1.0.0",
+    "name": "人间游戏专用适配",
+    "description": "独立对象分类保存，已有事实与计划分开；不执行能力、不自动结算。",
+    "target": {
+      "primaryHashes": [
+        "e00374d9d3486fdf"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "结合已有事实拟定可选行动；仅为计划，不宣称已经取得成果，不自动执行或结算。",
+        "ruleQuote": "「人间游戏」，是铭刻于{{user}}身上的唯一玩家权柄。",
+        "output": "plan",
+        "recordIds": [
+          "skill",
+          "profession",
+          "quest",
+          "achievement",
+          "reward"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "skill",
+        "label": "技能",
+        "description": "每项技能一个对象，只记实际掌握与实际升级。",
+        "fields": [
+          {
+            "id": "level",
+            "label": "实际等级",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际等级；未知留空，不猜测。"
+          },
+          {
+            "id": "effect",
+            "label": "技能效果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的技能效果；未知留空，不猜测。"
+          },
+          {
+            "id": "growth",
+            "label": "成长事实",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的成长事实；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "条件与限制",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的条件与限制；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "profession",
+        "label": "职业",
+        "description": "每个职业分别保存。",
+        "fields": [
+          {
+            "id": "level",
+            "label": "职业等级",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的职业等级；未知留空，不猜测。"
+          },
+          {
+            "id": "features",
+            "label": "已获职业特性",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已获职业特性；未知留空，不猜测。"
+          },
+          {
+            "id": "progress",
+            "label": "转职或成长进展",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的转职或成长进展；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "条件与限制",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的条件与限制；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "quest",
+        "label": "任务",
+        "description": "每项任务分别保存，计划或进行中不得提前完成。",
+        "fields": [
+          {
+            "id": "goal",
+            "label": "任务目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的任务目标；未知留空，不猜测。"
+          },
+          {
+            "id": "progress",
+            "label": "完成事实与进度",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的完成事实与进度；未知留空，不猜测。"
+          },
+          {
+            "id": "condition",
+            "label": "完成条件",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的完成条件；未知留空，不猜测。"
+          },
+          {
+            "id": "reward",
+            "label": "约定奖励（未到账）",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的约定奖励（未到账）；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "achievement",
+        "label": "成就",
+        "description": "每个实际达成的成就分别保存。",
+        "fields": [
+          {
+            "id": "condition",
+            "label": "达成事实",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的达成事实；未知留空，不猜测。"
+          },
+          {
+            "id": "effect",
+            "label": "已成立效果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立效果；未知留空，不猜测。"
+          },
+          {
+            "id": "reward",
+            "label": "已确认奖励",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已确认奖励；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "reward",
+        "label": "已确认奖励",
+        "description": "只记录正文已明确交付的奖励；与任务约定奖励区分，同一交付复用ID，插件不重复发奖。",
+        "fields": [
+          {
+            "id": "origin",
+            "label": "来源任务或成就",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的来源任务或成就；未知留空，不猜测。"
+          },
+          {
+            "id": "received",
+            "label": "实际交付内容",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际交付内容；未知留空，不猜测。"
+          },
+          {
+            "id": "state",
+            "label": "当前归属与状态",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前归属与状态；未知留空，不猜测。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "玩家成长档案",
+      "summary": "分类查看已保存对象；完整档案库支持搜索、筛选与分页。旧通用档案保留，可核对后再整理。",
+      "sections": [
+        {
+          "id": "skill",
+          "label": "技能",
+          "description": "每项技能一个对象，只记实际掌握与实际升级。",
+          "recordIds": [
+            "skill"
+          ]
+        },
+        {
+          "id": "profession",
+          "label": "职业",
+          "description": "每个职业分别保存。",
+          "recordIds": [
+            "profession"
+          ]
+        },
+        {
+          "id": "quest",
+          "label": "任务",
+          "description": "每项任务分别保存，计划或进行中不得提前完成。",
+          "recordIds": [
+            "quest"
+          ]
+        },
+        {
+          "id": "achievement",
+          "label": "成就",
+          "description": "每个实际达成的成就分别保存。",
+          "recordIds": [
+            "achievement"
+          ]
+        },
+        {
+          "id": "reward",
+          "label": "已确认奖励",
+          "description": "只记录正文已明确交付的奖励；与任务约定奖励区分，同一交付复用ID，插件不重复发奖。",
+          "recordIds": [
+            "reward"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.path_contract",
+    "version": "1.0.0",
+    "name": "道途专用适配",
+    "description": "独立对象分类保存，已有事实与计划分开；不执行能力、不自动结算。",
+    "target": {
+      "primaryHashes": [
+        "191a4276c0f41b60"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "结合已有事实拟定可选行动；仅为计划，不宣称已经取得成果，不自动执行或结算。",
+        "ruleQuote": "「道途」，是概念凝成的路，也是万物从“是什么”走向“更加成为自己”的超凡体系。",
+        "output": "plan",
+        "recordIds": [
+          "path",
+          "practice",
+          "milestone"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "path",
+        "label": "道途契约",
+        "description": "每条实际缔约道路分别保存，计划缔约不能记为成立。",
+        "fields": [
+          {
+            "id": "concept",
+            "label": "道路概念",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的道路概念；未知留空，不猜测。"
+          },
+          {
+            "id": "overlord",
+            "label": "对应超主",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的对应超主；未知留空，不猜测。"
+          },
+          {
+            "id": "contract",
+            "label": "已成立契约",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立契约；未知留空，不猜测。"
+          },
+          {
+            "id": "features",
+            "label": "已获特性",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已获特性；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "条件与限制",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的条件与限制；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "practice",
+        "label": "践行事实",
+        "description": "每次重要践行分别保存，并关联对应道途；同一事件不重复建档。",
+        "fields": [
+          {
+            "id": "path",
+            "label": "对应道途",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的对应道途；未知留空，不猜测。"
+          },
+          {
+            "id": "action",
+            "label": "实际践行",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际践行；未知留空，不猜测。"
+          },
+          {
+            "id": "result",
+            "label": "实际结果",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际结果；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "milestone",
+        "label": "成长节点",
+        "description": "明确达到的道路或生命成长节点，下一目标不是已达成。",
+        "fields": [
+          {
+            "id": "path",
+            "label": "对应道途",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的对应道途；未知留空，不猜测。"
+          },
+          {
+            "id": "level",
+            "label": "已达层次",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已达层次；未知留空，不猜测。"
+          },
+          {
+            "id": "change",
+            "label": "实际变化",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际变化；未知留空，不猜测。"
+          },
+          {
+            "id": "next",
+            "label": "未完成目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的未完成目标；未知留空，不猜测。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "道途与践行",
+      "summary": "分类查看已保存对象；完整档案库支持搜索、筛选与分页。旧通用档案保留，可核对后再整理。",
+      "sections": [
+        {
+          "id": "path",
+          "label": "道途契约",
+          "description": "每条实际缔约道路分别保存，计划缔约不能记为成立。",
+          "recordIds": [
+            "path"
+          ]
+        },
+        {
+          "id": "practice",
+          "label": "践行事实",
+          "description": "每次重要践行分别保存，并关联对应道途；同一事件不重复建档。",
+          "recordIds": [
+            "practice"
+          ]
+        },
+        {
+          "id": "milestone",
+          "label": "成长节点",
+          "description": "明确达到的道路或生命成长节点，下一目标不是已达成。",
+          "recordIds": [
+            "milestone"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "format": "wjwk-adapter",
+    "schemaVersion": 1,
+    "id": "wuku.rewrite",
+    "version": "1.0.0",
+    "name": "描述改写专用适配",
+    "description": "独立对象分类保存，已有事实与计划分开；不执行能力、不自动结算。",
+    "target": {
+      "primaryHashes": [
+        "1cffc14be1dc2859"
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "kind": "plan",
+        "label": "拟定下一步方向",
+        "instruction": "结合已有事实拟定可选行动；仅为计划，不宣称已经取得成果，不自动执行或结算。",
+        "ruleQuote": "【描述改写】，是{{user}}专属的现实文本接口权能。",
+        "output": "plan",
+        "recordIds": [
+          "rewrite",
+          "persistent",
+          "intent"
+        ]
+      }
+    ],
+    "records": [
+      {
+        "id": "rewrite",
+        "label": "已成立改写",
+        "description": "每个目标的独立改写分别保存，真实生效才能记为已建立；后续改变同一持续状态复用ID。",
+        "fields": [
+          {
+            "id": "target",
+            "label": "改写目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的改写目标；未知留空，不猜测。"
+          },
+          {
+            "id": "before",
+            "label": "原描述",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的原描述；未知留空，不猜测。"
+          },
+          {
+            "id": "after",
+            "label": "已成立的新描述",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的已成立的新描述；未知留空，不猜测。"
+          },
+          {
+            "id": "scope",
+            "label": "生效范围",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的生效范围；未知留空，不猜测。"
+          },
+          {
+            "id": "support",
+            "label": "实际历史与因果变化",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的实际历史与因果变化；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "persistent",
+        "label": "持续状态",
+        "description": "改写形成且需要跨回合保留的状态，引用对应改写，不重复当作第二份奖励。",
+        "fields": [
+          {
+            "id": "rewrite",
+            "label": "关联改写",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的关联改写；未知留空，不猜测。"
+          },
+          {
+            "id": "state",
+            "label": "当前状态",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的当前状态；未知留空，不猜测。"
+          },
+          {
+            "id": "scope",
+            "label": "持续范围",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的持续范围；未知留空，不猜测。"
+          },
+          {
+            "id": "limits",
+            "label": "条件与边界",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的条件与边界；未知留空，不猜测。"
+          }
+        ]
+      },
+      {
+        "id": "intent",
+        "label": "待执行意图",
+        "description": "仅计划的改写，保留planned或working，不能提前写成现实。",
+        "fields": [
+          {
+            "id": "target",
+            "label": "目标",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的目标；未知留空，不猜测。"
+          },
+          {
+            "id": "desired",
+            "label": "希望成立的描述",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的希望成立的描述；未知留空，不猜测。"
+          },
+          {
+            "id": "condition",
+            "label": "尚待执行或确认事项",
+            "type": "text",
+            "description": "只保留正文或玩家已确认的尚待执行或确认事项；未知留空，不猜测。"
+          }
+        ]
+      }
+    ],
+    "dashboard": {
+      "title": "改写与持续状态",
+      "summary": "分类查看已保存对象；完整档案库支持搜索、筛选与分页。旧通用档案保留，可核对后再整理。",
+      "sections": [
+        {
+          "id": "rewrite",
+          "label": "已成立改写",
+          "description": "每个目标的独立改写分别保存，真实生效才能记为已建立；后续改变同一持续状态复用ID。",
+          "recordIds": [
+            "rewrite"
+          ]
+        },
+        {
+          "id": "persistent",
+          "label": "持续状态",
+          "description": "改写形成且需要跨回合保留的状态，引用对应改写，不重复当作第二份奖励。",
+          "recordIds": [
+            "persistent"
+          ]
+        },
+        {
+          "id": "intent",
+          "label": "待执行意图",
+          "description": "仅计划的改写，保留planned或working，不能提前写成现实。",
+          "recordIds": [
+            "intent"
+          ]
+        }
+      ]
+    }
   }
 ];
 export const CREATION_PRESET_COMPATIBILITY=[
