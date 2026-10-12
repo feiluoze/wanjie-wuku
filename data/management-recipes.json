@@ -2863,12 +2863,12 @@
         {
           "label": "当前阶段",
           "category": "progress",
-          "ruleQuote": "当前阶段：[按实际世界结构确认]"
+          "ruleQuote": "当前阶段：[依真实天地结构确认]"
         },
         {
           "label": "主世界内历",
           "category": "record",
-          "ruleQuote": "主世界内历：[已经确认的内部时间]"
+          "ruleQuote": "主世界内历：[已确认的内部历时]"
         },
         {
           "label": "时间流速",
@@ -2878,17 +2878,17 @@
         {
           "label": "当前格局",
           "category": "record",
-          "ruleQuote": "当前格局：[重要生态、族群与文明概况]"
+          "ruleQuote": "当前格局：[主要疆域、生态、族群、文明与长期安排]"
         },
         {
           "label": "千年改设",
           "category": "record",
-          "ruleQuote": "千年改设：[距离下一次资格尚需的主世界时间／资格已可使用]"
+          "ruleQuote": "千年改设：[距下次资格所需主世界内历／已可使用；首次设定未行使时注明]"
         },
         {
           "label": "成长进程",
           "category": "progress",
-          "ruleQuote": "成长进程：[正在形成的重要成果；没有则省略]"
+          "ruleQuote": "成长进程：[持续的重要生产、研究、生命与法则演化；无则省略]"
         }
       ]
     },
