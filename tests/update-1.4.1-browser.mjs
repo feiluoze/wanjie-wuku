@@ -1,0 +1,45 @@
+import {createServer} from 'node:http';
+import {readFile,mkdir} from 'node:fs/promises';
+import {resolve,relative,isAbsolute,extname} from 'node:path';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+const {chromium}=createRequire(process.env.WJWK_NODE_MODULES+'/package.json')('playwright');
+const out=process.env.WJWK_SCREENSHOTS;await mkdir(out,{recursive:true});
+const server=createServer(async(req,res)=>{try{const p=resolve('.','.'+decodeURIComponent(new URL(req.url,'http://local').pathname)),rel=relative(process.cwd(),p);if(rel.startsWith('..')||isAbsolute(rel))throw Error('path');res.setHeader('Content-Type',{'.js':'text/javascript','.html':'text/html','.css':'text/css'}[extname(p)]||'application/octet-stream');res.end(await readFile(p));}catch{res.writeHead(404);res.end();}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
+try{
+ browser=await chromium.launch({headless:true,executablePath:process.env.WJWK_BROWSER_EXECUTABLE});
+ const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];let external=0;
+ page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',r=>{if(new URL(r.request().url()).hostname==='127.0.0.1')return r.continue();external++;return r.abort();});
+ await page.goto(`http://127.0.0.1:${server.address().port}/tests/preview.html`);await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);
+
+
+
+ const powerId=await page.evaluate(async()=>{
+  const a=wanjie_wuku_general_instance,ctx=SillyTavern.getContext(),core=await import('/src/core.js'),host=await import('/src/host.js');
+  await host.saveSettings({...host.DEFAULT_SETTINGS,mode:'st'},ctx);a.settings=host.getSettings(ctx);
+  ctx.chat=Array.from({length:7},(_,i)=>({mes:'本轮第'+(i+1)+'层已获得独立物品。',is_user:false,swipe_id:0,name:'本地测试'}));
+  const p=core.createPower(core.importBook({entries:{1:{comment:'本地记录',content:'记录正文已交付的物品，不发奖。'}}},'本地记录')[0]);await a.store.transact(s=>s.powers[p.id]=p);a.powerId=p.id;a.ui.space='wuku';a.ui.tab='management';a.refresh();a.ui.setOpen(true);window.calls=[];
+  window.mockReview=()=>{a.model.request=async prompt=>{const x=JSON.parse(prompt.user),t=x.sources[0];window.calls.push(t.index);return JSON.stringify({changes:[{name:'物品'+t.index,type:'record',status:'active',fields:{description:t.content},sourceIndex:t.index,quote:t.content}],floorReviews:[{sourceIndex:t.index,status:'reviewed',changeCount:1}]});};};window.mockReview();return p.id;
+ });
+ await page.locator('[data-action="archive-batch"]').click();await page.locator('[name="floors"]').fill('2');
+ for(const width of [1440,390,320]){await page.setViewportSize({width,height:950});assert.equal(await page.locator('[data-archive-batch]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);await page.screenshot({path:out+`/batch-settings-${width}.png`});}
+ await page.locator('[data-action="archive-batch-create"]').click();await page.getByText('已保存 0/4 批',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.calls.length),0);
+ await page.locator('[data-action="archive-batch-run"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();assert.equal(await page.evaluate(id=>Object.keys(wanjie_wuku_general_instance.store.read().powers[id].archives||{}).length,powerId),0);
+ await page.locator('[data-action="apply-archive-review"]').click();await page.getByText('已保存 1/4 批',{exact:true}).waitFor();
+ await page.reload();await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);await page.evaluate(async id=>{const a=wanjie_wuku_general_instance,h=await import('/src/host.js');a.powerId=id;a.ui.space='wuku';a.ui.tab='management';a.settings=h.getSettings();a.refresh();a.ui.setOpen(true);window.calls=[];a.model.request=async prompt=>{const t=JSON.parse(prompt.user).sources[0];window.calls.push(t.index);return JSON.stringify({changes:[{name:'物品'+t.index,type:'record',status:'active',fields:{description:t.content},sourceIndex:t.index,quote:t.content}],floorReviews:[{sourceIndex:t.index,status:'reviewed',changeCount:1}]});};},powerId);
+ await page.locator('[data-action="archive-batch"]').click();await page.getByText('已保存 1/4 批',{exact:true}).waitFor();await page.locator('[data-action="archive-batch-continuous"]').click();await page.waitForFunction(id=>{const p=wanjie_wuku_general_instance.store.read().powers[id];return !wanjie_wuku_general_instance.manualBatchRun&&p.archiveBatch.cursor===p.archiveBatch.parts.length;},powerId);assert.deepEqual(await page.evaluate(()=>window.calls),[2,3,4,5,6]);assert.equal(await page.evaluate(id=>Object.keys(wanjie_wuku_general_instance.store.read().powers[id].archives).length,powerId),7);
+ // Set up linked records, then use production relation and manual edit controls.
+ const ids=await page.evaluate(async()=>{const a=wanjie_wuku_general_instance;await a.openTaishi();const {saveArchive,archiveSource}=await import('/src/archives.js'),{creationConfig}=await import('/src/creation-config.js'),ids={};await a.store.transact(s=>{const p=s.powers[a.powerId],c=creationConfig(p),add=(name,kind,fields)=>{const d=c.records.find(r=>r.id===kind);return saveArchive(p,{name,type:'record',status:'active',fields:{description:name},specific:{adapterId:c.id,version:c.version,label:d.label,labels:Object.fromEntries(d.fields.map(f=>[f.id,f.label])),recordId:kind,fields}},archiveSource(a.store.context().chat,'本地确认')).id;};ids.world=add('海蓝界','world',{overview:'港口文明'});ids.region=add('南港','region',{world:'海蓝界',world_id:ids.world,overview:'南部港口'});ids.org=add('海商盟','organization',{world:'海蓝界',world_id:ids.world,state:'稳定',internal:'议会',pillars:'航路',official_reputation:'合法'});ids.a=add('甲船长','companion',{world:'海蓝界',world_id:ids.world,organization_id:ids.org,region_id:ids.region,position:'船长',relationship:'普通人物'});ids.b=add('乙领航','companion',{world:'海蓝界',world_id:ids.world,relationship:'普通人物'});});a.refresh();return ids;});
+ await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-relation"]').click();await page.locator('[name="world_id"]').selectOption(ids.world);await page.locator('[name="subject_id"]').selectOption(ids.a);await page.locator('[name="target_id"]').selectOption(ids.b);await page.locator('[name="state"]').fill('信任');await page.locator('[name="cause"]').fill('救援海难');await page.locator('[name="evidence"]').fill('玩家明确指定救援事件后的关系');
+ for(const width of [1440,390,320]){await page.setViewportSize({width,height:950});assert.equal(await page.locator('[data-taishi-relation]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);await page.screenshot({path:out+`/relation-${width}.png`});}
+ await page.locator('[data-action="taishi-relation-save"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
+ const rel=await page.evaluate(()=>Object.values(wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives).find(r=>r.specific?.recordId==='relation').id);
+ await page.evaluate(id=>wanjie_wuku_general_instance.openArchive(id),ids.org);assert((await page.locator('[data-taishi-brief="organization"]').textContent()).includes('内政与权力'));assert.equal(await page.locator('[data-world-links] [data-id="'+ids.a+'"]').count(),1);await page.locator('[data-world-links] [data-id="'+ids.a+'"]').click();assert((await page.locator('[data-world-links]').textContent()).includes('信任'));
+ // AI location/appointment update keeps the player relation and joins the target pages.
+ await page.locator('[data-action="dialog-close"]').click();await page.evaluate(async ids=>{const a=wanjie_wuku_general_instance,p=a.store.read().powers[a.powerId],r=p.archives[ids.a];a.model.request=async()=>JSON.stringify({changes:[{archiveId:r.id,type:r.type,name:r.name,status:'active',fields:{description:'任职与调动'},recordId:'companion',details:{world_id:ids.world,world:'海蓝界',region_id:ids.region,organization_id:ids.org,position:'盟主',current_goal:'恢复航路'}}]});await a.reviewArchives({supplement:true,values:{playerNote:'我确认甲船长已就任海商盟盟主，所在南港'}});},ids);await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
+ assert.equal(await page.evaluate(ids=>wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives[ids.a].specific.fields.position,ids),'盟主');
+ await page.reload();await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);await page.evaluate(()=>wanjie_wuku_general_instance.openTaishi());assert.equal(await page.evaluate(id=>wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives[id].specific.fields.state,rel),'信任');
+ assert.equal(external,0);assert.deepEqual(errors,[]);console.log('PASS: batch preview/save, persisted reload and continuous resume without replay; manual directed relation protection and linked organization/person pages; appointment update; 1440/390/320 no overflow; zero external API calls');
+
+}finally{await browser?.close();server.close();}

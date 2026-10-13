@@ -72,7 +72,7 @@ test('ordinary completed work, denied consequences and unchanged old memories ar
 test('autonomy cannot form contracts for NPCs or new people; existing direct identity persists',async()=>{
   const f=await setup();await enable(f);await f.store.transact(s=>s.powers[f.app.powerId].taishiPeople={mode:'all',selected:[],pinned:[f.a],joining:{[f.a]:'direct',[f.b]:'npc'}});f.app.openTaishiDevelopment();
   f.app.model.request=async()=>JSON.stringify({changes:[worldRow(f),{...personRow(f,f.a,'云岚'),sourceIndex:-1},{...personRow(f,f.b,'青禾'),sourceIndex:-1,details:{world:'海蓝界',relationship:'成为眷属'}},{...personRow(f,undefined,'新人'),sourceIndex:-1,details:{world:'海蓝界',relationship:'已缔约'}}]});
-  await f.app.evolveTaishi(values(f));const pending=f.app.pendingArchiveReview;assert.equal(pending.changes.length,2);assert.equal(pending.issues.filter(i=>i.kind==='高影响后果').length,2);
+  await f.app.evolveTaishi(values(f));const pending=f.app.pendingArchiveReview;assert.equal(pending.changes.length,2);assert.equal(pending.issues.filter(i=>['高影响后果','成果'].includes(i.kind)).length,2);
   await f.app.commitArchiveReview(pending,new Map(pending.changes.map((c,i)=>[i,c.id])));const p=f.store.read().powers[f.app.powerId];assert.equal(p.taishiPeople.joining[f.a],'direct');assert.equal(p.taishiPeople.joining[f.b],'npc');assert(!Object.values(p.archives).some(r=>r.name==='新人'));
 });
 

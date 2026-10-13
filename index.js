@@ -183,6 +183,7 @@ export class WukuApp {
     if (this.controller) { this.controller.abort(); this.controller = null; this.busy = false; }
     this.playerAutoRunning = null;
     if (this.archiveReviewJob) { this.archiveReviewJob.cancelled = true; this.archiveReviewJob = null; }
+    if(this.manualBatchRun)this.manualBatchRun.stopped=true;
     this.aiActivity?.cancel(); this.modelListController?.abort();
   }
   async query(prompt, snapshot, { task = 'general', taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {} } = {}) {
@@ -620,7 +621,7 @@ export class WukuApp {
       case 'taishi-add-companion': return this.openTaishiDraft('companion');
       case 'taishi-draft-submit': return this.submitTaishiDraft(data.values || {});
       case 'taishi-draft-dismiss': return this.dismissTaishiDraft();
-      case 'taishi-control-dismiss': this.taishiControlDraft=null;return this.resumePlayerReview();
+      case 'taishi-control-dismiss': this.taishiControlDraft=null;this.taishiRelationDraft=null;return this.resumePlayerReview();
       case 'taishi-world-action': return this.openTaishiWorldAction(data.id);
       case 'taishi-world-action-draft': return this.writeTaishiWorldAction(data.values||{});
       case 'taishi-descent': return this.openTaishiControl('descent');
@@ -637,6 +638,9 @@ export class WukuApp {
       case 'taishi-evolve': return this.evolveTaishi(data.values);
       case 'taishi-development-dismiss': return this.dismissTaishiDevelopment();
       case 'taishi-people-dismiss': this.taishiPeopleDraft=null; return this.resumePlayerReview();
+      case 'taishi-relation': return this.openTaishiRelation();
+      case 'taishi-relation-save': return this.saveTaishiRelation(data.values);
+      case 'taishi-relation-dismiss': this.taishiRelationDraft=null;return this.resumePlayerReview();
       case 'taishi-people': return this.openTaishiPeople();
       case 'taishi-people-save': return this.saveTaishiPeople(data.values);
       case 'taishi-advanced': return this.openTaishiAdvanced();
@@ -816,6 +820,11 @@ export class WukuApp {
       case 'archive-undo': return this.openArchiveUndo();
       case 'archive-undo-confirm': return this.confirmArchiveUndo();
       case 'archive-recap': return this.generateArchiveRecap();
+      case 'archive-batch': return this.openArchiveBatch();
+      case 'archive-batch-create': return this.createArchiveBatch(data);
+      case 'archive-batch-run': return this.runArchiveBatch();
+      case 'archive-batch-continuous': return this.runArchiveBatch(true);
+      case 'archive-batch-clear': return this.clearArchiveBatch();
       case 'archive-range': return this.openArchiveRange();
       case 'save-archive-range': return this.saveArchiveRange(data);
       case 'terminal-review':

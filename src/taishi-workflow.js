@@ -4,8 +4,8 @@ import {archiveResponseContract,archiveSummaryPreset} from './archive-preset.js'
 export const TAISHI_ROLES=Object.freeze(['taishiWorld','taishiPeople','taishiSummary']);
 export const TAISHI_STAGE_NAMES=Object.freeze({taishiWorld:'世界核对',taishiPeople:'人物更新',taishiSummary:'变化摘要'});
 export const TAISHI_STAGE_ATTEMPTS=3;
-const worldRecords=new Set(['world','inhabitants','development','growth','available','region','organization','event']);
-const owns=(role,record)=>role==='taishiWorld'?worldRecords.has(record):record==='companion';
+const worldRecords=new Set(['world','inhabitants','development','growth','available','region','organization','event','manifestation']);
+const owns=(role,record)=>role==='taishiWorld'?worldRecords.has(record):['companion','relation'].includes(record);
 const failed=(role,reason,kind='专职任务',name=role)=>({kind,name,role,reason:String(reason).slice(0,500)});
 
 // Cache lives in the pending preview only, never in chat data, keys or model profiles.
@@ -31,7 +31,7 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
     payload.responseContract=archiveResponseContract(payload);
     payload.specialist={role,recordIds:payload.recordSchemas.map(r=>r.id)};
     try{
-      const data=await invoke({...prompt,user:JSON.stringify(payload),system:prompt.system+'\n<wjwk_specialist>\n本轮分工：'+(role==='taishiWorld'?'只处理世界、区域、组织、事件、文明与发展记录。':'只处理人物与眷属记录，保留设定细节、动态和认知边界。')+' changes每项必须填写本轮recordSchemas中的recordId；已有对象必须沿用原archiveId和分类。不得返回terminalResults、creationResults或guide。不要处理另一专职角色的记录。floorReviews只统计本角色实际输出，不把另一专职未返回内容算入。\n</wjwk_specialist>'},role);
+      const data=await invoke({...prompt,user:JSON.stringify(payload),system:prompt.system+'\n<wjwk_specialist>\n本轮分工：'+(role==='taishiWorld'?'只处理世界、区域、组织、事件、文明与发展记录。':'只处理人物、眷属与关系记录，保留方向、原因、来源事件、设定细节与认知边界。')+' changes每项必须填写本轮recordSchemas中的recordId；已有对象必须沿用原archiveId和分类。不得返回terminalResults、creationResults或guide。不要处理另一专职角色的记录。floorReviews只统计本角色实际输出，不把另一专职未返回内容算入。\n</wjwk_specialist>'},role);
       check();assert(data&&Array.isArray(data.changes)&&data.changes.length<=64,'返回的变化列表无效');
       for(const row of data.changes){
         const before=row?.archiveId?(input.current||[]).find(r=>r.id===row.archiveId):null;

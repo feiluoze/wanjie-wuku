@@ -13,6 +13,7 @@ export function taishiScope(power,records,query=''){
   const worlds=new Set(named.filter(r=>r.specific?.recordId==='world').map(r=>normalize(r.name)));
   for(const r of named){const f=r.specific?.fields,w=f?.world_id?records.find(w=>w.id===f.world_id&&w.specific?.recordId==='world'):null;if(w)worlds.add(normalize(w.name));else if(!f?.world_id&&f?.world)worlds.add(normalize(f.world));}
   const direct=new Set(named.map(r=>r.id));
+  for(const r of records)if(r.specific?.recordId==='relation'&&[r.specific.fields.subject_id,r.specific.fields.target_id].some(id=>named.some(n=>n.id===id)))direct.add(r.id);
   return {worlds:[...worlds],direct:[...direct],includes:r=>direct.has(r.id)||worlds.has(normalize(r.specific?.recordId==='world'?r.name:(records.find(w=>w.id===r.specific?.fields.world_id)?.name||(!r.specific?.fields.world_id?r.specific?.fields.world:''))))};
 }
 
@@ -20,7 +21,7 @@ export function taishiScope(power,records,query=''){
 // Explicit next/pinned selections remain a deliberate narrator-reference override.
 export function taishiProjection(record,{explicit=false}={}){
   const kind=record.specific?.recordId,person=kind==='companion'||!kind&&record.type==='member';
-  const allowed=person?new Set(['world_id','region_id','organization_id','world','location','role','action','progress','relationship','limits','profile','appearance','personality','background','motivation','speech','preferences','abilities','combat_style','crafts','knowledge']):kind==='world'?new Set(['stage','clock','overview','geography','era','factions','resources','events','connections','limits','descent','abilities','combat_style','crafts','rates','reset']):null;
+  const allowed=person?new Set(['world_id','region_id','organization_id','position','current_goal','world','location','role','action','progress','relationship','limits','profile','appearance','personality','background','motivation','speech','preferences','abilities','combat_style','crafts','knowledge']):kind==='world'?new Set(['stage','clock','overview','geography','era','factions','resources','events','connections','limits','descent','abilities','combat_style','crafts','rates','reset']):null;
   const fields=explicit||!person?{...record.fields}:Object.fromEntries(Object.entries(record.fields||{}).filter(([k])=>['role','location','condition','limits'].includes(k)));
   const specific=record.specific?{...record.specific,fields:Object.fromEntries(Object.entries(record.specific.fields).filter(([k])=>!['source_profile','time_state'].includes(k)&&(explicit||!allowed||allowed.has(k))))}:undefined;
   return {provenance:archiveOrigin(record),id:record.id,name:record.name,type:record.type,status:record.status,fields,...(specific?{specific}:{}),informationBoundary:{audience:'叙事者连续性参考，不是角色共同知识',...(person?{known:record.specific?.fields.knowledge||'尚未登记；不推定全知',privateMemories:explicit?'玩家明确选择发送；仍不向其他角色公开':'未自动发送'}:{})}};

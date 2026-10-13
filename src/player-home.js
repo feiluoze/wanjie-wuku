@@ -57,7 +57,7 @@ export const playerHomeMethods = {
     catch { return true; } // An available but unreadable parser must not be treated as ready.
   },
   resumePlayerReview() {
-    if (!this.playerAutoQueued || this.playerAutoRunning || this.playerReviewTimer || this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.taishiDraft || this.taishiControlDraft || this.taishiEvolutionDraft || this.taishiPeopleDraft || this.taishiBuildDraft || this.archiveToolRequest || this.referenceDraft) return;
+    if (!this.playerAutoQueued || this.playerAutoRunning || this.playerReviewTimer || this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.taishiDraft || this.taishiControlDraft || this.taishiEvolutionDraft || this.taishiPeopleDraft || this.taishiRelationDraft || this.taishiBuildDraft || this.archiveToolRequest || this.referenceDraft) return;
     if (this.archiveUpdateWaiting()) {
       this.archiveAutoStatus ||= {};
       let changed = false;
@@ -72,7 +72,7 @@ export const playerHomeMethods = {
     const now = this.contextSnapshot();
     if(this.settings.mode==='off'||now.chatKey!==capture.chatKey||now.state.id!==capture.stateId){this.playerAutoQueued=null;return;}
     // Keep queued work while other operations finish; refresh resumes it when idle.
-    if (this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.taishiDraft || this.taishiControlDraft || this.taishiEvolutionDraft || this.taishiPeopleDraft || this.taishiBuildDraft || this.archiveToolRequest || this.referenceDraft) return;
+    if (this.busy || this.mainBusy || this.committing || this.continuation || this.pendingArchiveReview || this.archiveReviewJob || this.terminalDraft || this.terminalRequest || this.creationDraft || this.creationRequest || this.taishiDraft || this.taishiControlDraft || this.taishiEvolutionDraft || this.taishiPeopleDraft || this.taishiRelationDraft || this.taishiBuildDraft || this.archiveToolRequest || this.referenceDraft) return;
     if (this.archiveUpdateWaiting()) { this.resumePlayerReview(); return; }
     const id = stable(capture); this.playerAutoQueued = null;
     if (this.lastPlayerAuto === id) return;
@@ -82,7 +82,7 @@ export const playerHomeMethods = {
         let first=capture.drainingPowerId!==powerId;
         while(true){
           const snapshot=this.contextSnapshot(),p=snapshot.state.powers[powerId];
-          if(this.playerAutoRunning!==run||snapshot.chatKey!==capture.chatKey||snapshot.state.id!==capture.stateId||!p?.active||!p.autoArchiveReview||this.settings.mode==='off'||(!p.autoArchiveSave&&this.powerId!==powerId)||this.pendingArchiveReview)break;
+          if(this.playerAutoRunning!==run||snapshot.chatKey!==capture.chatKey||snapshot.state.id!==capture.stateId||!p?.active||!p.autoArchiveReview||this.settings.mode==='off'||(!p.autoArchiveSave&&this.powerId!==powerId)||this.pendingArchiveReview||p.archiveBatch&&p.archiveBatch.cursor<p.archiveBatch.parts.length)break;
           if (this.archiveUpdateWaiting()) {
             this.playerAutoQueued ||= { ...capture, drainingPowerId: powerId };
             if (this.lastPlayerAuto === id) this.lastPlayerAuto = null;

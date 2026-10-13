@@ -2,8 +2,8 @@
 // unfamiliar fields are preserved, and no progress or world facts are invented.
 export function taishiBrief(record, rows, esc) {
   const world = record.specific?.recordId === 'world';
-  const person = record.specific?.recordId === 'companion';
-  if (!world && !person) return null;
+  const person = record.specific?.recordId === 'companion',organization=record.specific?.recordId==='organization';
+  if (!world && !person && !organization) return null;
   const groups = world ? [
     ['时代概况', ['overview','era','stage','structure','conditions','coverage','scope']],
     ['山河与文明', ['geography','inhabitants','facilities','species']],
@@ -12,13 +12,21 @@ export function taishiBrief(record, rows, esc) {
     [record.specific?.fields?.ability_title || (rows.some(r=>r.id==='combat_style'&&r.value)?'战斗与力量体系':'能力与技艺'), ['abilities','combat_style','crafts']],
     ['当前变化', ['events','evolution','changes','progress','result']],
     ['时间与降界', ['clock','rates','reset','connections','location','limits','descent']]
+  ] : organization ? [
+    ['势力现状',['overview','state','result']],
+    ['活动区域',['world','location','territory']],
+    ['内政与权力',['internal','pillars']],
+    ['外交与人物',['diplomacy','leaders','participants']],
+    ['重要行动',['actions']],
+    ['声誉',['official_reputation','public_reputation','hidden_reputation','industry_reputation']],
+    ['限制与未知',['limits']]
   ] : [
-    ['身份与专长', ['profile','role','origin']],
+    ['身份与专长', ['profile','role','position','origin']],
     [rows.some(r=>r.id==='combat_style'&&r.value)?(rows.some(r=>r.id==='crafts'&&r.value)?'战斗与技艺':'战斗方式'):'能力与技艺', ['abilities','combat_style','crafts']],
     ['外貌与性情', ['appearance','personality','speech','preferences']],
     ['经历与动机', ['background','motivation']],
     ['当前行动', ['world','location','action','progress','conditions']],
-    ['目标与关系', ['goals','social','relationship','limits']],
+    ['目标与关系', ['current_goal','goals','social','relationship','limits']],
     ['认知与记忆', ['knowledge','recent_memory','settled_memory','core_memory']]
   ];
   const originals=rows.filter(r=>r.id==='source_profile');rows=rows.filter(r=>!['ability_title','time_state'].includes(r.id));
@@ -34,5 +42,5 @@ export function taishiBrief(record, rows, esc) {
     return [title, selected];
   });
   if (remaining.size) cards.push(['补充档案', [...remaining]]);
-  return `<div class="wjwk-taishi-brief" data-taishi-brief="${world?'world':'person'}"><header class="wjwk-brief-hero"><small>${world?'诸界档案 · 世界简报':'人物档案 · 动态观测'}</small><h3>${esc(record.name)}</h3>${lead?`<p>${esc(lead.value)}</p>`:'<p class="wjwk-muted">根据已保存资料展示当前轮廓</p>'}</header><nav class="wjwk-brief-index" aria-label="简报分区">${cards.filter(([,r])=>r.length).map(([title])=>`<span class="wjwk-chip">${esc(title)}</span>`).join('')}</nav><div class="wjwk-brief-grid">${cards.filter(([,r])=>r.length).map(([title, values])=>`<section class="wjwk-brief-card"><h4>${esc(title)}</h4><dl>${values.map(r=>`<div><dt>${esc(r.label||r.id)}</dt><dd>${esc(r.value)}</dd></div>`).join('')}</dl></section>`).join('')}</div>${originalHTML}</div>`;
+  return `<div class="wjwk-taishi-brief" data-taishi-brief="${world?'world':organization?'organization':'person'}"><header class="wjwk-brief-hero"><small>${world?'诸界档案 · 世界简报':organization?'势力档案 · 当前格局':'人物档案 · 动态观测'}</small><h3>${esc(record.name)}</h3>${lead?`<p>${esc(lead.value)}</p>`:'<p class="wjwk-muted">根据已保存资料展示当前轮廓</p>'}</header><nav class="wjwk-brief-index" aria-label="简报分区">${cards.filter(([,r])=>r.length).map(([title])=>`<span class="wjwk-chip">${esc(title)}</span>`).join('')}</nav><div class="wjwk-brief-grid">${cards.filter(([,r])=>r.length).map(([title, values])=>`<section class="wjwk-brief-card"><h4>${esc(title)}</h4><dl>${values.map(r=>`<div><dt>${esc(r.label||r.id)}</dt><dd>${esc(r.value)}</dd></div>`).join('')}</dl></section>`).join('')}</div>${originalHTML}</div>`;
 }

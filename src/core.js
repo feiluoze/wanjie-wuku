@@ -1,3 +1,5 @@
+import {validateTaishiLocks} from './taishi-relations.js';
+import {validateArchiveBatch} from './archive-batch.js';
 import {validateTaishiTime} from './state-validation.js';
 import {recoverArchiveSummary} from './archive-summary.js';
 import {parseFinalJSON} from './json-final.js';
@@ -19,7 +21,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.4.0';
+export const VERSION = '1.4.1';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -438,6 +440,8 @@ export function validateState(data) {
     if (p.adapterBinding !== undefined) validateAdapterBinding(p.adapterBinding);
     p.archiveStart ??= data.managementStart;
     assert(Number.isSafeInteger(p.archiveStart) && p.archiveStart >= 0, '档案核对起点无效');
+    validateTaishiLocks(p.taishiLocks);
+    validateArchiveBatch(p.archiveBatch);
     p.archiveReviewed ||= [];
     for (const a of list(p.archiveReviewed, 100000, '档案核对进度')) assert(Number.isSafeInteger(a.index) && a.index >= 0 && Number.isSafeInteger(a.swipeId) && a.swipeId >= 0 && Number.isSafeInteger(a.length) && a.length >= 0 && /^[a-f0-9]{16}$/.test(a.textHash) && (a.format === undefined || a.format === ARCHIVE_TEXT_FORMAT || a.format === ARCHIVE_READ_FORMAT), '档案核对进度无效');
     if (p.archiveAuto !== undefined) p.archiveAuto = normalizeArchiveAuto(p.archiveAuto);

@@ -66,8 +66,8 @@ test('specialist preset limits schemas and outputs and retains region, organizat
   if(role==='taishiWorld')worldIds=input.recordSchemas.map(r=>r.id);else peopleIds=input.recordSchemas.map(r=>r.id);
   assert.deepEqual(input.specialist.recordIds,input.recordSchemas.map(r=>r.id));return {changes:[],floorReviews:[]};
  });
- for(const id of ['region','organization','event']){assert(creationConfig(power).records.some(r=>r.id===id));assert(worldIds.includes(id));}
- assert(!worldIds.includes('companion'));assert.deepEqual(peopleIds,['companion']);assert.equal(result.workflowIssues.length,0);
+ for(const id of ['region','organization','event','manifestation']){assert(creationConfig(power).records.some(r=>r.id===id));assert(worldIds.includes(id));}
+ assert(!worldIds.includes('companion'));assert.deepEqual(peopleIds,['companion','relation']);assert.equal(result.workflowIssues.length,0);
 });
 
 test('task preset activates no extra calls or provider-specific roleplay and summary cannot claim persistence',()=>{

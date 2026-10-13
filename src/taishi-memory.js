@@ -1,6 +1,6 @@
 // Separate narrator reference channels; no model calls and no shared character budget.
 export const TAISHI_MEMORY_CHANNELS = Object.freeze({world:{label:'世界设定与动态',budget:6000},people:{label:'人物与眷属设定',budget:12000}});
-export const taishiPerson = r => r.specific?.recordId==='companion'||!r.specific&&['member','bond'].includes(r.type);
+export const taishiPerson = r => ['companion','relation'].includes(r.specific?.recordId)||!r.specific&&['member','bond'].includes(r.type);
 export function taishiMemorySettings(config) {
   return Object.fromEntries(Object.entries(TAISHI_MEMORY_CHANNELS).map(([id,defaults])=>[id,{auto:config.taishi?.[id]?.auto??config.auto,budget:config.taishi?.[id]?.budget??defaults.budget}]));
 }

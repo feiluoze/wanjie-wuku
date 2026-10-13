@@ -1,3 +1,5 @@
+import {RELATION_FIELDS,assertRelation,findRelation} from './taishi-relations.js';
+import {creationConfig} from './creation-config.js';
 import {storyTimeEvents,assertStoryTime} from './taishi-time.js';
 import {taishiBuildMethods} from './taishi-build-controller.js';
 import {createPower,assert,clone} from './core.js';
@@ -12,6 +14,17 @@ import {isMmlc,MMLC_ENTRY} from './mmlc.js';
 export const powerSpace=p=>isMmlc(p)?'mmlc':isTaishi(p)?'taishi':'wuku';
 export const moduleEnabled=(state,space)=>Object.values(state?.powers||{}).some(p=>powerSpace(p)===space&&p.active);
 export const spaceMethods={
+  openTaishiRelation(){const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(isTaishi(p)&&p.active&&!this.busy,'请先选择太始天并等待任务完成');this.taishiRelationDraft={powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}};this.ui.showTaishiRelation(p);},
+  async saveTaishiRelation(values){
+    assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');const d=this.taishiRelationDraft;assert(d&&d.powerId===this.powerId,'关系窗口已失效');this.ensureStable();
+    await this.store.transact(next=>{const p=next.powers[d.powerId];assert(isTaishi(p)&&p.active,'太始天已变化');const a=p.archives[values.subject_id],b=p.archives[values.target_id],w=p.archives[values.world_id],config=creationConfig(p),def=config.records.find(r=>r.id==='relation');
+      const fields=Object.fromEntries(def.fields.map(f=>[f.id,String(values[f.id]||'').trim()]));fields.world=w?.name||'';
+      const existing=findRelation(p,values);
+      const specific={adapterId:config.id,recordId:'relation',version:config.version,label:def.label,labels:Object.fromEntries(def.fields.map(f=>[f.id,f.label])),fields};assertRelation(p,{specific});
+      const undo=journalSnapshot(next,p.id),before={...p.archives};const saved=saveArchive(p,{id:existing?.id,type:existing?.type||'bond',name:existing?.name||a.name+(values.direction==='双向'?' ↔ ':' → ')+b.name,status:'active',fields:{participants:a.name+'、'+b.name,terms:fields.state,condition:fields.cause},specific},archiveSource(this.store.context().chat,'玩家明确指定关系：'+fields.evidence));
+      p.taishiLocks ||= {};p.taishiLocks[saved.id]=values.protectRelations==='on'?RELATION_FIELDS.filter(k=>fields[k]):[];saveArchiveUpdate(p,before,[saved],[],{chat:this.store.context().chat});saveArchiveUndo(next,p.id,undo,'手动关系设定');
+    },{captured:d.captured});this.taishiRelationDraft=null;this.ui.closeDialog();this.refresh();this.resumePlayerReview();this.notice('关系已保存；重复修改沿用原档案，历史与人物身份保留。');
+  },
   async saveModules(values){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务完成后再切换模块');
     const s=this.ensureStable();
@@ -85,7 +98,8 @@ export const spaceMethods={
         assert(join===undefined||['direct','encounter','npc'].includes(join),'人物加入方式无效');
         if(join){controls.joining[r.id]=join;if(join!==old.joining[r.id]){
           const relationship={direct:'玩家指定为太始天眷属',encounter:'玩家计划相遇；尚未缔约',npc:'玩家指定为普通人物；未缔约'}[join];
-          const role=old.joining[r.id]?(r.fields.role||'').split('；').slice(1).join('；'):(r.fields.role||'');
+          const oldPrefix={direct:'玩家指定为太始天眷属',encounter:'玩家计划相遇；尚未缔约',npc:'玩家指定为普通人物；未缔约'}[old.joining[r.id]];
+          const role=oldPrefix&&(r.fields.role||'').startsWith(oldPrefix+'；')?r.fields.role.slice(oldPrefix.length+1):(r.fields.role||'');
           const specific=r.specific?clone(r.specific):null;if(specific)specific.fields.relationship=relationship;
           saved.push(saveArchive(p,{id:r.id,type:r.type,name:r.name,status:r.status,fields:{...r.fields,role:relationship+'；'+role},...(specific?{specific}:{})},archiveSource(s.ctx.chat,'玩家设置人物加入方式；不表示正文已发生契约仪式或相遇')));
         }}
