@@ -10,7 +10,7 @@ export function preparePersonSources(data,referenceBatch){
   cleaned.changes.forEach((raw,index)=>{
     if(!raw||typeof raw!=='object')return;
     const refs=raw.settingRefs;delete raw.settingRefs;
-    if(refs===undefined){if(referenceBatch&&raw.recordId==='companion')errors.set(index,'人物候选缺少settingRefs原文引用；请重试本批，不会把摘要当完整原文');return;}
+    if(refs===undefined){if(referenceBatch&&['companion','world'].includes(raw.recordId))errors.set(index,(raw.recordId==='world'?'世界':'人物')+'候选缺少settingRefs原文引用；请重试本批，不会把摘要当完整原文');return;}
     try{
       assert(referenceBatch&&['companion','world'].includes(raw.recordId)&&Array.isArray(refs)&&refs.length>0&&refs.length<=64,'设定原文引用只用于本批世界书人物或世界构建');
       const rows=refs.map(ref=>{

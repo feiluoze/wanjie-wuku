@@ -1,3 +1,4 @@
+import {resolveTaishiLinks} from './taishi-links.js';
 import {reviewHistory} from './archive-history.js';
 import {archiveInputRecord,inputCharacterBreakdown} from './archive-input.js';
 import {assertTaishiOwnership} from './taishi-ownership.js';
@@ -113,6 +114,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     if(!before&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});
     if(!manual&&!recovery)assertSnapshotPatch(before,patch,raw.details,quote,source.content);
+    if(isTaishi(power)){assert(!Object.hasOwn(raw.details||{},'time_state'),'时间记录由时间面板登记，AI不得修改');const linked={id:before?.id,specific,specificPatch:clone(raw.details||{})};resolveTaishiLinks(power,linked);if(specific?.recordId==='manifestation')assert(specific.fields.world_id&&['整界','局部','法则','收回'].includes(specific.fields.mode),'降界须关联已有世界并选择有效模式');}
     const identity = before?.id || `${type}:${nameKey(name)}`;
     const prior = seen.get(identity);
     if (prior) {
@@ -166,6 +168,7 @@ export function applyArchiveChanges(power, changes, sources, chosen, chat, { blo
     const anchors = [...new Map(dependencies.map(a => [stable(a), a])).values()].slice(-1000);
     const stored=saveArchive(power, { id: c.id, type: c.type, name: c.name, status: c.status, fields,...(c.ownerPowerId?{ownerPowerId:c.ownerPowerId}:{}),...(c.specific?{specific:c.specific}:{}), ...(c.module ? { module: c.module } : {}) }, { ...c.source, anchors });saved.push(stored);used.get(identity).id=stored.id;
   }
+  if(isTaishi(power))for(const record of saved)resolveTaishiLinks(power,{id:record.id,specific:record.specific});
   // Unchecked proposals stay pending. Only fully accepted floors advance.
   const completed = sources.filter(s => !blockedFloors.has(s.index) && changes.every((c, i) => c.source.type !== 'story' || c.source.anchor.index !== s.index || chosen.has(i)));
   power.archiveReviewed = [...(power.archiveReviewed || []).filter(a => !blockedFloors.has(a.index) && !completed.some(s => s.index === a.index)), ...completed.map(({ index, swipeId, length, textHash, format }) => ({ index, swipeId, length, textHash, ...(format ? { format } : {}) }))];

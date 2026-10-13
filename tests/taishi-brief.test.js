@@ -8,7 +8,7 @@ test('brief preserves unknown facts, groups saved facts, and escapes all model t
  const rows=[{id:'overview',label:'概况',value:'OVERVIEW'},{id:'era',label:'社会',value:'ERA'},{id:'events',label:'局势',value:'<img src=x onerror=alert(1)>'},{id:'future_field',label:'未来字段',value:'PRESERVED'}];
  const html=taishiBrief({name:'<script>',specific:{recordId:'world'}},rows,esc);
  for(const token of ['OVERVIEW','ERA','PRESERVED'])assert.equal(html.split(token).length-1,1);
- assert(html.includes('补充档案'));assert(html.includes('山河与文明'));assert(html.includes('&lt;img'));assert(!html.includes('<script>'));
+ assert(html.includes('补充档案'));assert(html.includes('时代概况'));assert(html.includes('&lt;img'));assert(!html.includes('<script>'));
  assert.equal(taishiBrief({specific:{recordId:'available'}},rows,esc),null);
 });
 test('worldbook setup gets ten minutes even for saved 120 second profiles; ordinary tasks unchanged',()=>{

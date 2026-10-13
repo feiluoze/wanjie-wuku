@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "source": "万界武库V4.1 · 2026-10-11作者更新",
+  "source": "万界武库V4.1 · 2026-10-13作者更新（同名旅法师、一言为定使用新版）",
   "recipes": [
     {
       "entryId": "0",
@@ -573,50 +573,6 @@
       ]
     },
     {
-      "entryId": "20",
-      "name": "太始天（精简版，择一开启）",
-      "role": "primary",
-      "parent": null,
-      "family": "domain",
-      "workflows": [
-        "cycle"
-      ],
-      "variantGroup": "taishitian",
-      "note": "两个太始天版本择一启用；内部时间与千年资格只记正文，不自动推进。",
-      "templates": [
-        {
-          "label": "当前阶段",
-          "category": "progress",
-          "ruleQuote": "当前阶段：[洞天福地／小千世界／中千世界／大千世界]"
-        },
-        {
-          "label": "主体天地时间",
-          "category": "record",
-          "ruleQuote": "主体天地时间：[累计已过的内部时间]"
-        },
-        {
-          "label": "当前时速",
-          "category": "record",
-          "ruleQuote": "当前时速：[外界1：内部X；重要局部时速按需列出]"
-        },
-        {
-          "label": "千年改设",
-          "category": "record",
-          "ruleQuote": "千年改设：[主体天地距上次定设或改设X年；资格可用／未到／保留中]"
-        },
-        {
-          "label": "世界现状",
-          "category": "record",
-          "ruleQuote": "世界现状：[天地、资源、人口与文明的关键变化]"
-        },
-        {
-          "label": "当前劫数及发展安排",
-          "category": "arrangement",
-          "ruleQuote": "当前劫数及发展安排：[若无则显示无]"
-        }
-      ]
-    },
-    {
       "entryId": "21",
       "name": "力量构筑",
       "role": "primary",
@@ -826,6 +782,17 @@
       ]
     },
     {
+      "name": "万界武库思维链（无状态栏和回执版）",
+      "role": "support",
+      "parent": null,
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "按最新原文管理已成立事实；不执行能力、不补算收益。",
+      "templates": [],
+      "entryId": "27"
+    },
+    {
       "entryId": "28",
       "name": "脑洞大爆炸",
       "role": "primary",
@@ -878,24 +845,29 @@
       "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
       "templates": [
         {
+          "label": "收录装备",
+          "category": "record",
+          "ruleQuote": "收录装备：[重要来源、装备种类与必要的收录规模；大型装备库保留总览，按需展开]"
+        },
+        {
           "label": "攻击性能",
           "category": "record",
-          "ruleQuote": "攻击性能：\n[已经归身的重要攻击性质与当前整体攻击结构]\n防御性能：\n[已经归身的重要防御性质与当前整体防护结构]\n功能性：\n[已经归身、需要长期调用的重要主动与被动功能"
+          "ruleQuote": "攻击性能：[已归身的重要攻击性质、强度、作用规模与综合结构]"
         },
         {
           "label": "防御性能",
           "category": "record",
-          "ruleQuote": "防御性能：\n[已经归身的重要防御性质与当前整体防护结构]\n功能性：\n[已经归身、需要长期调用的重要主动与被动功能]\n统合成果：\n[无／由多件装备能力形成的重要复合能力与调"
+          "ruleQuote": "防御性能：[已归身的重要防御性质、层次与综合结构]"
         },
         {
           "label": "功能性",
           "category": "record",
-          "ruleQuote": "功能性：\n[已经归身、需要长期调用的重要主动与被动功能]\n统合成果：\n[无／由多件装备能力形成的重要复合能力与调用模式]\n\n<结算与回执>\n「装备栏」的实际结算统一通过"
+          "ruleQuote": "功能性：[可直接调用的重要主动、被动及辅助能力]"
         },
         {
           "label": "统合成果",
           "category": "record",
-          "ruleQuote": "统合成果：\n[无／由多件装备能力形成的重要复合能力与调用模式]\n\n<结算与回执>\n「装备栏」的实际结算统一通过<WJWK-settle>输出，仅记录本轮真正完成的装备挂载"
+          "ruleQuote": "统合成果：[已形成的重要复合能力和调用模式；无则填“无”]"
         }
       ]
     },
@@ -954,32 +926,32 @@
         {
           "label": "已缔约道途",
           "category": "record",
-          "ruleQuote": "已缔约道途：[道途名列表，可按需展开]"
+          "ruleQuote": "已缔约道途：[名称及对应超主；过多时总览、按需展开]"
         },
         {
           "label": "道途特性",
           "category": "record",
-          "ruleQuote": "道途特性：[当前特性列表]"
+          "ruleQuote": "道途特性：[核心特性及已取得的重要深化表现]"
         },
         {
-          "label": "践行进度",
+          "label": "践行积累",
           "category": "progress",
-          "ruleQuote": "践行进度：[各道途当前进度与最近变化]"
+          "ruleQuote": "践行积累：[各道途的实际成长、领悟与深化方向]"
         },
         {
-          "label": "当前生命层次",
+          "label": "本质跃迁",
           "category": "record",
-          "ruleQuote": "当前生命层次：[当前本质状态]"
+          "ruleQuote": "本质跃迁：[次数、当前生命本质与最近的实际质变]"
         },
         {
-          "label": "最近践行",
+          "label": "道途之力",
           "category": "record",
-          "ruleQuote": "最近践行：[行为与对应道途]"
+          "ruleQuote": "道途之力：[当前稳定施展的规模、范围及概念效力]"
         },
         {
-          "label": "下一跃迁",
+          "label": "复合道路",
           "category": "record",
-          "ruleQuote": "下一跃迁：[当前最接近完成的跃迁]"
+          "ruleQuote": "复合道路：[已形成的概念联系、复合特性与个人道路；无则填“无”]"
         }
       ]
     },
@@ -1373,28 +1345,33 @@
       "templates": [
         {
           "label": "当前深化对象",
-          "category": "progress",
-          "ruleQuote": "当前深化对象：[名称／来源／当前共鸣与新增理解；没有则记无]"
+          "category": "record",
+          "ruleQuote": "当前深化对象：[名称／来源／具体版本；无则填“无”]"
         },
         {
-          "label": "已固化对象",
+          "label": "主要特质",
           "category": "record",
-          "ruleQuote": "已固化对象：[重要对象名称；没有则记无]"
+          "ruleQuote": "主要特质：[当前对象已完整承接、正在深化及尚未承接的重要部分；无则省略]"
+        },
+        {
+          "label": "有效共鸣",
+          "category": "record",
+          "ruleQuote": "有效共鸣：[当前对象未兑现积累X/3；发生变化时记明对应事件]"
+        },
+        {
+          "label": "已获得力量",
+          "category": "record",
+          "ruleQuote": "已获得力量：[需要长期保存的核心能力、性质及来源；无则省略]"
         },
         {
           "label": "未完成咨询",
           "category": "record",
-          "ruleQuote": "未完成咨询：[需要持续追踪的对象及已掌握部分；没有则省略]"
+          "ruleQuote": "未完成咨询：[其他关键对象的版本、主要进展及各自未兑现的共鸣积累；无则省略]"
         },
         {
-          "label": "重要组合",
+          "label": "已固化对象",
           "category": "record",
-          "ruleQuote": "重要组合：[已经形成并会影响后续行动的能力组合；没有则省略]"
-        },
-        {
-          "label": "自我之形",
-          "category": "record",
-          "ruleQuote": "自我之形：[已形成的形象与当前力量；没有则省略]"
+          "ruleQuote": "已固化对象：[已完成咨询的对象及版本；无则填“无”]"
         }
       ]
     },
@@ -1411,27 +1388,32 @@
         {
           "label": "投资记录",
           "category": "record",
-          "ruleQuote": "投资记录：[总次数；已使用首次复制资格的重要类别]"
+          "ruleQuote": "投资记录：[有效次数／已使用首次复制资格的类别]"
         },
         {
-          "label": "重要独立史线",
+          "label": "最近投资",
           "category": "record",
-          "ruleQuote": "重要独立史线：[各笔仍需记住的历史结果，可按需调阅]"
+          "ruleQuote": "最近投资：[标的／复制或消耗／历史落点]"
         },
         {
-          "label": "当前家族来路",
+          "label": "独立史线",
           "category": "record",
-          "ruleQuote": "当前家族来路：[统一后的重要身份、血脉与关系]"
+          "ruleQuote": "独立史线：[重要投资历史及其当代成果；其他按需调阅]"
         },
         {
-          "label": "当前继承",
+          "label": "现世家族史",
           "category": "record",
-          "ruleQuote": "当前继承：[已实际回流的重要资源、传承与权益]"
+          "ruleQuote": "现世家族史：[唯一有效的家族来路、身份与重要关系]"
         },
         {
-          "label": "待落实变化",
+          "label": "当前承继",
           "category": "record",
-          "ruleQuote": "待落实变化：[已有历史依据、仍待在当前现实完整显现的成果；没有则省略]"
+          "ruleQuote": "当前承继：[{{user}}实际拥有的能力、资产、权益及家族资源渠道]"
+        },
+        {
+          "label": "现实回响",
+          "category": "record",
+          "ruleQuote": "现实回响：[当前剧情必须持续承认的重要变化；无则省略]"
         }
       ]
     },
@@ -1872,19 +1854,29 @@
       "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
       "templates": [
         {
-          "label": "最近援引",
-          "category": "record",
-          "ruleQuote": "最近援引：[先例名称；当前对应结果]"
-        },
-        {
-          "label": "最近立史",
-          "category": "record",
-          "ruleQuote": "最近立史：[{{user}}最近创造的新先例]"
+          "label": "常驻先例",
+          "category": "arrangement",
+          "ruleQuote": "常驻先例：[当前重要的常驻结果及适用情形；无则填“无”]"
         },
         {
           "label": "当前适用",
           "category": "record",
-          "ruleQuote": "当前适用：[当前场景中最容易直接援引的先例]"
+          "ruleQuote": "当前适用：[本场景中重要的可援引先例及其具体结果；无则填“无”]"
+        },
+        {
+          "label": "最近援引",
+          "category": "record",
+          "ruleQuote": "最近援引：[本轮真正生效的重要先例与已兑现成果；无则填“无”]"
+        },
+        {
+          "label": "新增立史",
+          "category": "record",
+          "ruleQuote": "新增立史：[{{user}}本轮真正完成、值得保留的重要个人历史；无则填“无”]"
+        },
+        {
+          "label": "自身沉淀",
+          "category": "record",
+          "ruleQuote": "自身沉淀：[通过先例深化实际获得的重要知识、技艺与经验；无则填“无”]"
         }
       ]
     },
@@ -1936,24 +1928,29 @@
           "ruleQuote": "武魂名称：[名称]"
         },
         {
-          "label": "武魂原型",
+          "label": "武魂原型与先天品质",
           "category": "record",
-          "ruleQuote": "武魂原型：[初始原型及{{user}}选定的核心性质]"
+          "ruleQuote": "武魂原型与先天品质：[完整原型、核心性质及初始品质]"
+        },
+        {
+          "label": "先天权能",
+          "category": "record",
+          "ruleQuote": "先天权能：[觉醒时实际成立的重要固有能力]"
+        },
+        {
+          "label": "魂力与共生成长",
+          "category": "record",
+          "ruleQuote": "魂力与共生成长：[重要魂力进展、武魂成长及宿主反哺；无新增则沿用]"
+        },
+        {
+          "label": "主要魂技",
+          "category": "record",
+          "ruleQuote": "主要魂技：[已获得的重要魂技；无则填“无”]"
         },
         {
           "label": "重要演化",
           "category": "record",
-          "ruleQuote": "重要演化：[已经形成的重要形态、性质或能力变化；没有则省略]"
-        },
-        {
-          "label": "持续融合",
-          "category": "arrangement",
-          "ruleQuote": "持续融合：[当前仍在生效、会影响后续叙事的重要融合；没有则省略]"
-        },
-        {
-          "label": "发展方向",
-          "category": "progress",
-          "ruleQuote": "发展方向：[{{user}}已确定、需要持续执行的重要方向；没有则省略]"
+          "ruleQuote": "重要演化：[已形成的重要品质、能力与形态变化；无则填“无”]"
         }
       ]
     },
@@ -2130,48 +2127,6 @@
       ]
     },
     {
-      "entryId": "70",
-      "name": "旅法师",
-      "role": "primary",
-      "parent": null,
-      "family": "growth",
-      "workflows": [],
-      "variantGroup": null,
-      "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
-      "templates": [
-        {
-          "label": "当前位面与落点",
-          "category": "record",
-          "ruleQuote": "当前位面与落点：[名称]"
-        },
-        {
-          "label": "法术力状态",
-          "category": "record",
-          "ruleQuote": "法术力状态：[保底／稳流／充盈；当前重要供能来源]"
-        },
-        {
-          "label": "当前施法倾向",
-          "category": "record",
-          "ruleQuote": "当前施法倾向：[当前行动中实际使用的色彩；无则省略]"
-        },
-        {
-          "label": "当前召现",
-          "category": "record",
-          "ruleQuote": "当前召现：[正在行动的重要构像、投影或本体]"
-        },
-        {
-          "label": "旅法徽记",
-          "category": "record",
-          "ruleQuote": "旅法徽记：[当前仍在生效的重要规则]"
-        },
-        {
-          "label": "护主后续状态",
-          "category": "record",
-          "ruleQuote": "护主后续状态：[当前确需追踪的落点或恢复情况；无则省略]"
-        }
-      ]
-    },
-    {
       "entryId": "71",
       "name": "敕天法统",
       "role": "primary",
@@ -2207,6 +2162,43 @@
           "ruleQuote": "中枢状态：[统主本印／帝座／文相印／武相印]"
         }
       ]
+    },
+    {
+      "name": "万物之始",
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "按最新原文管理已成立事实；不执行能力、不补算收益。",
+      "templates": [
+        {
+          "label": "始源谱系",
+          "category": "record",
+          "ruleQuote": "始源谱系：[已确立的重要始源及主要分支；数量庞大时总览、按需展开]"
+        },
+        {
+          "label": "重要衍生",
+          "category": "record",
+          "ruleQuote": "重要衍生：[已经真实成立的重大生命、能力、体系、造物、法则或世界]"
+        },
+        {
+          "label": "持续衍生",
+          "category": "arrangement",
+          "ruleQuote": "持续衍生：[{{user}}授权持续创生的谱系、方向与运行状态；无则填“无”]"
+        },
+        {
+          "label": "始源统摄",
+          "category": "record",
+          "ruleQuote": "始源统摄：[重要谱系调整、合流、归属与自主性安排；无则填“无”]"
+        },
+        {
+          "label": "万象归宗",
+          "category": "record",
+          "ruleQuote": "万象归宗：[已从谱系新发展中取得的重要知识、力量及其他成果；无则填“无”]"
+        }
+      ],
+      "entryId": "72"
     },
     {
       "entryId": "73",
@@ -2337,6 +2329,48 @@
       ]
     },
     {
+      "name": "进化之炎",
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "按最新原文管理已成立事实；不执行能力、不补算收益。",
+      "templates": [
+        {
+          "label": "火焰形态",
+          "category": "record",
+          "ruleQuote": "火焰形态：[具象／无形；无变化则沿用]"
+        },
+        {
+          "label": "运行安排",
+          "category": "arrangement",
+          "ruleQuote": "运行安排：[主要专注项目、自动常燃安排及优先级]"
+        },
+        {
+          "label": "护主状态",
+          "category": "record",
+          "ruleQuote": "护主状态：[持续生效；重要新增防护或反制变化]"
+        },
+        {
+          "label": "进行中项目",
+          "category": "record",
+          "ruleQuote": "进行中项目：[项目总览；重点目标按需展开]"
+        },
+        {
+          "label": "主推进项目",
+          "category": "record",
+          "ruleQuote": "主推进项目：[目标、方向、当前实际变化、下一可辨认质变]"
+        },
+        {
+          "label": "已固化成果",
+          "category": "record",
+          "ruleQuote": "已固化成果：[重要新性质、新能力、新层次及持有归属]"
+        }
+      ],
+      "entryId": "77"
+    },
+    {
       "entryId": "78",
       "name": "赋能",
       "role": "primary",
@@ -2347,19 +2381,19 @@
       "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
       "templates": [
         {
+          "label": "重要赋能成果",
+          "category": "record",
+          "ruleQuote": "重要赋能成果：[新增且影响后续行动的关键修为、技艺、资源、能力或权益；无则填“无”]"
+        },
+        {
+          "label": "重要逆境返还",
+          "category": "record",
+          "ruleQuote": "重要逆境返还：[已经实际取得、仍会发挥作用的抗性、韧性、辨识、反制或改良成果；无则填“无”]"
+        },
+        {
           "label": "待兑现收益",
           "category": "record",
-          "ruleQuote": "待兑现收益：[无／来源与尚待交付的成果]"
-        },
-        {
-          "label": "重要返还",
-          "category": "record",
-          "ruleQuote": "重要返还：[当前仍会影响后续行动的抗性、底蕴或破局能力]"
-        },
-        {
-          "label": "近期变化",
-          "category": "record",
-          "ruleQuote": "近期变化：[仅记录本轮需要继续记住的关键结算]"
+          "ruleQuote": "待兑现收益：[无／来源、已成立的完整收益与尚未交付的部分]"
         }
       ]
     },
@@ -2392,33 +2426,6 @@
           "label": "重要外溢与传法",
           "category": "record",
           "ruleQuote": "重要外溢与传法：[当前确实影响后续的区域变化、传法对象]"
-        }
-      ]
-    },
-    {
-      "entryId": "80",
-      "name": "一言为定",
-      "role": "primary",
-      "parent": null,
-      "family": "relationship",
-      "workflows": [],
-      "variantGroup": null,
-      "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
-      "templates": [
-        {
-          "label": "重要待履约诺契",
-          "category": "arrangement",
-          "ruleQuote": "重要待履约诺契：[来源／{{user}}尚待完成的条件／承诺利益]"
-        },
-        {
-          "label": "已成立待交付收益",
-          "category": "record",
-          "ruleQuote": "已成立待交付收益：[无／已归属但暂未完全显现的部分]"
-        },
-        {
-          "label": "近期关键变化",
-          "category": "record",
-          "ruleQuote": "近期关键变化：[仅记录仍会影响后续行动的重要约定]"
         }
       ]
     },
@@ -2538,34 +2545,34 @@
       "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
       "templates": [
         {
-          "label": "血脉状态",
-          "category": "record",
-          "ruleQuote": "血脉状态：[稳定运转／吸能中／战斗适应中／底火维持]"
-        },
-        {
           "label": "当前生命表现",
           "category": "record",
-          "ruleQuote": "当前生命表现：[最重要的力量、速度、感官、恢复或能量能力]"
+          "ruleQuote": "当前生命表现：[已稳定拥有的关键体魄、速度、感官、恢复、飞行、输出及其实际表现]"
         },
         {
           "label": "当前可用火力",
           "category": "record",
-          "ruleQuote": "当前可用火力：[充盈／稳定／底火维持；必要时补充来源]"
+          "ruleQuote": "当前可用火力：[额外储备与重要来源；无则填“底火维持”]"
         },
         {
           "label": "关键适应",
-          "category": "progress",
-          "ruleQuote": "关键适应：[后续仍会影响战斗的威胁及已形成的应对]"
+          "category": "record",
+          "ruleQuote": "关键适应：[后续有效的威胁样本、抗性与反制；无则填“无”]"
         },
         {
           "label": "生命岁月",
-          "category": "progress",
-          "ruleQuote": "生命岁月：[已完成的年数；未满一年的进度按需查询]"
+          "category": "record",
+          "ruleQuote": "生命岁月：[已完成的真实年份及必要的未满周年进度]"
         },
         {
           "label": "近期变化",
           "category": "record",
-          "ruleQuote": "近期变化：[重要吸收、身体重塑、能力生成或岁月沉淀]"
+          "ruleQuote": "近期变化：[重要吸能、永久强化、重塑、能力生长与岁月沉淀；无则省略]"
+        },
+        {
+          "label": "特殊状态",
+          "category": "record",
+          "ruleQuote": "特殊状态：[重大吸能、重伤或重塑等需要追踪时显示]"
         }
       ]
     },
@@ -3067,32 +3074,27 @@
         {
           "label": "运算形态",
           "category": "record",
-          "ruleQuote": "运算形态：[大贤者／智慧之王]"
+          "ruleQuote": "运算形态：[大贤者／智慧之王／后续实际成立的形态]"
         },
         {
           "label": "知性状态",
           "category": "record",
-          "ruleQuote": "知性状态：[伴生智慧／神智核·自定姓名]"
+          "ruleQuote": "知性状态：[伴生智慧／神智核·姓名]"
         },
         {
-          "label": "当前聚焦",
+          "label": "研究与任务",
           "category": "record",
-          "ruleQuote": "当前聚焦：[对象或问题／无]"
+          "ruleQuote": "研究与任务：[重要课题、已授权行动及真实进展；无则填“无”]"
         },
         {
-          "label": "当前并列任务",
-          "category": "arrangement",
-          "ruleQuote": "当前并列任务：[关键任务摘要／无]"
-        },
-        {
-          "label": "已授权托管",
-          "category": "arrangement",
-          "ruleQuote": "已授权托管：[应急守护及{{user}}指定的行动范围]"
-        },
-        {
-          "label": "待证关键",
+          "label": "重要成果",
           "category": "record",
-          "ruleQuote": "待证关键：[最短验证动作或缺失条件／无]"
+          "ruleQuote": "重要成果：[需跨回合保存的知识、理论、技术、技能与创造物；无则填“无”]"
+        },
+        {
+          "label": "待解决问题",
+          "category": "progress",
+          "ruleQuote": "待解决问题：[关键未知、实施条件及补全方式；无则填“无”]"
         }
       ]
     },
@@ -3109,27 +3111,27 @@
         {
           "label": "当前聚焦对象",
           "category": "record",
-          "ruleQuote": "当前聚焦对象：[名称／无]"
+          "ruleQuote": "当前聚焦对象：[名称或标识；无则填“无”]"
         },
         {
           "label": "当前好感",
           "category": "record",
-          "ruleQuote": "当前好感：[X/100／尚未相见]"
+          "ruleQuote": "当前好感：[70—100实际值；尚未相见则标明]"
         },
         {
-          "label": "当前关系与信任",
+          "label": "当前关系",
           "category": "record",
-          "ruleQuote": "当前关系与信任：[关系性质及重要变化；无则简述]"
+          "ruleQuote": "当前关系：[友情、敬重、亲近、爱慕或其他实际性质]"
         },
         {
-          "label": "最近容忍结果",
+          "label": "信任与立场",
           "category": "record",
-          "ruleQuote": "最近容忍结果：[本次实际改变的行动／无]"
+          "ruleQuote": "信任与立场：[重要信任变化、职责、利益冲突及关系状况]"
         },
         {
-          "label": "最近重要关系变化",
+          "label": "重要关系变化",
           "category": "record",
-          "ruleQuote": "最近重要关系变化：[至多三项摘要；无则省略]"
+          "ruleQuote": "重要关系变化：[需跨回合保存的相见、帮助、容忍、敌对及行动偏转；无则省略]"
         }
       ]
     },
@@ -3272,19 +3274,24 @@
       "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
       "templates": [
         {
-          "label": "重要术式",
+          "label": "衍生性质",
           "category": "record",
-          "ruleQuote": "重要术式：[名称；八风或融合性质；效果与关键结构]"
+          "ruleQuote": "衍生性质：[重要名称、来源与独立用途；无则填“无”]"
+        },
+        {
+          "label": "留存术式",
+          "category": "record",
+          "ruleQuote": "留存术式：[重要名称、关键结构与效果；无则填“无”]"
         },
         {
           "label": "持续法术",
           "category": "arrangement",
-          "ruleQuote": "持续法术：[作用对象及位置；实际效果；触发、持续与终止条件]"
+          "ruleQuote": "持续法术：[实际对象、位置、效果、触发及终止条件；无则填“无”]"
         },
         {
           "label": "重要成果",
           "category": "record",
-          "ruleQuote": "重要成果：[需长期保留的造物、附魔或持久改变；位置与必要性质]"
+          "ruleQuote": "重要成果：[持久造物、附魔、生命、改造等须保留的事实；无则填“无”]"
         }
       ]
     },
@@ -3336,19 +3343,29 @@
       "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
       "templates": [
         {
+          "label": "常驻能力",
+          "category": "arrangement",
+          "ruleQuote": "常驻能力：[已取得且需要长期保留的重要能力、工具；无则填“无”]"
+        },
+        {
+          "label": "重要物品",
+          "category": "record",
+          "ruleQuote": "重要物品：[实际持有或需要追踪的重要真品、装备与资产；无则填“无”]"
+        },
+        {
           "label": "身份优势",
           "category": "record",
-          "ruleQuote": "身份优势：[已经落实的重要资格或角色范式优势；无则填“无”]"
+          "ruleQuote": "身份优势：[已落实的重要身份、资格及角色范式；无则填“无”]"
         },
         {
-          "label": "当前生效",
-          "category": "record",
-          "ruleQuote": "当前生效：[需要持续记住的已启用功能或状态；无则填“无”]"
+          "label": "持续效果",
+          "category": "arrangement",
+          "ruleQuote": "持续效果：[当前启用、作用于自身或外界的重要功能及状态；无则填“无”]"
         },
         {
-          "label": "最近兑现",
+          "label": "重要改写",
           "category": "record",
-          "ruleQuote": "最近兑现：[最近一次重要玩梗及其实际结果]"
+          "ruleQuote": "重要改写：[需要跨回合保留的对象变化、赋予结果及现实事件；无则省略]"
         }
       ]
     },
@@ -3673,27 +3690,74 @@
         {
           "label": "重要适应",
           "category": "record",
-          "ruleQuote": "重要适应：[已经取得、会影响后续行动的抗性与特殊适应；无则填“无”]"
+          "ruleQuote": "重要适应：[已取得并影响后续行动的抗性、免疫与特殊适应；无则填“无”]"
         },
         {
           "label": "演化成果",
           "category": "record",
-          "ruleQuote": "演化成果：[重要生命性能、结构变化及新能力；无则填“无”]"
+          "ruleQuote": "演化成果：[已永久取得的重要智慧、生命性能、知识、能力及自我适应成果；无则填“无”]"
+        },
+        {
+          "label": "现实成果",
+          "category": "record",
+          "ruleQuote": "现实成果：[梦想适应已实际创造、改变且需持续追踪的现实事实；无则填“无”]"
         },
         {
           "label": "共生与汲取",
           "category": "record",
-          "ruleQuote": "共生与汲取：[已建立的重要共生关系、吸收方式与实际持有的相关资源；无则填“无”]"
+          "ruleQuote": "共生与汲取：[重要共生关系、供给性能及需要记账的实际外来资源；无则省略]"
         },
         {
           "label": "当前形态",
           "category": "record",
-          "ruleQuote": "当前形态：[与后续执行有关的生命形态或持续状态；无则填“常态”]"
+          "ruleQuote": "当前形态：[会影响后续执行的生命、身份或存在表现；无特殊变化则填“常态”]"
         },
         {
-          "label": "持续安排",
+          "label": "自限与持续安排",
           "category": "arrangement",
-          "ruleQuote": "持续安排：[{{user}}已经确定且仍在进行的适应或演化方向；无则填“无”]"
+          "ruleQuote": "自限与持续安排：[{{user}}主动规定且仍有效的自限、延后结果或持续适应；无则填“无”]"
+        }
+      ]
+    },
+    {
+      "entryId": "119",
+      "name": "旅法师",
+      "role": "primary",
+      "parent": null,
+      "family": "growth",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
+      "templates": [
+        {
+          "label": "当前位面",
+          "category": "record",
+          "ruleQuote": "当前位面：[所在位面与必要坐标信息]"
+        },
+        {
+          "label": "重要地印",
+          "category": "record",
+          "ruleQuote": "重要地印：[有效地域联系、法术力来源及变化；无则填“无”]"
+        },
+        {
+          "label": "旅法谱库",
+          "category": "record",
+          "ruleQuote": "旅法谱库：[重要新增或完成的咒语、知识、构像记录与规则样本；其余归档]"
+        },
+        {
+          "label": "火花空间",
+          "category": "record",
+          "ruleQuote": "火花空间：[已有位面、成熟区域、建设、产出及资源库存；无则填“无”]"
+        },
+        {
+          "label": "有效召现与契约",
+          "category": "record",
+          "ruleQuote": "有效召现与契约：[需跨回合追踪的构像、真实召唤与盟约；无则填“无”]"
+        },
+        {
+          "label": "有效立界徽",
+          "category": "record",
+          "ruleQuote": "有效立界徽：[持续规则、范围及变化；无则填“无”]"
         }
       ]
     },
@@ -3789,6 +3853,159 @@
           "ruleQuote": "近期升变：[重要新形态及能力；无则填“无”]"
         }
       ]
+    },
+    {
+      "entryId": "123",
+      "name": "一言为定",
+      "role": "primary",
+      "parent": null,
+      "family": "relationship",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存已经成立的长期事实；能力使用与因果结果仍由正文和原规则处理。",
+      "templates": [
+        {
+          "label": "重要诺契",
+          "category": "record",
+          "ruleQuote": "重要诺契：[发诺者或发布来源、己方义务、核心利益、有效条件及当前状态；无则省略]"
+        },
+        {
+          "label": "履约进展",
+          "category": "progress",
+          "ruleQuote": "履约进展：[已经选择且尚未完成的关键义务、实际进展；无则省略]"
+        },
+        {
+          "label": "待兑现权益",
+          "category": "record",
+          "ruleQuote": "待兑现权益：[义务已完成但尚未到约定交付时点的利益、到期条件及归属；无则省略]"
+        },
+        {
+          "label": "持续应诺",
+          "category": "arrangement",
+          "ruleQuote": "持续应诺：[已成立的长期资格、周期收益、适用条件及重要执行情况；无则省略]"
+        },
+        {
+          "label": "重要所得",
+          "category": "record",
+          "ruleQuote": "重要所得：[需要跨回合保留的资产、身份、权利、能力及其他兑现成果；无则省略]"
+        },
+        {
+          "label": "最近变化",
+          "category": "record",
+          "ruleQuote": "最近变化：[本轮新锁定、履约完成、奖励兑现、成本补益或恶意剥离等重要变化；无则省略]"
+        }
+      ]
+    },
+    {
+      "name": "诸天投影镜",
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "按最新原文管理已成立事实；不执行能力、不补算收益。",
+      "templates": [
+        {
+          "label": "当前历练",
+          "category": "record",
+          "ruleQuote": "当前历练：[所在世界、进入模式、时间关系及回归安排；无则省略]"
+        },
+        {
+          "label": "重要投影",
+          "category": "record",
+          "ruleQuote": "重要投影：[已收录或正在使用的关键人物、阶段与作用；无则省略]"
+        },
+        {
+          "label": "待具现收获",
+          "category": "record",
+          "ruleQuote": "待具现收获：[关键投影物品、传承、报价及归属；无则省略]"
+        },
+        {
+          "label": "重要所得",
+          "category": "record",
+          "ruleQuote": "重要所得：[已具现实物、已掌握知识、真实成长及其他跨回合成果；无则省略]"
+        },
+        {
+          "label": "诸天坐标",
+          "category": "record",
+          "ruleQuote": "诸天坐标：[需要保留的重要世界与有效定位；无则省略]"
+        }
+      ],
+      "entryId": "124"
+    },
+    {
+      "name": "一以贯之",
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "按最新原文管理已成立事实；不执行能力、不补算收益。",
+      "templates": [
+        {
+          "label": "永久归峰高度",
+          "category": "record",
+          "ruleQuote": "永久归峰高度：[当前自身永久基线；多种尺度并存时写明对应的实际层次]"
+        },
+        {
+          "label": "有效外源增益",
+          "category": "record",
+          "ruleQuote": "有效外源增益：[仍在生效的关键依附型来源及六倍加成；无则省略]"
+        },
+        {
+          "label": "当前全属性",
+          "category": "record",
+          "ruleQuote": "当前全属性：[归峰基线与有效外源加成共同形成的实际属性；无统一数值时记录可验证的实际高度]"
+        },
+        {
+          "label": "本轮重要变化",
+          "category": "record",
+          "ruleQuote": "本轮重要变化：[新高峰、永久融入、来源升级、失效或恢复及实际净增；无则省略]"
+        }
+      ],
+      "entryId": "125"
+    },
+    {
+      "name": "心渊",
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "按最新原文管理已成立事实；不执行能力、不补算收益。",
+      "templates": [
+        {
+          "label": "渊核",
+          "category": "record",
+          "ruleQuote": "渊核：[当前展开形态及重要演化]"
+        },
+        {
+          "label": "生命锚定",
+          "category": "record",
+          "ruleQuote": "生命锚定：[当前默认适配层次与成长倾向；变化时更新]"
+        },
+        {
+          "label": "心相碎片",
+          "category": "record",
+          "ruleQuote": "心相碎片：[现有余额及本次重要收支]"
+        },
+        {
+          "label": "永久渊痕",
+          "category": "record",
+          "ruleQuote": "永久渊痕：[重要强化、能力特性和升华构筑]"
+        },
+        {
+          "label": "重要遗藏",
+          "category": "record",
+          "ruleQuote": "重要遗藏：[仍需追踪的实物、传承及归属]"
+        },
+        {
+          "label": "深层钥痕",
+          "category": "record",
+          "ruleQuote": "深层钥痕：[已开渊路、永久权限与尚存一次性凭证]"
+        }
+      ],
+      "entryId": "126"
     }
   ]
 }

@@ -1,3 +1,4 @@
+import {taishiControlUI} from './taishi-control-ui.js';
 import {MODULE_NAMES} from './module-backup.js';
 import {creationConfig} from './creation-config.js';
 import {worldLinksHTML} from './taishi-world.js';
@@ -42,7 +43,7 @@ export const workbenchAppearance = power => isMmlc(power) ? 'journey' : isTaishi
 const appearanceLabels = { arsenal:'能力藏馆', journey:'修行道场', taishi:'诸界观测台' };
 const moduleMarks = {land:'山',sect:'宗',arts:'经',body:'修',items:'器',spirits:'灵',fleet:'舟',projects:'研'};
 
-export const requiresFormValidation = action => ['taishi-evolve', 'taishi-draft-submit', 'taishi-people-save', 'archive-correct-draft', 'creation-draft', 'creation-refine', 'terminal-draft', 'terminal-confirm', 'save-archive-range', 'register', 'save-baseline', 'save-balances', 'save-settings', 'save-api-profile', 'role-save', 'save-management', 'save-workflow', 'save-archive', 'save-manual-story', 'save-memory', 'preview-memory'].includes(action);
+export const requiresFormValidation = action => ['taishi-world-action-draft', 'taishi-setting-preview', 'taishi-clock-preview', 'taishi-descent-draft', 'taishi-evolve', 'taishi-draft-submit', 'taishi-people-save', 'archive-correct-draft', 'creation-draft', 'creation-refine', 'terminal-draft', 'terminal-confirm', 'save-archive-range', 'register', 'save-baseline', 'save-balances', 'save-settings', 'save-api-profile', 'role-save', 'save-management', 'save-workflow', 'save-archive', 'save-manual-story', 'save-memory', 'preview-memory'].includes(action);
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const archiveStatus = r => r.status === 'active' ? ({ member: '在册', skill: '已掌握', bond: '有效' })[r.type] || ARCHIVE_STATUS.active : ARCHIVE_STATUS[r.status];
@@ -77,7 +78,7 @@ export class WorkbenchUI {
       if (name === 'toggle') { if (this.dragged) { this.dragged = false; return; } this.setOpen(!this.open); return; }
       if (name === 'new-api-profile') { this.newConnectionProfile(); return; }
       if (name === 'close') { this.setOpen(false); return; }
-      if (name === 'dialog-close') { if(this.modal.querySelector('[data-outbox-dialog]')) this.action('outbox-dismiss',{}); if(this.modal.querySelector('[data-ai-reference-dialog]')) this.action('ai-ref-dismiss',{}); if(this.modal.querySelector('[data-archive-tool-dialog]')) this.action('archive-tool-dismiss',{}); if(this.modal.querySelector('[data-taishi-workflow-review]')) this.action('taishi-workflow-cancel',{}); if(this.modal.querySelector('[data-taishi-build]')) this.action('taishi-build-dismiss',{}); if(this.modal.querySelector('[data-taishi-development]')) this.action('taishi-development-dismiss',{}); if(this.modal.querySelector('[data-taishi-people]')) this.action('taishi-people-dismiss',{}); if(this.modal.querySelector('[data-taishi-draft]')) this.action('taishi-draft-dismiss',{}); if(this.modal.querySelector('[data-creation-dialog]')) this.action('creation-dismiss',{}); if(this.modal.querySelector('[data-terminal-dialog]')) this.action('terminal-dismiss',{}); if (this.modal.querySelector('[data-scene-dialog]')) this.action('cancel-scene', {}); this.action('cancel-model-list', {}); this.closeDialog(); return; }
+      if (name === 'dialog-close') { if(this.modal.querySelector('[data-taishi-descent],[data-taishi-clock],[data-taishi-clock-preview]'))this.action('taishi-control-dismiss',{}); if(this.modal.querySelector('[data-outbox-dialog]')) this.action('outbox-dismiss',{}); if(this.modal.querySelector('[data-ai-reference-dialog]')) this.action('ai-ref-dismiss',{}); if(this.modal.querySelector('[data-archive-tool-dialog]')) this.action('archive-tool-dismiss',{}); if(this.modal.querySelector('[data-taishi-workflow-review]')) this.action('taishi-workflow-cancel',{}); if(this.modal.querySelector('[data-taishi-build]')) this.action('taishi-build-dismiss',{}); if(this.modal.querySelector('[data-taishi-development]')) this.action('taishi-development-dismiss',{}); if(this.modal.querySelector('[data-taishi-people]')) this.action('taishi-people-dismiss',{}); if(this.modal.querySelector('[data-taishi-draft]')) this.action('taishi-draft-dismiss',{}); if(this.modal.querySelector('[data-creation-dialog]')) this.action('creation-dismiss',{}); if(this.modal.querySelector('[data-terminal-dialog]')) this.action('terminal-dismiss',{}); if (this.modal.querySelector('[data-scene-dialog]')) this.action('cancel-scene', {}); this.action('cancel-model-list', {}); this.closeDialog(); return; }
       if (name === 'mmlc-section') { this.mmlcSection = button.dataset.section || null; this.tab = 'management'; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); return; }
       if (name === 'tab') { this.tab = button.dataset.tab; this.render(this.view); return; }
       let data = { ...button.dataset };
@@ -273,7 +274,7 @@ export class WorkbenchUI {
       <div class="wjwk-content">${this.tab === 'management' ? this.management(state, power, busy || historyMismatch || pending.length > 0, settings.mode, view.roleManagement, view.managementChat) : this.tab === 'operations' ? operations.map(op => `<button type="button" class="wjwk-operation ${selected?.id === op.id ? 'is-selected' : ''}" data-action="select-operation" data-id="${esc(op.id)}"><div><strong>${esc(op.label)}</strong><span class="wjwk-chip">${op.reused ? '沿用报价' : op.builtIn ? '词条固定操作' : '待确认'}</span></div><p>${esc(op.description)}</p><small>${esc(op.costs.map(c => resText(power, c)).join(' + ') || '无资源消耗')}</small></button>`).join('') || empty(settings.mode === 'off' ? '异步模型未启用。符合正文的固定操作仍可直接使用。' : '填写目标生成方案；浏览方案不会扣除资源。') : this.tab === 'assets' ? this.assets(power, busy || historyMismatch || pending.length > 0) : this.receipts(isMmlc(power) ? { ...state, transactions: state.transactions.filter(t => t.powerId === power.id) } : state)}
       </div></main>
       <aside class="wjwk-detail" ${this.tab !== 'operations' || !selected ? 'hidden' : ''}><div class="wjwk-section-heading">执行预览</div>${selected && power ? this.detail(power, selected, busy || historyMismatch || !bridge || pending.length > 0, roleLinked, settings.mode) : empty('选择一个操作，核对投入与所得后执行。')}<div class="wjwk-detail-bottom"><span class="wjwk-dot ${bridge ? '' : 'is-off'}"></span>${bridge ? '已接入主叙事请求' : '主叙事接口不可用，执行已停用'}<p>${roleLinked ? '先结算并写回角色变量，再把本次行动交给主叙事呈现。' : '确认后结算账本并展开正文。接入角色状态后可写回 MVU。'}</p></div></aside></div>
-      <footer class="wjwk-footer"><span class="wjwk-notice ${error || historyMismatch ? 'wjwk-error' : ''}" role="status">${esc(this.notice?.message || status)}</span><small>${state ? `账本版本 ${state.revision}` : '未打开聊天'}</small></footer>`;
+      <footer class="wjwk-footer"><span class="wjwk-notice ${error || historyMismatch ? 'wjwk-error' : ''}" role="status">${esc(this.notice?.message || status)}</span><small>${state ? `${isMmlc(power)||isTaishi(power)?'档案':'账本'}版本 ${state.revision}` : '未打开聊天'}</small></footer>`;
     compactHelp(this.panel);
     this.restorePanel(saved);
   }
@@ -529,7 +530,7 @@ export class WorkbenchUI {
   }
   showArchive(power, record = null, chat = [], state = this.view?.state || {}) {
     const type = record?.type || archivePanel(power).defaultType;
-    const editSpecific=isTaishi(power)&&record?.specific?creationConfig(power)?.records.find(r=>r.id===record.specific.recordId)?.fields.map(f=>({id:f.id,label:f.label,value:record.specific.fields[f.id]||''}))||specificRows(record):specificRows(record);
+    const editSpecific=isTaishi(power)&&record?.specific?creationConfig(power)?.records.find(r=>r.id===record.specific.recordId)?.fields.filter(f=>f.id!=='time_state').map(f=>({id:f.id,label:f.label,value:record.specific.fields[f.id]||''}))||specificRows(record):specificRows(record);
     const form = `<form><label>类型<select name="type" data-archive-type ${record ? 'disabled' : ''}>${Object.entries(ARCHIVE_TYPES).map(([id, label]) => `<option value="${id}" ${type === id ? 'selected' : ''}>${label}</option>`).join('')}</select>${record ? `<input type="hidden" name="type" value="${type}">` : ''}</label><label>名称<input name="name" required maxlength="200" value="${esc(record?.name || '')}"></label><label>状态<select name="status">${Object.entries(ARCHIVE_STATUS).map(([id, label]) => `<option value="${id}" ${(record?.status || 'active') === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label><div data-archive-fields></div>${record?.specific?editSpecific.filter(f=>f.id!=='source_profile').map(f=>`<label>${esc(f.label)}<textarea name="specific:${esc(f.id)}" maxlength="4000" rows="2">${esc(f.value)}</textarea></label>`).join(''):''}<p class="wjwk-muted">只填写已有依据的情况；没有明确数量时可以填“少量”，未知字段留空。</p><label>核对依据<input name="note" maxlength="600" value="${esc(record?.source.note || '')}" placeholder="例如：已核对当前剧情中的育种成果"></label>${btn('save-archive', record ? '保存更新' : '保存档案', 'wjwk-primary')}</form>`;
     const current=record&&archiveContextCurrent(record,chat);
     const floors=record?[...new Set([record.source.anchor,...(record.source.anchors||[])].filter(Boolean).map(a=>a.index+1))]:[];
@@ -720,3 +721,5 @@ export class WorkbenchUI {
 Object.assign(WorkbenchUI.prototype,taishiUIMethods({esc,btn,empty}),referenceUIMethods);
 
 Object.assign(WorkbenchUI.prototype,runtimeLogUIMethods);
+
+Object.assign(WorkbenchUI.prototype,taishiControlUI({esc,btn}));

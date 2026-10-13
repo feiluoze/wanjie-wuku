@@ -15,3 +15,6 @@ export function hash(s) {
   for (let i = 0; i < s.length; i++) { a = Math.imul(a ^ s.charCodeAt(i), 16777619); b = Math.imul(b ^ s.charCodeAt(i), 3266489917); }
   return `${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`;
 }
+
+// Dedicated module rules never enter the general power selector.
+export const isDedicatedEntry = entry => /^太始天(?:[（(]|$)/.test(entry?.name||'');

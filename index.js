@@ -1,3 +1,4 @@
+import {taishiControlMethods} from './src/taishi-controls.js';
 import {requestWithFallback} from './src/api-fallback.js';
 import {exportModule,validateModuleBackup,mergeModuleBackup,MODULE_NAMES} from './src/module-backup.js';
 import {archiveBranchMethods} from './src/archive-branch.js';
@@ -171,7 +172,7 @@ export class WukuApp {
       'continuation', 'roleDraft', 'powerId', 'pendingSync', 'restoreCandidate',
       'pendingManagement', 'managementDraft', 'adapterDraft', 'archiveDraft',
       'pendingArchiveReview', 'memoryDraft', 'memoryAttempt', 'manualStoryDraft',
-      'logTask', 'referenceDraft', 'referenceLast', 'archiveToolRequest', 'archiveToolDraft', 'workflowDraft', 'creationAttempt', 'creationDraft', 'creationRequest', 'taishiDraft', 'taishiWorkflowDraft', 'taishiPeopleDraft', 'taishiEvolutionDraft', 'taishiBuildDraft', 'outboxCapture',
+      'logTask', 'referenceDraft', 'referenceLast', 'archiveToolRequest', 'archiveToolDraft', 'workflowDraft', 'creationAttempt', 'creationDraft', 'creationRequest', 'taishiDraft', 'taishiControlDraft', 'taishiWorkflowDraft', 'taishiPeopleDraft', 'taishiEvolutionDraft', 'taishiBuildDraft', 'outboxCapture',
       'terminalAttempt', 'terminalDraft', 'terminalRequest', 'selected',
     ]) if (name in this) this[name] = null;
     this.mainBusy = false; this.roleReadPending = false; this.roleError = '';
@@ -619,6 +620,17 @@ export class WukuApp {
       case 'taishi-add-companion': return this.openTaishiDraft('companion');
       case 'taishi-draft-submit': return this.submitTaishiDraft(data.values || {});
       case 'taishi-draft-dismiss': return this.dismissTaishiDraft();
+      case 'taishi-control-dismiss': this.taishiControlDraft=null;return this.resumePlayerReview();
+      case 'taishi-world-action': return this.openTaishiWorldAction(data.id);
+      case 'taishi-world-action-draft': return this.writeTaishiWorldAction(data.values||{});
+      case 'taishi-descent': return this.openTaishiControl('descent');
+      case 'taishi-clock': return this.openTaishiControl('clock');
+      case 'taishi-descent-draft': return this.writeTaishiDescent(data.values||{});
+      case 'taishi-clock-preview': return this.previewTaishiClock(data.values||{});
+      case 'taishi-setting': return this.openTaishiSetting(data.id);
+      case 'taishi-setting-draft': return this.writeTaishiSetting();
+      case 'taishi-setting-preview': return this.previewTaishiSetting(data.values||{});
+      case 'taishi-clock-save': return this.saveTaishiClock();
       case 'taishi-development': return this.openTaishiDevelopment();
       case 'taishi-autonomy-save': return this.saveTaishiAutonomy(data.values);
       case 'taishi-story-evolve': return this.evolveTaishiStory(data.id);
@@ -865,7 +877,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 

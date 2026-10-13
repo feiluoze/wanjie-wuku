@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {resolveAccount,scope} from '../src/host.js';
 import {emptyState,createPower,buildInjection} from '../src/core.js';
-import {builtinEntries} from '../src/builtin-worldbook.js';
+import {builtinTaishiEntry,builtinEntries} from '../src/builtin-worldbook.js';
 import {MMLC_ENTRY,isMmlc} from '../src/mmlc.js';
 import {isTaishi} from '../src/taishi.js';
 import {moduleEnabled,spaceMethods} from '../src/space-controller.js';
@@ -22,7 +22,7 @@ test('actual default-user login remains valid on account-enabled hosts',async()=
  assert.equal(await resolveAccount({}, {loadUsers:async()=>({getCurrentUserHandle:()=> 'default-user',accountsEnabled:true,currentUser:{handle:'default-user'}})}),'default-user');
 });
 test('module switches preserve records, suppress disabled rules and restore same identities',async()=>{
- const state=emptyState(),m=createPower(MMLC_ENTRY),t=createPower({...builtinEntries().find(e=>e.name.startsWith('太始天（完整版')),id:'test_taishi'});
+ const state=emptyState(),m=createPower(MMLC_ENTRY),t=createPower({...builtinTaishiEntry(),id:'test_taishi'});
  state.powers[m.id]=m;state.powers[t.id]=t;
  t.fields.keep={label:'保留记录',value:'已有世界'};
  state.transactions.push({type:'setup',powerId:t.id,label:'太始天私有历史',changes:[]});

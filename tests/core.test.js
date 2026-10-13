@@ -52,7 +52,7 @@ test('backup validation rejects malformed prices and prototype keys; pending pro
 test('state panel extraction keeps powers and exact labels separate', () => { const f = fixture(); const values = extractPanelBalances(f.p, [{ mes: '<WJWK-status>深蓝\n源质点余额：999</WJWK-status>\n<WJWK-status>蝴蝶效应\n因果点余额：12.5</WJWK-status>' }]); strict.equal(values[f.r.id].balance, '12.5'); });
 test('provided V4.1 book imports all entries and finds the literal fixed butterfly rule', async t => {
   const path = process.env.WJWK_TEST_BOOK; if (!path) return t.skip('Set WJWK_TEST_BOOK for private worldbook integration');
-  const entries = importBook(JSON.parse(await readFile(path, 'utf8')), '实际V4.1'); strict.equal(entries.length, 119); const entry = entries.find(e => e.name === '蝴蝶效应'); strict.ok(entry); const p = createPower(entry), s = emptyState(); s.powers[p.id] = p; strict.equal(builtInOperations(p, s, hash(stable([]))).length, 1);
+  const entries = importBook(JSON.parse(await readFile(path, 'utf8')), '实际V4.1'); strict.equal(entries.length, 124); const entry = entries.find(e => e.name === '蝴蝶效应'); strict.ok(entry); const p = createPower(entry), s = emptyState(); s.powers[p.id] = p; strict.equal(builtInOperations(p, s, hash(stable([]))).length, 1);
 });
 test('explicit point and storage fields are detected without inventing currency for inventories or cumulative totals', () => {
   const resources = inferResources({ name: '自定义金手指', content: '<状态栏>\n当前升变点：[X点]\n恋爱点数：[X点]\n火焰储量：[X/上限]\n重要物资：[来源与余额]\n累计完成次数：[X]\n当前持有奖品：[X件]\n<结算与回执>' });

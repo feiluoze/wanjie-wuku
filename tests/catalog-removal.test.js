@@ -15,7 +15,7 @@ test('remove a read book, preserve saved powers, persist and allow re-reading',a
   const before=stable(f.store.read());
   await f.app.action('remove-read-book',{book:custom.book});
   assert(!f.app.settings.catalog.some(e=>e.id===custom.id));
-  assert.equal(f.app.settings.catalog.length,119);
+  assert.equal(f.app.settings.catalog.length,123);
   assert.equal(stable(f.store.read()),before);
   assert.equal(stable(getSettings(f.ctx).catalog),stable(f.app.settings.catalog));
   await f.app.catalog([custom]);

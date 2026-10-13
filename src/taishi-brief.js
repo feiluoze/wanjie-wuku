@@ -5,11 +5,13 @@ export function taishiBrief(record, rows, esc) {
   const person = record.specific?.recordId === 'companion';
   if (!world && !person) return null;
   const groups = world ? [
-    ['世界轮廓', ['overview','stage','structure','conditions','coverage','scope']],
-    ['山河与文明', ['geography','era','factions','resources','inhabitants','facilities','species']],
+    ['时代概况', ['overview','era','stage','structure','conditions','coverage','scope']],
+    ['山河与文明', ['geography','inhabitants','facilities','species']],
+    ['势力格局', ['factions']],
+    ['资源经济', ['resources','setting']],
     [record.specific?.fields?.ability_title || (rows.some(r=>r.id==='combat_style'&&r.value)?'战斗与力量体系':'能力与技艺'), ['abilities','combat_style','crafts']],
-    ['局势与发展', ['events','evolution','changes','progress','result']],
-    ['时间与界域', ['clock','rates','reset','connections','location','limits']]
+    ['当前变化', ['events','evolution','changes','progress','result']],
+    ['时间与降界', ['clock','rates','reset','connections','location','limits','descent']]
   ] : [
     ['身份与专长', ['profile','role','origin']],
     [rows.some(r=>r.id==='combat_style'&&r.value)?(rows.some(r=>r.id==='crafts'&&r.value)?'战斗与技艺':'战斗方式'):'能力与技艺', ['abilities','combat_style','crafts']],
@@ -19,7 +21,7 @@ export function taishiBrief(record, rows, esc) {
     ['目标与关系', ['goals','social','relationship','limits']],
     ['认知与记忆', ['knowledge','recent_memory','settled_memory','core_memory']]
   ];
-  const originals=rows.filter(r=>r.id==='source_profile');rows=rows.filter(r=>r.id!=='ability_title');
+  const originals=rows.filter(r=>r.id==='source_profile');rows=rows.filter(r=>!['ability_title','time_state'].includes(r.id));
   // Collapse identical values only; distinct old/manual facts remain visible.
   const seen=new Set();rows=rows.filter(r=>{if(r.id==='source_profile')return false;const key=r.id+'\0'+r.value;if(seen.has(key))return false;seen.add(key);return true;});
   const originalHTML=originals.map(r=>{try{const pieces=JSON.parse(r.value);return `<details><summary>查看世界书原文 · ${pieces.length} 个片段</summary>${pieces.map(p=>`<details><summary>${esc(p.book)} · ${esc(p.title||p.id)} · 片段 ${esc(p.part)} · 原文位置 ${esc(p.offset)}–${esc(p.end)} · 版本 ${esc(p.fingerprint?.slice(0,8)||'未知')}</summary><pre class="wjwk-full-rule">${esc(p.content)}</pre></details>`).join('')}<small>保存的是构建时所选片段，未宣称已读取该人物的全部词条；来源变化后需重新构建核对。</small></details>`;}catch{return `<details><summary>原文档案（需核对格式）</summary><pre>${esc(r.value)}</pre></details>`;}}).join('');

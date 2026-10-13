@@ -1,5 +1,5 @@
 import { BUILTIN_WORLDBOOK as book } from './builtin-worldbook-data.js';
-import { assert, clone, hash, stable } from './primitives.js';
+import { assert, clone, hash, stable, isDedicatedEntry } from './primitives.js';
 export const BUILTIN_BOOK_NAME = book.entries[0].book;
 export function importedCatalogBooks(catalog = []) {
   const counts = new Map();
@@ -12,11 +12,13 @@ export function removeCatalogBook(catalog, name) {
 }
 const byName = new Map(book.entries.map(e=>[e.name,e]));
 const byHash = new Map(book.entries.map(e=>[hash(e.content),e]));
-const previous = new Map(book.legacy.map(e=>[e.contentHash,e]));
+const previous = new Map([...book.legacy,...(book.sourceDuplicates||[])].map(e=>[e.contentHash,e]));
 const oldBindings = new Set(book.legacyAdapterDigests);
 const targetFor = body => byHash.get(hash(body)) || byName.get(previous.get(hash(body))?.target);
-export const builtinWorldbookInfo = () => ({version:book.version,sourceSha256:book.sourceSha256,authorEntries:book.authorEntries,entries:book.entries.length,...(book.overrides?{overrides:clone(book.overrides)}:{})});
-export const builtinEntries = () => clone(book.entries);
+export const builtinWorldbookInfo = () => ({version:book.version,sourceSha256:book.sourceSha256,authorEntries:book.authorEntries,entries:builtinEntries().length,dedicatedEntries:book.entries.filter(isDedicatedEntry).length,...(book.overrides?{overrides:clone(book.overrides)}:{})});
+export {isDedicatedEntry};
+export const builtinEntries = ({includeDedicated=false}={}) => clone(book.entries.filter(e=>includeDedicated||!isDedicatedEntry(e)));
+export const builtinTaishiEntry = () => clone(book.entries.find(e=>e.name.startsWith('太始天（完整版')));
 // Reading the renamed author file must not create a second copy of the same power.
 export function builtinPowerId(entry, powers = {}) {
   const target=targetFor(entry.content || '');
@@ -30,12 +32,14 @@ export function withBuiltinCatalog(catalog = []) {
   const result = [], seen = new Set(), available = new Set(), preferred = new Map();
   const copySuffix = /\s*[（(]\d+[）)]\s*$/;
   for (const entry of catalog) {
+    if(isDedicatedEntry(entry))continue;
     const target = targetFor(entry.content || '');
     if (!target) continue;
     const current = preferred.get(target.entryId);
     if (!current || (copySuffix.test(current.book || '') && !copySuffix.test(entry.book || ''))) preferred.set(target.entryId, entry);
   }
   for (const entry of catalog) {
+    if(isDedicatedEntry(entry))continue;
     const target = targetFor(entry.content || '');
     if (!target) { result.push(clone(entry)); continue; }
     if (seen.has(target.entryId)) continue;

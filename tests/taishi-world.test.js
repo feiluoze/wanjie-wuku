@@ -30,5 +30,6 @@ test('world source fragments are copied exactly and reject unselected references
  const prepared=preparePersonSources({changes:[{recordId:'world',settingRefs:[{book:'所选书',id:'1'}]}]},input);
  const batch={changes:[{inputIndex:0,name:'世界',specific:{fields:{},labels:{}}}],issues:[]};attachPersonSources(batch,prepared);
  assert.equal(JSON.parse(batch.changes[0].specific.fields.source_profile)[0].content,input.payload.books[0].entries[0].content);
+ const missing=preparePersonSources({changes:[{recordId:'world'}]},input);assert(missing.errors.has(0));
  const bad=preparePersonSources({changes:[{recordId:'world',settingRefs:[{book:'其他书',id:'1'}]}]},input);assert(bad.errors.has(0));
 });

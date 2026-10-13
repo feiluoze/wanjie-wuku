@@ -5,7 +5,7 @@ import {taishiPerson,peopleControls,validatePeopleControls} from './taishi-peopl
 import {saveArchive,archiveSource,saveArchiveUpdate} from './archives.js';
 import {journalSnapshot,saveArchiveUndo} from './archive-journal.js';
 import {evolutionWorld,TAISHI_TIME_UNITS} from './taishi-evolution.js';
-import {builtinEntries,builtinPowerId} from './builtin-worldbook.js';
+import {builtinTaishiEntry,builtinPowerId} from './builtin-worldbook.js';
 import {isTaishi,TAISHI_SECTIONS} from './taishi.js';
 import {isMmlc,MMLC_ENTRY} from './mmlc.js';
 // Space selection has no archive migration or destructive side effects.
@@ -21,7 +21,7 @@ export const spaceMethods={
         const enabled=values[space]==='on';
         let powers=Object.values(next.powers).filter(p=>powerSpace(p)===space);
         if(enabled&&!powers.length){
-          const entry=space==='mmlc'?MMLC_ENTRY:builtinEntries().find(e=>e.name.startsWith('太始天（完整版'));
+          const entry=space==='mmlc'?MMLC_ENTRY:builtinTaishiEntry();
           assert(entry,'内置模块规则缺失');
           const p=createPower(space==='mmlc'?entry:{...entry,id:builtinPowerId(entry,next.powers)});
           p.archiveStart=Math.max(0,s.ctx.chat.length-24);p.autoArchiveReview=false;
@@ -38,7 +38,7 @@ export const spaceMethods={
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');
     const s=this.ensureStable(),existing=Object.values(s.state.powers).find(isTaishi);
     let id=existing?.id;
-    if(!id){const entry=builtinEntries().find(e=>e.name.startsWith('太始天（完整版'));
+    if(!id){const entry=builtinTaishiEntry();
       assert(entry,'内置太始天完整版缺失');id=builtinPowerId(entry,s.state.powers);
       const p=createPower({...entry,id});p.archiveStart=Math.max(0,s.ctx.chat.length-24);
       p.autoArchiveReview=false;

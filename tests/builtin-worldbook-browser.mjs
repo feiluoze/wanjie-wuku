@@ -19,8 +19,10 @@ try{
   // The demo replaces its catalog with synthetic samples; restore the shipped catalog.
   await page.evaluate(async()=>{const {builtinEntries}=await import('/src/builtin-worldbook.js');const app=globalThis.wanjie_wuku_general_instance;app.settings.catalog=builtinEntries();app.settings.mode='off';});
   await page.locator('[data-action="toggle"]').click();await page.locator('[data-action="manage"]').first().click();
-  assert.equal(await page.locator('[data-primary] option').count(),119);
+  assert.equal(await page.locator('[data-primary] option').count(),123);
   assert.equal(await page.locator('[data-primary] option').filter({hasText:/^升变之印/}).count(),1);
+  for(const name of ['旅法师','一言为定','进化之炎'])assert.equal(await page.locator('[data-primary] option').filter({hasText:new RegExp('^'+name)}).count(),1);
+  assert.equal(await page.locator('[data-primary] option').filter({hasText:/太始天/}).count(),0);
   const productionId=await page.locator('[data-primary] option').filter({hasText:/^绝对生产力/}).getAttribute('value');
   await page.locator('[data-primary]').selectOption(productionId);
   await page.locator('[data-action="register"]').click();
@@ -31,5 +33,7 @@ try{
   await page.screenshot({path:out+'/builtin-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   await page.screenshot({path:out+'/builtin-mobile.png',fullPage:true});assert.deepEqual(errors,[]);
-  console.log('PASS: latest 119 rules selectable, one seal version, new production dashboard with three modules, no mandatory resource form, desktop/mobile no overflow; no model calls. Mock host only.');
+  const dedicated=await page.evaluate(async()=>{const a=wanjie_wuku_general_instance;await a.openTaishi();const p=a.store.read().powers[a.powerId],{builtinTaishiEntry,builtinEntries}=await import('/src/builtin-worldbook.js'),{creationConfig}=await import('/src/creation-config.js');return {name:p.name,latest:p.primaryRules===builtinTaishiEntry().content,descent:creationConfig(p).records.find(r=>r.id==='world').fields.some(f=>f.id==='descent'),generalHasTaishi:builtinEntries().some(e=>e.name.startsWith('太始天'))};});
+  assert(dedicated.name.includes('完整版'));assert(dedicated.latest&&dedicated.descent&&!dedicated.generalHasTaishi);await page.screenshot({path:out+'/taishi-dedicated-mobile.png',fullPage:true});
+  console.log('PASS: latest 123 general rules selectable, one seal version, new production dashboard with three modules, no mandatory resource form, desktop/mobile no overflow; no model calls. Mock host only.');
 }finally{await browser?.close();server.close();}

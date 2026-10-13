@@ -1,3 +1,5 @@
+> 此文保留 1011 更新历史；最新规则数量、入口及构建说明见 [1013 更新](AUTHOR-UPDATE-1013.md)。
+
 # 2026-10-11作者更新接入
 
 范围：替换内置武库规则和数据适配，不增加旧版切换、独立结算引擎或宿主接口。漫漫长路继续独立。未安装酒馆，未自动启用或改写作者正则。
@@ -23,7 +25,7 @@
 `data/builtin-worldbook.json`是去重后的当前世界书；`src/builtin-worldbook-data.js`为生成的运行数据。`data/management-recipes.json`维护管理模板；`data/creation-adapters.json`维护专用字段与操作；`data/creation-targets.json`维护能力目标。没有新增运行依赖。
 
 ```text
-node scripts/build-worldbook.mjs 最新作者文件.json 上版作者文件.json 上版creation-adapters.json
+node scripts/build-worldbook.mjs 最新作者文件.json YYYY-MM-DD
 node scripts/build-management-profiles.mjs data/builtin-worldbook.json
 node scripts/build-creation-presets.mjs
 node scripts/audit-management-coverage.mjs data/builtin-worldbook.json 输出目录

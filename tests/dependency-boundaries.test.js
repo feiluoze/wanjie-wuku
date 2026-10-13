@@ -41,7 +41,8 @@ test('reading core state cannot pull host, controllers or UI into its static dep
  await visit(new URL('../src/core.js',import.meta.url));
  const leaf=await readFile(new URL('../src/state-validation.js',import.meta.url),'utf8');
  const imports=[...leaf.matchAll(/from\s*['"]([^'"]+)['"]/g)].map(m=>m[1]);
- assert.deepEqual(imports,['./primitives.js']);
+ assert.deepEqual(imports,['./taishi-clock.js','./primitives.js']);
+ const clock=await readFile(new URL('../src/taishi-clock.js',import.meta.url),'utf8');assert(!/(?:host|controller|ui)\.js/.test(clock));
 });
 
 

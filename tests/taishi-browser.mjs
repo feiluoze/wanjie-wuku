@@ -15,7 +15,7 @@ try{
  await page.goto(`http://127.0.0.1:${server.address().port}/tests/preview.html`);await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);await page.locator('[data-action="toggle"]').click();
  await page.locator('[data-action="modules-open"]').click();await page.locator('[name="taishi"]').check();await page.locator('[data-action="modules-save"]').click();
  await page.locator('[data-action="space-taishi"]').click();await page.getByRole('heading',{name:'太始天',exact:true}).waitFor();
- assert.equal(await page.locator('.wjwk-mmlc-tile').count(),7);
+ assert.equal(await page.locator('.wjwk-mmlc-tile').count(),8);
  const ids=await page.evaluate(async()=>{
   const app=wanjie_wuku_general_instance,ctx=SillyTavern.getContext(),host=await import('/src/host.js');
   const settings={...host.DEFAULT_SETTINGS,mode:'custom',baseUrl:'https://fake-model.test/v1',model:'record-model'};
@@ -30,17 +30,17 @@ try{
     if(input.task==='核对经营档案变化'){
       const existing=input.current.find(r=>r.name==='海蓝界');
       result=input.setupReferences?{changes:[
-        ...['海蓝界','赤砂界'].map(name=>({name,type:'environment',status:'active',fields:{conditions:'成熟世界'},recordId:'world',details:{stage:'成熟',clock:'个人内历初始时点'},sourceIndex:-1})),
+        ...['海蓝界','赤砂界'].map(name=>({name,type:'environment',status:'active',fields:{conditions:'成熟世界'},recordId:'world',details:{stage:'成熟',clock:'个人内历初始时点'},settingRefs:[{book:input.attachedWorldbooks.books[0].name,id:input.attachedWorldbooks.books[0].entries[0].id,part:input.attachedWorldbooks.books[0].entries[0].part??1}],sourceIndex:-1})),
         {name:'云岚',type:'member',status:'working',fields:{role:'太始天眷属',location:'海蓝界'},recordId:'companion',details:{world:'海蓝界',role:'主持灵圃',action:'建设灵圃',progress:'正在进行'},settingRefs:[{book:input.attachedWorldbooks.books[0].name,id:input.attachedWorldbooks.books[0].entries[0].id,part:input.attachedWorldbooks.books[0].entries[0].part??1}],sourceIndex:-1}
       ]}:{changes:[{archiveId:existing.id,name:existing.name,type:existing.type,status:existing.status,fields:{conditions:'灵圃建设已推进百年，既有生态保留'},recordId:'world',details:{clock:'主世界确认推进百年'},sourceIndex:input.sources.at(-1).index}]};
     }else result={draft:{title:'灵圃后续发展方案',content:'先核对已建区域，安排云岚继续完善现有灵圃，不新增未经确认的资源。',conditions:'尚未执行；结果交正文落实。',ruleQuote:input.rules.slice(0,20)}};
     return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify(result)}}]})};
   };app.refresh();return {a,b,powerId:app.powerId};
  });
- await page.locator('.wjwk-header [data-action="settings"]').click();await page.locator('[data-task-routing] summary').click();
+ await page.locator('.wjwk-header [data-action="settings"]').click();await page.locator('[data-task-routing] > summary').click();
  await page.locator('[name="route:archive"]').selectOption(ids.a);await page.locator('[name="route:setup"]').selectOption(ids.b);await page.locator('[name="route:creation"]').selectOption(ids.b);
  await page.locator('[data-action="save-task-routes"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
- await page.locator('[data-action="taishi-setup"]').click();assert.match(await page.locator('[data-task-connection]').textContent(),/世界书初始化.*设定与拟定.*design-model/);await page.locator('[data-action="taishi-build-run"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();assert.match(await page.locator('[data-ai-connections]').textContent(),/世界书初始化.*设定与拟定.*design-model/);
+ await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-setup"]').click();assert.match(await page.locator('[data-task-connection]').textContent(),/世界书初始化.*设定与拟定.*design-model/);await page.locator('[data-action="taishi-build-run"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();assert.match(await page.locator('[data-ai-connections]').textContent(),/世界书初始化.*设定与拟定.*design-model/);
  assert.match(await page.locator('.wjwk-modal').textContent(),/世界书设定底稿/);
  assert.equal(await page.evaluate(()=>Object.keys(wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives||{}).length),0);
  await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
@@ -65,13 +65,13 @@ try{
  await page.getByText('按任务选模型',{exact:true}).waitFor();assert(await page.getByText('Pro 类优先',{exact:true}).count()>0);
  await page.locator('[data-action="dialog-close"]').click();
  await page.evaluate(()=>{const app=wanjie_wuku_general_instance;window.basicDraftCalls=0;app.model.request=async()=>{window.basicDraftCalls++;return JSON.stringify({changes:[{name:'晨光界',type:'environment',status:'active',fields:{conditions:'成熟的群岛文明'},recordId:'world',details:{overview:'海洋世界',geography:'三片群岛'},sourceIndex:-1}]});};});
- await page.locator('[data-action="taishi-create-world"]').click();await page.locator('[name="description"]').fill('建立成熟的海洋世界晨光界，概述三片群岛。');
+ if(!await page.locator('[data-action="taishi-create-world"]').isVisible())await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-create-world"]').click();await page.locator('[name="description"]').fill('建立成熟的海洋世界晨光界，概述三片群岛。');
  await page.locator('[data-action="taishi-draft-submit"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();
  assert(await page.getByText('这是 AI 建档草案，尚未保存。补全设定不代表正文已发生；确认后采用所选内容。',{exact:true}).count());
  await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
  assert.equal(await page.evaluate(()=>window.basicDraftCalls),1);
  for(const width of [360,390,430]){
-   await page.setViewportSize({width,height:850});await page.locator('[data-action="taishi-add-companion"]').click();
+   await page.setViewportSize({width,height:850});if(!await page.locator('[data-action="taishi-add-companion"]').isVisible())await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-add-companion"]').click();
    await page.locator('[name="joining"]').selectOption('encounter');
    assert.equal(await page.locator('[name="joining"]').inputValue(),'encounter');
    const overflow=await page.locator('[data-taishi-draft]').evaluate(e=>e.scrollWidth>e.clientWidth+2);assert.equal(overflow,false);
@@ -103,13 +103,13 @@ try{
  await page.evaluate(()=>wanjie_wuku_general_instance.ui.hideAIActivity());await page.screenshot({path:out+'/taishi-advanced-390.png'});await page.locator('[data-action="dialog-close"]').click();
  // People and autonomous development stay reachable from the basic mobile page.
  for(const width of [360,390,430]){
-   await page.setViewportSize({width,height:850});await page.locator('[data-action="taishi-people"]').click();
+   await page.setViewportSize({width,height:850});if(!await page.locator('[data-action="taishi-people"]').isVisible())await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-people"]').click();
    assert.equal(await page.locator('[data-taishi-people]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);
    await page.evaluate(()=>wanjie_wuku_general_instance.ui.hideAIActivity());await page.screenshot({path:out+`/taishi-people-${width}.png`});
    await page.locator('[data-action="dialog-close"]').click();
  }
  const peopleId=await page.evaluate(()=>Object.values(wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives).find(r=>r.name==='云岚').id);
- await page.locator('[data-action="taishi-people"]').click();await page.locator('[name="mode"]').selectOption('selected');
+ if(!await page.locator('[data-action="taishi-people"]').isVisible())await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-people"]').click();await page.locator('[name="mode"]').selectOption('selected');
  await page.locator(`[name="pin:${peopleId}"]`).check();await page.locator(`[name="join:${peopleId}"]`).selectOption('direct');
  await page.locator('[data-action="taishi-people-save"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
  assert.equal(await page.evaluate(id=>wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].taishiPeople.joining[id],peopleId),'direct');
@@ -162,7 +162,7 @@ try{
  await page.evaluate(async()=>{
    const app=wanjie_wuku_general_instance,ctx=SillyTavern.getContext();window.buildCalls=0;
    ctx.loadWorldInfo=async()=>({entries:{1:{uid:1,comment:'超长个人设定',content:'群岛世界中已有三座城市与稳定航路。'.repeat(6000)}}});
-   app.model.request=async(prompt,{connection})=>{window.buildCalls++;window.buildTask=connection.task;const body=JSON.parse(prompt.user);window.buildPart=body.attachedWorldbooks.books[0].entries[0].part;return JSON.stringify({changes:[{name:'星潮界',type:'environment',status:'active',fields:{conditions:'群岛文明'},recordId:'world',details:{geography:'三座城市与稳定航路'},sourceIndex:-1}]});};
+   app.model.request=async(prompt,{connection})=>{window.buildCalls++;window.buildTask=connection.task;const body=JSON.parse(prompt.user);window.buildPart=body.attachedWorldbooks.books[0].entries[0].part;return JSON.stringify({changes:[{name:'星潮界',type:'environment',status:'active',fields:{conditions:'群岛文明'},recordId:'world',details:{geography:'三座城市与稳定航路'},settingRefs:[{book:body.attachedWorldbooks.books[0].name,id:body.attachedWorldbooks.books[0].entries[0].id,part:body.attachedWorldbooks.books[0].entries[0].part??1}],sourceIndex:-1}]});};
  });
  await page.locator('[data-action="taishi-setup"]').click();await page.locator('[data-taishi-build]').waitFor();
  await page.waitForFunction(()=>!wanjie_wuku_general_instance.taishiBuildDraft?.loading);

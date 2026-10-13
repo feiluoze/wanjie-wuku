@@ -63,7 +63,7 @@ test('scene context and creation prompts use the same projection without rehydra
 test('basic and advanced share the knowledge policy and schema with the expanded person setting contract',async()=>{
  const f=await setup(),prompt=archivePrompt(f.power,[],f.ctx.chat,'继续世界发展');
  assert(prompt.system.includes(TAISHI_KNOWLEDGE_POLICY));const input=JSON.parse(prompt.user);assert.equal(input.informationPolicy,TAISHI_KNOWLEDGE_POLICY);
- const fields=input.recordSchemas.find(r=>r.id==='companion').fields;assert.equal(fields.length,26);assert(fields.find(r=>r.id==='knowledge').description.includes('获知途径'));
+ const fields=input.recordSchemas.find(r=>r.id==='companion').fields;assert.equal(fields.length,28);assert(fields.find(r=>r.id==='knowledge').description.includes('获知途径'));
  assert(input.current.some(r=>r.id===f.person.id&&r.specific.fields.core_memory==='私人核心标记')); // Archive maintenance still sees full player data.
 });
 

@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture} from './mvu-fixture.js';
 import {createPower,clone,validateState} from '../src/core.js';
-import {builtinEntries} from '../src/builtin-worldbook.js';
+import {builtinTaishiEntry,builtinEntries} from '../src/builtin-worldbook.js';
 import {isTaishi,taishiConfig,taishiSection,protectTaishiBaseline} from '../src/taishi.js';
 import {powerSpace} from '../src/space-controller.js';
 import {archiveSource,saveArchive,archiveCurrent} from '../src/archives.js';
 import {archivePrompt,archiveSources,normalizeArchiveBatch} from '../src/archive-review.js';
 import {creationConfig} from '../src/creation-config.js';
-const entry=()=>builtinEntries().find(e=>e.name.startsWith('太始天（完整版'));
+const entry=()=>builtinTaishiEntry();
 async function setup(){const f=fixture();f.app.ui.closeDialog=()=>{};f.app.ui.showArchiveReview=()=>{};await f.app.openTaishi();f.app.settings.mode='st';f.ctx.chat[0].mes='太始天已纳入海蓝界。太始天已纳入赤砂界。云岚已正式加入太始天。';return f;}
 const change=(name,id='world',type='environment')=>({name,type,status:'active',fields:type==='member'?{role:'太始天眷属，负责世界建设'}:{conditions:'成熟世界，独立运行'},recordId:id,details:id==='companion'?{world:'海蓝界',action:'建设灵圃',progress:'第一期完成'}:{stage:'成熟世界',setting:'保留个人设定'},sourceIndex:0,quote:id==='companion'?name+'已正式加入太始天。':'太始天已纳入'+name+'。'});
 test('independent space recognizes full official rules, not a coincidental name',()=>{

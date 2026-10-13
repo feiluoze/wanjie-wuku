@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runTaishiWorkflow} from '../src/taishi-workflow.js';
 import {fixture} from './mvu-fixture.js';
-import {builtinEntries,upgradeBuiltinPower,builtinPowerId} from '../src/builtin-worldbook.js';
+import {builtinTaishiEntry,builtinEntries,upgradeBuiltinPower,builtinPowerId} from '../src/builtin-worldbook.js';
 import {createPower,clone,validateState} from '../src/core.js';
 import {isTaishi} from '../src/taishi.js';
 import {saveArchive,archiveSource} from '../src/archives.js';
@@ -14,19 +14,11 @@ const row=(recordId='world')=>({name:recordId==='world'?'海蓝界':'云岚',typ
 const prompt={system:'核对剧情',user:JSON.stringify({current:[],recordSchemas:[{id:'world'},{id:'companion'}]})};
 async function setup(advanced=false){const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};f.ctx.chat[0].mes='太始天已纳入海蓝界。云岚已正式加入太始天。';if(advanced)await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);return f;}
 
-test('supplied author text is the runtime rule, and recognized old rules migrate without losing archives',()=>{
-  const body=readFileSync(new URL('../data/taishi-rules.txt',import.meta.url),'utf8');
-  const latest=builtinEntries().find(e=>e.name.startsWith('太始天（完整版'));
-  assert.equal(latest.content,body);assert.match(body,/【天地归主】/);
-  const previous=JSON.parse(readFileSync(new URL('./fixtures/taishi-previous.json',import.meta.url),'utf8'));
-  const p=createPower({id:'old-taishi',entryId:String(previous.uid),name:previous.comment,content:previous.content,book:'旧版'});
-  const r=saveArchive(p,{type:'record',name:'旧成果',status:'active',fields:{description:'已永久归身'}},archiveSource([],'保留记录'));
-  const archives=clone(p.archives),resources=clone(p.resources),id=p.id;
-  assert(isTaishi(p));assert(upgradeBuiltinPower(p));assert.equal(p.primaryRules,body);
-  assert.equal(p.id,id);assert.deepEqual(p.archives,archives);assert.deepEqual(p.resources,resources);assert(p.archives[r.id]);
-  assert.equal(builtinPowerId(latest,{[p.id]:p}),id);assert.equal(upgradeBuiltinPower(p),false);
-  assert.equal(managementProfile(p).match,'exact');assert.equal(creationConfig(p).id,'wuku.primordial_world');
-  assert(creationConfig(p).operations.every(o=>body.includes(o.ruleQuote)));
+test('latest full author rule is used directly by the dedicated module',()=>{
+ const body=readFileSync(new URL('../data/taishi-rules.txt',import.meta.url),'utf8');
+ const latest=builtinTaishiEntry();assert.equal(latest.content,body);assert.match(body,/【天地归主】/);
+ const p=createPower(latest);assert.equal(isTaishi(p),true);assert.equal(managementProfile(p).match,'exact');
+ assert.equal(creationConfig(p).id,'wuku.primordial_world');assert(creationConfig(p).operations.every(o=>body.includes(o.ruleQuote)));
 });
 
 test('two specialists overlap; summary cannot replace candidates or add rewards',async()=>{

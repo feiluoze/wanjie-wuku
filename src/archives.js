@@ -166,7 +166,7 @@ export const archiveMethods = {
         const fields = Object.fromEntries(Object.keys(ARCHIVE_FIELDS[v.type] || {}).map(k => [k, v[`field:${k}`] || '']));
         const undoBefore=journalSnapshot(next,power.id);
         const before = { ...power.archives };
-        const old=power.archives?.[draft.id],specific=old?.specific?clone(old.specific):undefined;if(specific)for(const k of Object.keys(specific.fields))if(k!=='source_profile'&&Object.hasOwn(v,'specific:'+k))specific.fields[k]=text(v['specific:'+k],4000).trim();
+        const old=power.archives?.[draft.id],specific=old?.specific?clone(old.specific):undefined;if(specific)for(const k of Object.keys(specific.fields))if(!['source_profile','time_state'].includes(k)&&Object.hasOwn(v,'specific:'+k))specific.fields[k]=text(v['specific:'+k],4000).trim();
         const record = saveArchive(power, { id: draft.id, type: v.type, name: v.name, status: v.status, ownerPowerId:power.id, fields,...(specific?{specific}:{}) }, archiveSource(getContext().chat, note));
         saveArchiveUpdate(power,before,[record],[],{chat:getContext().chat});
         saveArchiveUndo(next,power.id,undoBefore,'手工纠错');

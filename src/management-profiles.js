@@ -1,5 +1,5 @@
 import { PROFILE_DATA } from './management-profiles-data.js';
-import { assert, clone, hash } from './primitives.js';
+import { assert, clone, hash, isDedicatedEntry } from './primitives.js';
 export const PROFILE_FAMILIES = Object.freeze({ domain:'领域与经营', member:'成员与分身', archive:'档案与持续设定', relationship:'关系与契约', inventory:'库存与交易', cycle:'周期与等待', simulation:'模拟成果', modifier:'结算修正', narrative:'正文效果', growth:'成长与技艺', support:'辅助规则' });
 const byName = new Map(PROFILE_DATA.entries.map(p=>[p.name,p]));
 const byContent = new Map(PROFILE_DATA.entries.map(p=>[p.contentHash,p]));
@@ -12,6 +12,7 @@ export function managementProfile(entity) {
 }
 export function configuredProfiles() { return clone(PROFILE_DATA); }
 export function assertProfileRegistration(entry, companions, powers) {
+  assert(![entry,...companions].some(isDedicatedEntry),'太始天只在专用模块启用，请使用顶部模块开关；通用词条不再接入太始天');
   const main = managementProfile(entry); assert(!main.verified || main.role !== 'support', '这是一条辅助规则，请随所属主词条选入附加规则，不单独接入');
   const incoming = [entry, ...companions].map(managementProfile).filter(p=>p.verified && p.variantGroup);
   const groups = new Set(); for (const p of incoming) { assert(!groups.has(p.variantGroup), '两个太始天版本须择一，不能在同次接入中组合'); groups.add(p.variantGroup); }
@@ -22,8 +23,9 @@ export function assertProfileRegistration(entry, companions, powers) {
   }
 }
 export function coverageRows(catalog = [], powers = {}) {
-  const entries = PROFILE_DATA.entries.map(p => ({ ...clone(p), matches:[], status:'unread' })), rows = new Map(entries.map(p=>[p.name,p]));
+  const entries = PROFILE_DATA.entries.filter(p=>!isDedicatedEntry(p)).map(p => ({ ...clone(p), matches:[], status:'unread' })), rows = new Map(entries.map(p=>[p.name,p]));
   for (const e of catalog) {
+    if(isDedicatedEntry(e))continue;
     const profile = managementProfile(e), row = rows.get(profile.verified ? profile.name : e.name);
     const instance = { id:e.id, name:e.name, book:e.book, match:profile.match, active:Boolean(powers[e.id]?.active) };
     if (row) { row.matches.push(instance); row.status = row.matches.some(m=>['exact','renamed'].includes(m.match)) ? 'verified' : 'changed'; }

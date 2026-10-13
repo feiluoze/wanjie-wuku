@@ -17,7 +17,7 @@ const person=()=>({name:'云岚',type:'member',status:'active',fields:{role:'灵
 
 test('additive schemas remain valid and retain all original record and field identities',()=>{
   const c=taishiConfig();validateAdapter(c);
-  assert.equal(c.records.find(r=>r.id==='companion').fields.length,26);
+  assert.equal(c.records.find(r=>r.id==='companion').fields.length,28);
   assert(c.records.find(r=>r.id==='world').fields.some(f=>f.id==='clock'));
   assert(c.records.find(r=>r.id==='companion').fields.some(f=>f.id==='core_memory'));
 });

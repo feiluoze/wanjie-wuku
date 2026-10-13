@@ -7,6 +7,7 @@ import {planTaishiBuild,buildProgress,validateTaishiBuild,BUILD_BATCH_LIMIT} fro
 import {undoArchiveUpdate} from '../src/archive-journal.js';
 import {WorkbenchUI} from '../src/ui.js';
 
+const refs=input=>{const b=input.attachedWorldbooks.books[0],e=b.entries[0];return [{book:b.name,id:e.id,part:e.part??1}];};
 const selection=[{name:'个人诸界',entryIds:['1']}];
 const packet=content=>packReferences(selection,new Map([['个人诸界',referenceEntries({entries:{1:{uid:1,comment:'成熟世界',content}}},'个人诸界')]]),{limit:REFERENCE_BUILD_LIMIT});
 async function setup(content='海蓝界是一个已成熟的海洋世界。'.repeat(4000)){
@@ -14,7 +15,7 @@ async function setup(content='海蓝界是一个已成熟的海洋世界。'.rep
   f.app.ui.showTaishiBuild=d=>{f.screen=d;};f.app.ui.showArchiveReview=()=>{};
   f.content=content;f.ctx.loadWorldInfo=async()=>({entries:{1:{uid:1,comment:'成熟世界',content:f.content}}});
   await f.store.transact(s=>{s.aiWorldbooks={mode:'manual',books:selection};s.powers[f.app.powerId].taishiBuildReferences={mode:'manual',books:selection};});f.calls=0;
-  f.app.model.request=async p=>{f.calls++;f.input=JSON.parse(p.user);const old=f.input.current.find(r=>r.name==='海蓝界');return JSON.stringify({changes:[{...(old?{archiveId:old.id}:{}),type:'environment',name:'海蓝界',status:'active',fields:{conditions:'已成熟的海洋世界'},recordId:'world',details:old?{overview:'群岛文明'}:{clock:'第一年'},sourceIndex:-1}]});};
+  f.app.model.request=async p=>{f.calls++;f.input=JSON.parse(p.user);const old=f.input.current.find(r=>r.name==='海蓝界');return JSON.stringify({changes:[{...(old?{archiveId:old.id}:{}),type:'environment',name:'海蓝界',status:'active',fields:{conditions:'已成熟的海洋世界'},recordId:'world',details:old?{overview:'群岛文明'}:{clock:'第一年'},settingRefs:refs(f.input),sourceIndex:-1}]});};
   return f;
 }
 async function accept(f){const p=f.app.pendingArchiveReview;assert(p);const result=await f.app.commitArchiveReview(p,new Map(p.changes.map((c,i)=>[i,c.id])));f.app.pendingArchiveReview=null;return result;}
@@ -80,7 +81,7 @@ test('changed book, changed selection and stale capture block calls; explicit re
 });
 
 test('partial or rejected candidates keep cursor; explicit skip is recorded, undoable and calls no model',async()=>{
-  const f=await setup();await f.app.initializeTaishi();f.app.model.request=async()=>{f.calls++;return JSON.stringify({changes:[{type:'environment',name:'海蓝界',status:'active',fields:{conditions:'成熟'},recordId:'world',details:{clock:'第一年'},sourceIndex:-1},{type:'invalid',name:'无效项',status:'active',fields:{},sourceIndex:-1}]});};
+  const f=await setup();await f.app.initializeTaishi();f.app.model.request=async prompt=>{f.calls++;const input=JSON.parse(prompt.user);return JSON.stringify({changes:[{type:'environment',name:'海蓝界',status:'active',fields:{conditions:'成熟'},recordId:'world',details:{clock:'第一年'},settingRefs:refs(input),sourceIndex:-1},{type:'invalid',name:'无效项',status:'active',fields:{},sourceIndex:-1}]});};
   await f.app.runTaishiBuild();assert.equal(f.app.pendingArchiveReview.issues.length,1);await accept(f);assert(!f.store.read().powers[f.app.powerId].taishiBuild);
   await f.app.initializeTaishi();const before=clone(f.store.read().powers[f.app.powerId].archives);await f.app.skipTaishiBuild();let p=f.store.read().powers[f.app.powerId];assert.equal(f.calls,1);assert.deepEqual(p.taishiBuild.skipped,[0]);assert.equal(p.taishiBuild.next,1);assert.deepEqual(p.archives,before);
   f.app.dismissTaishiBuild();await f.store.transact(s=>undoArchiveUpdate(s,p.id));assert(!f.store.read().powers[p.id].taishiBuild);assert.deepEqual(f.store.read().powers[p.id].archives,before);
@@ -88,7 +89,7 @@ test('partial or rejected candidates keep cursor; explicit skip is recorded, und
 
 test('unselected proposals keep the same batch; retry reuses saved IDs and keeps known history',async()=>{
   const f=await setup();f.app.model.request=async prompt=>{f.calls++;const input=JSON.parse(prompt.user);return JSON.stringify({changes:['海蓝界','赤砂界'].map(name=>{
-    const old=input.current.find(r=>r.name===name);return {...(old?{archiveId:old.id}:{}),type:'environment',name,status:'active',fields:{conditions:'成熟文明'},recordId:'world',details:{clock:old?'猜测的新时点':'第一年'},sourceIndex:-1};
+    const old=input.current.find(r=>r.name===name);return {...(old?{archiveId:old.id}:{}),type:'environment',name,status:'active',fields:{conditions:'成熟文明'},recordId:'world',details:{clock:old?'猜测的新时点':'第一年'},settingRefs:refs(input),sourceIndex:-1};
   })});};
   await f.app.initializeTaishi();await f.app.runTaishiBuild();let pending=f.app.pendingArchiveReview;
   await f.app.commitArchiveReview(pending,new Map([[0,null]]));f.app.pendingArchiveReview=null;
