@@ -22,7 +22,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.4.2';
+export const VERSION = '1.4.3';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -245,6 +245,7 @@ export function narrativeMessages(chat, start = 0, tail = null) {
 export function parseJSON(raw) {
   assert(typeof raw === 'string' && raw.length <= 500000, '模型返回为空或过长');
   const clean = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  const failure=(message,error,source,incomplete=false)=>{const e=new Error(message),match=String(error?.message||'').match(/position\s+(\d+)/i),offset=match?Number(match[1]):(()=>{const stack=[];let q=false,escape=false;for(let i=0;i<source.length;i++){const c=source[i];if(q){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')q=false;continue;}if(c==='"')q=true;else if(c==='{'||c==='[')stack.push(c);else if(c==='}'||c===']'){if(stack.pop()!==(c==='}'?'{':'['))return i;}}return null;})();e.jsonDiagnostic={stage:'json_parse',kind:incomplete?'incomplete':'syntax',characters:source.length,offset,...(offset!==null?{line:source.slice(0,offset).split('\n').length,column:offset-(source.lastIndexOf('\n',offset-1)+1)+1}:{}),unterminatedString:incomplete&&quoted};return e;};
   try { return parseFinalJSON(clean); } catch { /* Locate a complete JSON object without evaluating code. */ }
   const start = clean.indexOf('{');
   assert(start >= 0, '模型没有返回 JSON 对象');
@@ -254,9 +255,9 @@ export function parseJSON(raw) {
     if (quoted) { if (escaped) escaped = false; else if (c === '\\') escaped = true; else if (c === '"') quoted = false; continue; }
     if (c === '"') quoted = true;
     else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) {try{return parseFinalJSON(clean.slice(start,i+1));}catch{throw new Error('模型返回的 JSON 语法无效；未补造或写入数据，请查看本机详细日志');}}
+    else if (c === '}' && --depth === 0) {const candidate=clean.slice(start,i+1);try{return parseFinalJSON(candidate);}catch(error){throw failure('模型返回的 JSON 语法无效；未补造或写入数据，请查看运行日志中的JSON诊断',error,candidate);}}
   }
-  throw new Error('模型返回的 JSON 不完整；本次没有改变账目');
+  throw failure('模型返回的 JSON 不完整；本次没有改变账目',null,clean.slice(start),true);
 }
 function list(value, max, label) { assert(Array.isArray(value) && value.length <= max, `${label}格式无效`); return value; }
 function positive(value) { const n = amount(value); assert(n > 0n, '投入或取得数量必须大于零'); return decimal(n); }

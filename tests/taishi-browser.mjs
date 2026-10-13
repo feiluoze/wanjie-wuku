@@ -14,7 +14,7 @@ try{
  page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',r=>{if(new URL(r.request().url()).hostname==='127.0.0.1')return r.continue();externalRequests++;return r.abort();});
  await page.goto(`http://127.0.0.1:${server.address().port}/tests/preview.html`);await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);await page.locator('[data-action="toggle"]').click();
  await page.locator('[data-action="modules-open"]').click();await page.locator('[name="taishi"]').check();await page.locator('[data-action="modules-save"]').click();
- await page.locator('[data-action="space-taishi"]').click();await page.getByRole('heading',{name:'太始天',exact:true}).waitFor();
+ await page.locator('[data-action="space-taishi"]').click();await page.locator('[data-design-hero]').waitFor();
  assert.equal(await page.locator('.wjwk-mmlc-tile').count(),8);
  const ids=await page.evaluate(async()=>{
   const app=wanjie_wuku_general_instance,ctx=SillyTavern.getContext(),host=await import('/src/host.js');
@@ -45,9 +45,9 @@ try{
  assert.equal(await page.evaluate(()=>Object.keys(wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives||{}).length),0);
  await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
  assert.equal(await page.evaluate(()=>Object.keys(wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].archives).length),3);
- await page.locator('.wjwk-mmlc-tile[data-section="worlds"]').click();assert.equal(await page.locator('[data-taishi-record]').count(),2);
+ await page.locator('.wjwk-mmlc-nav [data-section="worlds"]').click();assert.equal(await page.locator('[data-taishi-record]').count(),2);
  await page.screenshot({path:out+'/taishi-worlds-desktop.png'});
- await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await page.locator('.wjwk-sidebar').isVisible(),false);await page.evaluate(()=>wanjie_wuku_general_instance.ui.hideAIActivity());await page.screenshot({path:out+'/taishi-worlds-mobile.png'});
+ await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await page.locator('.wjwk-mmlc-nav').isVisible(),true);await page.evaluate(()=>wanjie_wuku_general_instance.ui.hideAIActivity());await page.screenshot({path:out+'/taishi-worlds-mobile.png'});
  await page.setViewportSize({width:1440,height:1000});await page.locator('.wjwk-content [data-action="taishi-section"]').first().click();
  if(!await page.locator('[data-action="player-auto-save"]').isVisible())await page.getByText('拟定内容',{exact:true}).click();await page.locator('[data-action="player-auto-save"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].autoArchiveSave);
  await page.locator('[data-action="space-wuku"]').click();
@@ -62,7 +62,7 @@ try{
  // New basic entry: one request, explicit preview and local save, no worldbook required.
  await page.locator('[data-action="space-taishi"]').click();
  await page.locator('[data-action="taishi-advanced"]').click();
- await page.getByText('按任务选模型',{exact:true}).waitFor();assert(await page.getByText('Pro 类优先',{exact:true}).count()>0);
+ await page.getByText('模型选择建议',{exact:true}).click();assert(await page.getByText('Pro 类优先',{exact:true}).count()>0);
  await page.locator('[data-action="dialog-close"]').click();
  await page.evaluate(()=>{const app=wanjie_wuku_general_instance;window.basicDraftCalls=0;app.model.request=async()=>{window.basicDraftCalls++;return JSON.stringify({changes:[{name:'晨光界',type:'environment',status:'active',fields:{conditions:'成熟的群岛文明'},recordId:'world',details:{overview:'海洋世界',geography:'三片群岛'},sourceIndex:-1}]});};});
  if(!await page.locator('[data-action="taishi-create-world"]').isVisible())await page.getByText('创建与资料管理',{exact:true}).click();await page.locator('[data-action="taishi-create-world"]').click();await page.locator('[name="description"]').fill('建立成熟的海洋世界晨光界，概述三片群岛。');
@@ -113,12 +113,12 @@ try{
  await page.locator(`[name="pin:${peopleId}"]`).check();await page.locator(`[name="join:${peopleId}"]`).selectOption('direct');
  await page.locator('[data-action="taishi-people-save"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
  assert.equal(await page.evaluate(id=>wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].taishiPeople.joining[id],peopleId),'direct');
- await page.locator('[data-action="taishi-development"]').click();assert.equal(await page.locator('[name="autonomy"]').isChecked(),false);
+ await page.locator('.wjwk-design-actions [data-action="taishi-development"]').click();assert.equal(await page.locator('[name="autonomy"]').isChecked(),false);
  assert.equal(await page.locator('[data-action="taishi-evolve"]').isDisabled(),true);
  await page.locator('[name="autonomy"]').check();await page.locator('[data-action="taishi-autonomy-save"]').click();
  await page.waitForFunction(()=>wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].taishiAutonomy===true);
  await page.locator('[name="elapsed"]').fill('2');await page.locator('[name="unit"]').selectOption('years');
- await page.locator('[name="note"]').fill('维持现有灵圃，推进眷属自己的研究目标');
+ await page.getByText('发展方向（可留空）',{exact:true}).click();await page.locator('[name="note"]').fill('维持现有灵圃，推进眷属自己的研究目标');
  for(const width of [360,390,430]){await page.setViewportSize({width,height:850});assert.equal(await page.locator('[data-taishi-development]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);await page.evaluate(()=>wanjie_wuku_general_instance.ui.hideAIActivity());await page.screenshot({path:out+`/taishi-development-${width}.png`});}
  const evolveBefore=await page.evaluate(()=>{
    const app=wanjie_wuku_general_instance,p=app.store.read().powers[app.powerId];window.evolutionCalls=[];
@@ -188,19 +188,19 @@ try{
   return {packet:plan.packet,explicit:explicit.packet,scope:a.sceneArchiveContext(power,ctx.chat,'云岚').items.map(r=>r.name),revision:state.revision};
  });
  assert(!knowledge.packet.includes('BROWSER_PRIVATE_MEMORY'));assert(!knowledge.packet.includes('赤砂界'));assert(knowledge.packet.includes('亲历'));assert(knowledge.explicit.includes('BROWSER_PRIVATE_MEMORY'));assert(!knowledge.scope.includes('赤砂界'));
- await page.getByText('范围不明时不自动带入。',{exact:false}).waitFor();
+ await page.getByText('范围不明时不自动带入。',{exact:false}).locator('..').locator('summary').click();await page.getByText('范围不明时不自动带入。',{exact:false}).waitFor();
  for(const width of [360,390,430]){await page.setViewportSize({width,height:850});assert.equal(await page.locator('[data-memory-settings]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);await page.screenshot({path:out+`/taishi-knowledge-${width}.png`});}
  assert.equal(await page.evaluate(()=>wanjie_wuku_general_instance.store.read().revision),knowledge.revision);
  await writeFile(out+'/taishi-knowledge-flow.json',JSON.stringify({...knowledge,errors,externalRequests,realHostTested:false},null,2));
  // Story elapsed-period discovery has no requests; confirm, preview, save and reroll.
  await page.locator('[data-action="dialog-close"]').click();
  const timeBefore=await page.evaluate(()=>{const app=wanjie_wuku_general_instance,ctx=SillyTavern.getContext();ctx.chat.push({is_user:false,swipe_id:0,mes:'海蓝界内部过去了3天。'});window.timeCalls=[];const p=app.store.read().powers[app.powerId],world=Object.values(p.archives).find(r=>r.name==='海蓝界');app.model.request=async(_prompt,{connection})=>{window.timeCalls.push(connection.task);return JSON.stringify(connection.task==='taishiSummary'?{message:'正文历时发展候选'}:{changes:connection.task==='taishiPeople'?[]:[{archiveId:world.id,name:world.name,type:'environment',status:'active',fields:{conditions:'本段历时内已有发展'},recordId:'world',details:{overview:'本段灵圃发展'},sourceIndex:-1}]});};app.refresh();return {worldId:world.id,clock:world.specific.fields.clock,index:ctx.chat.length-1};});
- await page.locator('[data-action="taishi-development"]').click();await page.locator('[data-action="taishi-story-evolve"]').waitFor();assert.deepEqual(await page.evaluate(()=>window.timeCalls),[]);
+ await page.locator('.wjwk-design-actions [data-action="taishi-development"]').click();await page.locator('[data-action="taishi-story-evolve"]').waitFor();assert.deepEqual(await page.evaluate(()=>window.timeCalls),[]);
  for(const width of [360,390,430]){await page.setViewportSize({width,height:850});assert.equal(await page.locator('[data-taishi-development]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);await page.screenshot({path:out+`/taishi-time-${width}.png`});}
  await page.locator('[data-action="taishi-story-evolve"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();
  assert.deepEqual(await page.evaluate(()=>window.timeCalls),['taishiWorld','taishiPeople','taishiSummary']);assert.equal(await page.evaluate(()=>Boolean(wanjie_wuku_general_instance.store.read().powers[wanjie_wuku_general_instance.powerId].taishiTime)),false);
  await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);
- await page.locator('[data-action="taishi-development"]').click();assert.equal(await page.locator('[data-action="taishi-story-evolve"]').count(),0);await page.locator('[data-action="dialog-close"]').click();
+ await page.locator('.wjwk-design-actions [data-action="taishi-development"]').click();assert.equal(await page.locator('[data-action="taishi-story-evolve"]').count(),0);await page.locator('[data-action="dialog-close"]').click();
  const timeAfter=await page.evaluate(async(before)=>{const app=wanjie_wuku_general_instance,ctx=SillyTavern.getContext();ctx.chat[before.index].swipe_id=1;ctx.chat[before.index].mes='新的分支没有经过三天';await app.cleanupStoryRecords();const p=app.store.read().powers[app.powerId];return {clock:p.archives[before.worldId].specific.fields.clock,receipts:p.taishiTime.receipts.length,calls:window.timeCalls};},timeBefore);
  assert.equal(timeAfter.clock,timeBefore.clock);assert.equal(timeAfter.receipts,0);await writeFile(out+'/taishi-time-flow.json',JSON.stringify({timeBefore,timeAfter,errors,externalRequests,realHostTested:false},null,2));
  assert.deepEqual(errors,[]);assert.equal(externalRequests,0);

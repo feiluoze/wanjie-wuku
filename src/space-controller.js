@@ -1,5 +1,7 @@
 import {RELATION_FIELDS,assertRelation,findRelation} from './taishi-relations.js';
 import {creationConfig} from './creation-config.js';
+import {resolveTaskConnectionPlan} from './host.js';
+import {taskConnectionLabel} from './task-routing.js';
 import {storyTimeEvents,assertStoryTime} from './taishi-time.js';
 import {taishiBuildMethods} from './taishi-build-controller.js';
 import {createPower,assert,clone} from './core.js';
@@ -138,7 +140,8 @@ export const spaceMethods={
   openTaishiAdvanced(){
     const s=this.ensureStable();const p=s.state.powers[this.powerId];assert(isTaishi(p)&&p.active,'请先启用太始天');
     this.taishiWorkflowDraft={powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}};
-    this.ui.showTaishiAdvanced(p);
+    const plans=['archive','taishiWorld','taishiPeople','taishiSummary'].map(task=>{try{return {task,label:resolveTaskConnectionPlan(task,s.ctx,this.settings,this.apiKey).map(taskConnectionLabel).join('；备用：')};}catch{return {task,label:'连接未就绪，请在连接设置中检查'};}});
+    this.ui.showTaishiAdvanced(p,plans);
   },
   async saveTaishiWorkflow(values){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');

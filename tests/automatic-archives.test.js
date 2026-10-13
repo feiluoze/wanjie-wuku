@@ -21,6 +21,12 @@ test('custom inclusive floor range excludes user/system and does not silently tr
  f.power.archiveReadRange.recent=100;strict.throws(()=>archiveSources(Array.from({length:90},()=>({mes:'已经完成了具体事项。'})),f.state,f.power,{rescan:true}),/80条/);
  strict.throws(()=>normalizeArchiveRange({mode:'range',from:7,to:3}),/结束不能早于开始/);
 });
+
+test('home automatic update switch disables both review and save, including queued confirmation-mode work',async()=>{
+ const f=fixture();f.app.settings.mode='st';await f.store.transact(n=>{n.powers[f.power.id].autoArchiveReview=true;n.powers[f.power.id].autoArchiveSave=false;});let calls=0;f.app.reviewArchives=async()=>{calls++;};
+ f.app.schedulePlayerReview('normal');clearTimeout(f.app.playerReviewTimer);f.app.playerReviewTimer=null;await f.app.togglePlayerAutoSave();const p=f.store.read().powers[f.power.id];strict.equal(p.autoArchiveReview,false);strict.equal(p.autoArchiveSave,false);await f.app.runPlayerReview();strict.equal(calls,0);
+ f.app.schedulePlayerReview('normal');strict.equal(f.app.playerAutoQueued,null);await f.app.togglePlayerAutoSave();strict.equal(f.store.read().powers[f.power.id].autoArchiveReview,true);strict.equal(f.store.read().powers[f.power.id].autoArchiveSave,true);
+});
 test('configured range persists chat locally and validates imported settings',async()=>{
  const f=fixture();f.app.ui.showArchiveRange=()=>{};f.app.openArchiveRange();await f.app.saveArchiveRange({values:{mode:'range',from:'1',to:'',recent:'6'}});
  strict.deepEqual(f.store.read().powers[f.power.id].archiveReadRange,{mode:'range',from:1,to:null,recent:24});validateState(clone(f.store.read()));

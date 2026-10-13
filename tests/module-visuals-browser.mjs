@@ -21,11 +21,11 @@ try{
   await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);
   await page.locator('[data-action="toggle"]').click();
   const seed=await page.evaluate(async()=>{
-    const app=wanjie_wuku_general_instance;
+    const app=wanjie_wuku_general_instance;await app.openTaishi();
     const {createPower}=await import('/src/core.js'),{builtinEntries}=await import('/src/builtin-worldbook.js');
     const {MMLC_ENTRY}=await import('/src/mmlc.js'),{saveArchive,archiveSource}=await import('/src/archives.js');
     const entries=builtinEntries(),arsenal=createPower(entries.find(e=>e.name==='绝对生产力')),
-      taishi=createPower(entries.find(e=>e.name.startsWith('太始天（完整版'))),journey=createPower(MMLC_ENTRY);
+      taishi=structuredClone(app.store.read().powers[app.powerId]),journey=createPower(MMLC_ENTRY);
     for(const power of [arsenal,taishi,journey]){
       const facts=power===journey?[['environment','东坡药圃','active',{changes:'灵泉供给稳定，原有药圃改造完成。'}],['population','巡航舰队','working',{scale:'12艘；11艘可用、1艘待修'}],['skill','青木回元诀','active',{level:'已掌握',effect:'保留已有传承'}]]:
         power===taishi?[['environment','始生原界','active',{conditions:'生命源流；既有生态持续发展'}],['member','裴昭宁','working',{role:'主持灵圃改良',location:'九霄仙域·青梧岭'}],['research','世界研究安排','planned',{goal:'拟研究源流配合，尚未开始'}]]:
@@ -36,11 +36,11 @@ try{
     app.settings.mode='off';app.ui.space='wuku';app.ui.tab='management';app.powerId=arsenal.id;app.refresh();
     return {ids:{arsenal:arsenal.id,taishi:taishi.id,journey:journey.id},state:JSON.stringify(app.store.read())};
   });
-  for(const width of [1440,390]){
+  for(const width of [1440,390,320]){
     await page.setViewportSize({width,height:width===390?844:1040});
     for(const appearance of ['arsenal','journey','taishi']){
       await page.evaluate(({id,appearance})=>{const app=wanjie_wuku_general_instance;app.powerId=id;app.ui.space=appearance==='journey'?'mmlc':appearance==='taishi'?'taishi':'wuku';app.ui.tab='management';app.ui.mmlcSection=null;app.refresh();}, {id:seed.ids[appearance],appearance});
-      assert.equal(await page.locator('#wjwk-root').getAttribute('data-appearance'),appearance);
+      assert.equal(await page.locator('#wjwk-root').getAttribute('data-appearance'),appearance);assert.equal(await page.locator('[data-design-hero]').count(),1);assert.equal(await page.locator('.wjwk-design-orb').count(),1);assert.equal(await page.locator('.wjwk-header > .wjwk-spaces').count(),1);assert.equal(await page.locator('.wjwk-design-actions > button').count(),3);assert.equal(await page.locator('[data-design-aside]').count(),1);
       const counts=await page.locator('.wjwk-saved-stats strong').allTextContents();
       assert.deepEqual(counts,appearance==='taishi'?['1','1','1']:['2','1','0']);
       for(const theme of ['follow','light','dark','night','parchment','green']){
@@ -58,7 +58,7 @@ try{
         assert.match((await page.locator('.wjwk-mmlc-records').allTextContents()).join('\n'),/11艘可用/);
         await page.locator('.wjwk-mmlc-back [data-action="mmlc-section"]').click();
       }else if(appearance==='taishi'){
-        await page.locator('.wjwk-mmlc-tile[data-section="companions"]').click();
+        await page.locator('.wjwk-mmlc-nav [data-section="companions"]').click();
         await page.locator('[data-taishi-record] [data-action="open-archive"]').first().click();
         assert.equal(await page.locator('.wjwk-modal').isVisible(),true);
         await page.locator('[data-action="dialog-close"]').click();
@@ -77,5 +77,5 @@ try{
   assert.equal(reset,'arsenal');assert.equal(await page.locator('[data-no-chat-home]').count(),1);
   assert.deepEqual(errors,[]);assert.equal(externalRequests,0);
   await writeFile(out+'/module-visuals.json',JSON.stringify({matrix,errors,externalRequests,savedStateUnchanged:true,countsFromSavedRecords:true,moduleNavigation:true,detailDialogs:true,noChatReset:true,realHostTested:false,installed:false},null,2));
-  console.log('PASS 36 module/theme/viewport combinations; saved state unchanged; real archive details, MMLC module navigation, empty-chat reset; no external calls. Mock host only.');
+  console.log('PASS 54 module/theme/viewport combinations; saved state unchanged; real archive details, MMLC module navigation, empty-chat reset; no external calls. Mock host only.');
 }finally{await browser?.close();server.close();}

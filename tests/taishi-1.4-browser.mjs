@@ -23,10 +23,10 @@ try{
   });a.refresh();a.ui.setOpen(true);return ids;
  });
  for(const width of [1440,390,320]){await page.setViewportSize({width,height:950});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(await page.locator('.wjwk-brand strong').first().evaluate(e=>e.getBoundingClientRect().height<50));await page.screenshot({path:out+`/home-${width}.png`});}
- await page.getByRole('button',{name:'查看世界简报',exact:true}).click();for(const text of ['时代概况','山河与文明','势力格局','资源经济','能力与技艺','当前变化'])assert((await page.locator('[data-world-report]').textContent()).includes(text));
+ await page.locator('[data-action="taishi-world-report"]').first().click();for(const text of ['时代概况','山河与文明','势力格局','资源经济','能力与技艺','当前变化'])assert((await page.locator('[data-world-report]').textContent()).includes(text));
  await page.screenshot({path:out+'/world-report-320.png'});await page.locator('[data-action="dialog-close"]').click();
  const before=await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read()));
- await page.getByRole('button',{name:'垂天 / 降界',exact:true}).click();await page.locator('[name="regionId"]').selectOption(ids.region);await page.locator('[name="note"]').fill('以城外为锚点，保留山内时间流速。');await page.getByRole('button',{name:'写入正文草稿',exact:true}).click();
+ await page.getByText('时间与降界',{exact:true}).click();await page.getByRole('button',{name:'垂天 / 降界',exact:true}).click();await page.locator('[name="regionId"]').selectOption(ids.region);await page.locator('[name="note"]').fill('以城外为锚点，保留山内时间流速。');await page.getByRole('button',{name:'写入正文草稿',exact:true}).click();
  assert((await page.locator('#send_textarea').inputValue()).includes('青岚山脉'));assert.equal(await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read())),before);
  await page.getByRole('button',{name:'时间与改设资格',exact:true}).click();await page.locator('[name="event"]').fill('第10层远征结束');await page.locator('[name="external"]').fill('2');await page.locator('[name="rate"]').fill('500');await page.getByText('首次登记：时间基准与主世界身份',{exact:true}).click();await page.locator('[name="main"]').check();await page.locator('[name="yearDays"]').fill('365');
  await page.getByRole('button',{name:'换算并核对',exact:true}).click();assert((await page.locator('[data-taishi-clock-preview]').textContent()).includes('已可千年改设'));assert.equal(await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read())),before);await page.screenshot({path:out+'/clock-preview-320.png'});

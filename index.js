@@ -228,18 +228,19 @@ export class WukuApp {
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         this.store.assertCapture(captured);
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
-        return parseJSON(reply);
+        try{return parseJSON(reply);}catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',{...error.jsonDiagnostic,task:role});throw error;}
       };
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
+      if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
       const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
-      this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});this.runtimeLog?.capture(logId,'原始返回',raw);
+      this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');
       if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
       return { data, captured, contextHash, logId };
-    } catch(error){this.runtimeLog?.step(logId,'请求失败',{error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
+    } catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
     let names = []; try { names = await worldInfoNames(); } catch { /* JSON import is always available. */ }

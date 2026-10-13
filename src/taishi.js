@@ -58,7 +58,9 @@ export function taishiConfig(base = preset) {
   const event=c.records.find(r=>r.id==='event');
   const eventDescriptions={overview:'明确起因和已发生过程；计划、可能性与传闻分别标明，不补出缺失因果。',participants:'明确参与者与实际作用；在场不代表参与或知道全部秘密。',location:'事件明确发生的地点；不推定消息已经跨区域传播。',result:'实际结果、已明确发生的后续影响及事件阶段；传闻只记录有人传播，不将传闻内容当已证实事实。',limits:'未知、未证实部分、后续可能性及信息来源；可能性不当已发生结果。'};
   for(const f of event?.fields||[])if(eventDescriptions[f.id])f.description=eventDescriptions[f.id];
-  c.version='1.4.2';return c;
+  const economy=world?.fields.find(f=>f.id==='resources');
+  if(economy)economy.description='按已知事实整理资源分布、主要产业、贸易关系、供需变化及明确价格（带单位和交易条件）；未知省略，不推算世界总库存，不修改玩家余额。可在同一文本中按小标题分段。';
+  c.version='1.4.3';return c;
 }
 export function taishiSection(record) {
   const id=record.specific?.recordId;
@@ -108,4 +110,6 @@ export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记�
 status根据事件本身填写：working为仍在发生，ended为明确已结束；active可用于已成立的现状，planned只用于玩家已确定的安排。事件结束不代表成果失去；历史保留原记录及变化，不另建一份“历史成果”，不再次发放影响、资源或奖励。
 传闻、传说和秘密复用现有字段，明确写“传闻/流传版本/未证实”及已知来源；有人传说某事只证明传播发生，不证明所述事实。只有明确听到或亲历的人才更新knowledge，记录已知/误信和获知途径；同处世界、关系友好或档案对叙事者可见都不是获知证据。玩家可见事实不自动成为人物已知信息。没有传播依据时不更新其他人的认知，不模拟扩散范围。
 普通整理只登记已发生事实，不根据计划或时间流逝自行补全后续事件；自主发展仍按允许的剧情跨度生成待确认候选。输入来源改写、重抽或删除后的回退交由既有来源校验，不能把旧分支内容重新当成新事实。
+【经济简报】复用world.resources，按已知内容分段写资源分布、主要产业、贸易关系、供需变化、明确价格；未知部分省略，不强凑五项。价格必须有剧情依据，保留币种、数量单位、地点及适用交易条件，不能把一次优惠价当全世界固定价格。org.internal/pillars/diplomacy仅补充已有产业与贸易事实，不扩写独立组织。
+战争、灾害、封锁等仅在正文已经明确经济影响时登记实际变化。自主发展允许范围内可提出经济影响候选，但必须标为待确认或可能，不能凭空生成精确价格、推算库存、修改玩家余额或重复兑现收益。世界经济轮廓不等于玩家可支取资源账本。没有新的经济事实就保留原资料，不每轮重写整篇经济描述。
 `;

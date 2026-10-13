@@ -14,12 +14,12 @@ try{
  page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',r=>{if(new URL(r.request().url()).hostname==='127.0.0.1')return r.continue();externalRequests++;return r.abort();});
  await page.goto(`http://127.0.0.1:${server.address().port}/tests/preview.html`);await page.waitForFunction(()=>globalThis.wanjie_wuku_general_instance);await page.locator('[data-action="toggle"]').click();
  await page.locator('[data-action="modules-open"]').click();await page.locator('[name="taishi"]').check();await page.locator('[data-action="modules-save"]').click();
- await page.locator('[data-action="space-taishi"]').click();await page.getByRole('heading',{name:'太始天',exact:true}).waitFor();
+ await page.locator('[data-action="space-taishi"]').click();await page.locator('[data-design-hero]').waitFor();
  const id=await page.evaluate(async()=>{const a=wanjie_wuku_general_instance,h=await import('/src/host.js');h.saveConnectionProfile({name:'基础验收',settings:{...h.DEFAULT_SETTINGS,mode:'custom',baseUrl:'https://fake-model.test/v1',model:'basic-test'},apiKey:'FAKE-TEST-ONLY'});a.settings=h.getSettings();a.apiKey=h.getApiKey();await a.store.transact(s=>{s.aiWorldbooks={mode:'manual',books:[]};});a.refresh();return a.powerId;});
  const power=()=>page.evaluate(id=>wanjie_wuku_general_instance.store.read().powers[id],id);
  async function mock(changes){await page.evaluate(changes=>{window.calls??=0;wanjie_wuku_general_instance.model.request=async()=>{window.calls++;return JSON.stringify({changes});};},changes);}
  async function save(){await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.ui.modal.hidden);}
- async function draft(action,name,kind){await mock([{name,type:kind==='world'?'environment':'member',status:'active',fields:kind==='world'?{conditions:'成熟群岛文明'}:{role:'主持灵圃',location:'晨光界'},recordId:kind,details:kind==='world'?{overview:'海洋世界'}:{world:'晨光界',action:'主持灵圃',core_memory:'PRIVATE_CHAIN_SECRET'},sourceIndex:-1}]);await page.locator(`[data-action="${action}"]`).click();await page.locator('[name="description"]').fill(`建立${name}，采用海洋文明与灵圃的设定。`);await page.locator('[data-action="taishi-draft-submit"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();}
+ async function draft(action,name,kind){await mock([{name,type:kind==='world'?'environment':'member',status:'active',fields:kind==='world'?{conditions:'成熟群岛文明'}:{role:'主持灵圃',location:'晨光界'},recordId:kind,details:kind==='world'?{overview:'海洋世界'}:{world:'晨光界',action:'主持灵圃',core_memory:'PRIVATE_CHAIN_SECRET'},sourceIndex:-1}]);if(action==='taishi-add-companion')await page.getByText('创建与资料管理',{exact:true}).click();await page.locator(`[data-action="${action}"]`).click();await page.locator('[name="description"]').fill(`建立${name}，采用海洋文明与灵圃的设定。`);await page.locator('[data-action="taishi-draft-submit"]').click();await page.locator('[data-action="apply-archive-review"]').waitFor();}
  assert.equal(Object.keys((await power()).archives||{}).length,0);
  await draft('taishi-create-world','晨光界','world');assert.equal(Object.keys((await power()).archives||{}).length,0);
  assert(await page.evaluate(async()=>{const a=wanjie_wuku_general_instance,p=a.pendingArchiveReview,n=window.calls;try{await a.reviewArchives({rescan:true});return false;}catch(e){return /已有待确认结果/.test(e.message)&&a.pendingArchiveReview===p&&window.calls===n;}}));
@@ -36,7 +36,7 @@ try{
   a.ui.showArchive(p,r,SillyTavern.getContext().chat,a.store.read());
  },{id,world});
  assert.equal(await page.locator('[data-taishi-brief="world"]').count(),1);
- assert.equal(await page.locator('.wjwk-brief-card').count(),4);
+ assert.equal(await page.locator('details.wjwk-brief-card').count(),6);assert.equal(await page.locator('details.wjwk-brief-card[open]').count(),0);
  assert.equal(await page.locator('[data-archive-edit]').count(),1);
  for(const width of [1440,360,390,430]){
   await page.setViewportSize({width,height:1000});
@@ -44,5 +44,5 @@ try{
   await page.screenshot({path:out+`/world-brief-${width}.png`});
  }
  assert.deepEqual(errors,[]);assert.equal(externalRequests,0);
- await writeFile(out+'/world-brief-flow.json',JSON.stringify({viewports:[1440,360,390,430],sections:4,externalRequests,errors,fixture:'visual sample; not real player archive'},null,2));
+ await writeFile(out+'/world-brief-flow.json',JSON.stringify({viewports:[1440,360,390,430],sections:6,externalRequests,errors,fixture:'visual sample; not real player archive'},null,2));
 }finally{await browser?.close();await new Promise(r=>server.close(r));}

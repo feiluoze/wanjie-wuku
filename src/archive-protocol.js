@@ -1,6 +1,15 @@
 // Model-input protocol only. Persisted readers/hashes remain unchanged.
 import {withoutThoughts} from './archive-reader.js';
 import {assert} from './primitives.js';
+export function fieldDiagnostic(raw,types,definition){
+ const declared=new Map([...Object.entries(types[raw?.type]||{}),...(definition?.fields||[]).map(f=>[f.id,f.label])]),sections={};
+ for(const section of ['fields','details']){
+  const values=raw?.[section];const entries=values&&typeof values==='object'&&!Array.isArray(values)?Object.entries(values):[];
+  const ids=entries.map(([k])=>declared.has(k)?k:[...declared].find(([,label])=>label===k)?.[0]).filter(Boolean);
+  sections[section]={shape:Array.isArray(values)?'array':values===null?'null':typeof values,knownIds:[...new Set(ids)],unknownCount:entries.length-ids.length,nonTextCount:entries.filter(([,v])=>typeof v!=='string').length,overlongCount:entries.filter(([,v])=>typeof v==='string'&&v.length>4000).length};
+ }
+ return {stage:'archive_validation',...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
+}
 export const ARCHIVE_PROTOCOL_POLICY='按输入的 responseContract 返回 floorReviews，逐层核对，不得只检查最后一层。每层只返回一个 {sourceIndex:内部0基整数,status:"reviewed"或"uncertain",changeCount:本层返回的变化与进展总数}；漏查、冲突或归属不明为 uncertain，明确没有变化也必须报告。优先提取 sources.settlements.facts，再用 statusSnapshots（含MMLC-archive长期总档）核对当前快照；总档存量不等于本轮新增，不重复发放或累加；content 仅补充叙事。opportunities 不代表玩家已选择、执行或到账。较新快照遗漏不代表删除旧成果；跨层重复不再次建档。已有记录复用 ID，各独立历史事件逐条保存。通用 fields 只能使用 fieldTypes[type] 的 ID；专用字段必须使用 recordSchemas 对应 recordId，并放在 details。优先使用适合该事实的专用分类；已确认在本任务范围内但无法可靠映射时可用合法通用类型，不猜recordId；通用分类不接收归属不明或其他词条成果。已有专用对象继续沿用原分类。每项明确 ownerPowerId，协作不转移归属。插件只归档已有事实，不执行结算。';
 
 export function evidenceParts(content){
@@ -17,6 +26,7 @@ export function canonicalFields(raw,types,definition,{resolutions={}}={}){
  const resolve=(key,entries)=>entries.find(([id])=>id===key)?.[0]||entries.find(([,label])=>label===key)?.[0];
  const equal=(a,b)=>typeof a==='string'&&typeof b==='string'?a.trim().replace(/\r\n/g,'\n')===b.trim().replace(/\r\n/g,'\n'):a===b;
  const put=(target,section,id,label,value)=>{
+  if(['scale','quantity','capacity','level'].includes(id)&&typeof value==='number'&&Number.isSafeInteger(value))value=String(value);
   const key=section+':'+id;
   if(Object.hasOwn(target,id)&&!equal(target[id],value)){
    if(Object.hasOwn(resolutions,key)){assert(typeof resolutions[key]==='string','修正字段必须为文字');target[id]=resolutions[key];}

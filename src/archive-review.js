@@ -15,7 +15,7 @@ import {peoplePolicy,filterPeopleBatch,retainDraftPeople,protectPeopleIdentity} 
 import {taishiDraftInstruction,protectTaishiDraft} from './taishi-draft.js';
 import {ownershipContext,foreignArchiveOwner} from './archive-ownership.js';
 import { readerReport } from './archive-reader.js';
-import {evidenceParts,canonicalFields,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
+import {evidenceParts,canonicalFields,fieldDiagnostic,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
 import { journalSnapshot, saveArchiveUndo } from './archive-journal.js';
 import { creationConfig } from './creation-config.js';
 import { normalizeSpecific } from './specialized-records.js';
@@ -87,6 +87,10 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     assert(raw && typeof raw === 'object' && !Array.isArray(raw), '档案变化无效');
     assert(Object.keys(raw).every(k => ['archiveId', 'type', 'name', 'status', 'fields', 'sourceIndex', 'quote', 'ruleQuote', 'recordId', 'details', 'ownerPowerId', ...(isMmlc(power) ? ['module'] : [])].includes(k)), '档案核对包含不允许的操作字段');
     assert(raw.ownerPowerId===undefined||raw.ownerPowerId===power.id,'变化所属金手指与当前词条不符');
+    // Exact declared UI labels are aliases, never infer a category from content.
+    const typeAlias=Object.entries(ARCHIVE_TYPES).find(([,label])=>label===raw.type)?.[0];
+    const recordAliases=creationConfig(power)?.records.filter(r=>r.label===raw.recordId)||[];
+    raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
     let type = raw.type; const name = text(raw.name, 200).trim();
     assert(Object.hasOwn(ARCHIVE_TYPES, type) && name, '档案类型或名称无效');
     const before = raw.archiveId ? power.archives?.[raw.archiveId] : (isTaishi(power)&&raw.recordId==='relation'?findRelation(power,raw.details):null)||findArchiveObject(power,name,raw.module);
@@ -132,7 +136,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  assert(data&&typeof data==='object'&&!Array.isArray(data),'AI整理返回无效');
  assert(Array.isArray(data.changes)&&data.changes.length<=Math.min(4096,(creationConfig(power)?.id==='wuku.precedent'?256:64)*(chronological?Math.max(1,sources.length):1)),'档案变化超过本批上限或列表无效，请缩小读取范围分批整理');
  const issues=[],skippedOwnership=[],blockedFloors=new Set();
- const reject=(kind,index,raw,error)=>{issues.push({kind,index,name:String(raw?.name||raw?.orderId||raw?.creationId||'未知条目').slice(0,200),sourceIndex:raw?.sourceIndex,quote:String(raw?.quote||'').slice(0,4000),reason:error.message,...(error.fieldConflicts?{conflicts:error.fieldConflicts,candidate:clone(raw)}:{})});try{const evidence=resolveArchiveEvidence(raw?.sourceIndex,String(raw?.quote||''),sources,playerNote);if(!evidence.manual)blockedFloors.add(evidence.source.index);}catch{for(const source of sources)blockedFloors.add(source.index);}};
+ const reject=(kind,index,raw,error)=>{issues.push({kind,index,name:String(raw?.name||raw?.orderId||raw?.creationId||'未知条目').slice(0,200),sourceIndex:raw?.sourceIndex,quote:String(raw?.quote||'').slice(0,4000),reason:error.message,...(kind==='成果'?{diagnostic:fieldDiagnostic(raw,ARCHIVE_FIELDS,creationConfig(power)?.records.find(r=>r.id===raw?.recordId))}:{}),...(error.fieldConflicts?{conflicts:error.fieldConflicts,candidate:clone(raw)}:{})});try{const evidence=resolveArchiveEvidence(raw?.sourceIndex,String(raw?.quote||''),sources,playerNote);if(!evidence.manual)blockedFloors.add(evidence.source.index);}catch{for(const source of sources)blockedFloors.add(source.index);}};
  const isolate=(kind,raw,max,normalize,identity,signature)=>{
   if(raw===undefined)return [];assert(Array.isArray(raw)&&raw.length<=max,kind+'列表无效');
   const groups=new Map();raw.forEach((item,index)=>{try{const row=normalize(item,index);if(!row)return;const id=identity(row);if(!groups.has(id))groups.set(id,[]);groups.get(id).push({row,index,item});}catch(e){reject(kind,index,item,e);}});

@@ -26,7 +26,7 @@ export class RuntimeLog{
  find(ticket){return ticket&&this.rows(ticket.account).find(r=>r.id===ticket.id);}
  patch(ticket,data){const row=this.find(ticket);if(!row)return;Object.assign(row,redactLog(data,this.secret()));this.persist(ticket.account);}
  step(ticket,phase,data={}){const row=this.find(ticket);if(!row)return;
-  if(!row.detail&&phase==='校验结果')data={...data,issues:(data.issues||[]).map(i=>({kind:i.kind,sourceIndex:i.sourceIndex,code:validationIssueCode(i)})),skippedOwnership:(data.skippedOwnership||[]).map(()=>({code:'foreign_owner'}))};
+  if(!row.detail&&phase==='校验结果')data={...data,issues:(data.issues||[]).map(i=>({kind:i.kind,sourceIndex:i.sourceIndex,code:validationIssueCode(i),...(i.diagnostic?{diagnostic:i.diagnostic}:{})})),skippedOwnership:(data.skippedOwnership||[]).map(()=>({code:'foreign_owner'}))};
   row.steps.push(redactLog({phase,at:this.now(),...data},this.secret()));if(row.steps.length>30)row.steps.shift();this.persist(ticket.account);}
  capture(ticket,phase,value){if(this.find(ticket)?.detail){const characters=(typeof value==='string'?value:JSON.stringify(value)).length,clean=redactLog(value,this.secret(),{limit:220000}),body=typeof clean==='string'?clean:JSON.stringify(clean);this.step(ticket,phase,{content:body.slice(0,100000),characters,truncated:characters>100000||body.length>100000});}}
  finish(ticket,status,error=''){const row=this.find(ticket);if(!row)return;this.patch(ticket,{status:row.noUpdates&&status==='成功'?'未更新':row.partial&&status==='成功'?'部分完成':status,error,endedAt:this.now(),durationMs:Math.max(0,this.now()-row.startedAt)});}
