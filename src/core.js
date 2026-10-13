@@ -1,4 +1,6 @@
 import {validateTaishiTime} from './state-validation.js';
+import {recoverArchiveSummary} from './archive-summary.js';
+import {parseFinalJSON} from './json-final.js';
 import { ARCHIVE_READ_FORMAT, withoutThoughts, statusSnapshots } from './archive-reader.js';
 export { ARCHIVE_READ_FORMAT } from './archive-reader.js';
 import {validateTaishiBuild} from './taishi-build.js';
@@ -17,7 +19,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.3.8';
+export const VERSION = '1.3.9';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -240,7 +242,7 @@ export function narrativeMessages(chat, start = 0, tail = null) {
 export function parseJSON(raw) {
   assert(typeof raw === 'string' && raw.length <= 500000, '模型返回为空或过长');
   const clean = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-  try { return JSON.parse(clean); } catch { /* Locate a complete JSON object without evaluating code. */ }
+  try { return parseFinalJSON(clean); } catch { /* Locate a complete JSON object without evaluating code. */ }
   const start = clean.indexOf('{');
   assert(start >= 0, '模型没有返回 JSON 对象');
   let quoted = false, escaped = false, depth = 0;
@@ -249,7 +251,7 @@ export function parseJSON(raw) {
     if (quoted) { if (escaped) escaped = false; else if (c === '\\') escaped = true; else if (c === '"') quoted = false; continue; }
     if (c === '"') quoted = true;
     else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) return JSON.parse(clean.slice(start, i + 1));
+    else if (c === '}' && --depth === 0) {try{return parseFinalJSON(clean.slice(start,i+1));}catch{throw new Error('模型返回的 JSON 语法无效；未补造或写入数据，请查看本机详细日志');}}
   }
   throw new Error('模型返回的 JSON 不完整；本次没有改变账目');
 }
@@ -474,11 +476,12 @@ export function validateState(data) {
         assert(row === r || row.history === undefined, '档案历史不可嵌套');
       }
     }
+    recoverArchiveSummary(p);
     if (p.lastArchiveUpdate !== undefined) {
       const u=p.lastArchiveUpdate;
       assert(u && Number.isSafeInteger(u.at) && u.at>=0 && typeof u.automatic==='boolean' && Number.isInteger(u.arrangements) && u.arrangements>=0 && u.arrangements<=64, '最近成果整理记录无效');
       assert(Array.isArray(u.sourceIndices) && u.sourceIndices.length<=80 && u.sourceIndices.every(i=>Number.isSafeInteger(i)&&i>=0) && new Set(u.sourceIndices).size===u.sourceIndices.length, '最近整理楼层无效');
-      assert(Array.isArray(u.records) && u.records.length<=64 && new Set(u.records.map(r=>r.id)).size===u.records.length, '最近整理对象无效');
+      assert(Array.isArray(u.records) && u.records.length<=512 && new Set(u.records.map(r=>r.id)).size===u.records.length, '最近整理对象无效');
       for (const row of u.records) assert(row && p.archives[row.id] && /^[a-f0-9]{16}$/.test(row.signature) && ['created','updated','recovered'].includes(row.kind), '最近整理对象来源无效');
     }
     p.managementRecords ||= {};

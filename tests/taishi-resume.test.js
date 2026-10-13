@@ -6,9 +6,9 @@ import {clone,validateState} from '../src/core.js';
 import {WorkbenchUI} from '../src/ui.js';
 import {runTaishiWorkflow} from '../src/taishi-workflow.js';
 
-const row=role=>({name:role==='taishiWorld'?'海蓝界':'云岚',type:role==='taishiWorld'?'environment':'member',status:'active',fields:role==='taishiWorld'?{conditions:'海洋文明'}:{role:'灵植师'},recordId:role==='taishiWorld'?'world':'companion',details:role==='taishiWorld'?{overview:'群岛文明'}:{profile:'沉稳'},sourceIndex:0});
+const row=role=>({name:role==='taishiWorld'?'海蓝界':'云岚',type:role==='taishiWorld'?'environment':'member',status:'active',fields:role==='taishiWorld'?{conditions:'海洋文明'}:{role:'灵植师'},recordId:role==='taishiWorld'?'world':'companion',details:role==='taishiWorld'?{overview:'群岛文明'}:{profile:'沉稳'},sourceIndex:0,quote:role==='taishiWorld'?'太始天已纳入海蓝界。':'云岚已正式加入太始天。'});
 async function setup(){
-  const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};
+  const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};f.ctx.chat[0].mes='太始天已纳入海蓝界。云岚已正式加入太始天。';
   await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);f.calls=[];
   f.fail=new Set(['taishiPeople']);f.app.model.request=async(p,{connection})=>{const role=connection.task;f.calls.push(role);if(f.fail.has(role))throw Error(role+' 超时');return completeReview(p,role==='taishiSummary'?{message:'世界与人物候选'}:{changes:[row(role)]});};return f;
 }

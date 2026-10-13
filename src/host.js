@@ -267,6 +267,7 @@ export class ChatStore {
       const before = this.read(); if (captured) this.assertCapture(captured, before);
       const next = clone(before), result = await mutator(next);
       assert(scope(this.context()).key === identity, '聊天已切换，操作已取消');
+      validateState(next);
       if (stable(next) === stable(before)) return { result, state: before, save: this.lastSave };
       if (facts) next.revision = before.revision + 1;
       next.writeVersion = before.writeVersion + 1; next.updatedAt = Date.now();

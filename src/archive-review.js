@@ -1,4 +1,6 @@
 import {reviewHistory} from './archive-history.js';
+import {archiveInputRecord,inputCharacterBreakdown} from './archive-input.js';
+import {assertTaishiOwnership} from './taishi-ownership.js';
 import {archivePreset,archiveResponseContract,archiveScopePolicy} from './archive-preset.js';
 import {preparePersonSources,attachPersonSources} from './taishi-profile.js';
 import {assertStoryTime,recordStoryTime} from './taishi-time.js';
@@ -48,7 +50,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   const context = depth ? chat.slice(0,first).map((m,index)=>({index,content:archiveReadText(m.mes??m.content??''),is_user:m.is_user,is_system:m.is_system && m.extra?.bbs_hidden !== true})).filter(m=>!m.is_user&&!m.is_system&&m.content.trim()).slice(-depth).map(({index,content})=>({index,content})) : [];
 
   const payload = { ownership:ownershipContext(state,power), task: '核对经营档案变化', rules: power.rules, fieldTypes: ARCHIVE_FIELDS, statuses: ARCHIVE_STATUS,
-    staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: Object.values(power.archives || {}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat)).map(({ history, ...r }) => ({ ...r,...(r.specific?{specific:{...r.specific,fields:Object.fromEntries(Object.entries(r.specific.fields).filter(([k])=>k!=='source_profile'))}}:{}), previousNames:[...new Set((history||[]).map(h=>h.name))].filter(n=>n!==r.name).slice(-12), })), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
+    staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: Object.values(power.archives || {}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat)).map(archiveInputRecord), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
     terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
   if(isTaishi(power)){payload.peopleSelection=peoplePolicy(power);payload.informationPolicy=TAISHI_KNOWLEDGE_POLICY;}
   if(taishiDraft){assert(isTaishi(power),'只有太始天可以生成建档草案');taishiDraftInstruction(taishiDraft);payload.taishiDraft=taishiDraft;payload.task='生成待玩家确认的建档草案';}
@@ -73,7 +75,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   });
   payload.preset={id:preset.id,mode:preset.mode,groups:preset.groups};
   const body=JSON.stringify(payload);assert(body.length<=120000,'本批规则与正文超过120000字符，请减少参考前文或缩小手动读取范围');
-  return {setupReferences,system:preset.system,user:body};
+  return {setupReferences,system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
 export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '') {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');
@@ -102,6 +104,13 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const evidence = resolveArchiveEvidence(raw.sourceIndex, text(raw.quote ?? '', 4000), sources, playerNote);
     const { manual, source, quote, index: sourceIndex } = evidence, ruleQuote = text(raw.ruleQuote ?? '', 1200);
     if(!manual)assertFactEvidence(quote,source.content);
+    if(!manual)assertTaishiOwnership(power,raw,before,quote,source.content);
+    if(!manual&&!before&&creationConfig(power)?.id==='wuku.idle_campaign'){
+      const alias=power.name.split(/[（(]/)[0].trim();
+      const owned=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId==='wuku.idle_campaign').map(r=>r.name);
+      assert(quote&&source.content.includes(quote)&&quote.split(/[。！？\n]/).some(sentence=>sentence.includes(name)&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n)))),'挂机归属缺少连续原文依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
+    }
+    if(!before&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});
     if(!manual&&!recovery)assertSnapshotPatch(before,patch,raw.details,quote,source.content);
     const identity = before?.id || `${type}:${nameKey(name)}`;
@@ -250,7 +259,8 @@ export const archiveReviewMethods = {
     this.runtimeLog?.step(result.logId,'校验结果',{accepted:batch.changes.length,arrangements:batch.terminalResults.length,creations:batch.creationResults.length,issues:batch.issues,skippedOwnership:batch.skippedOwnership,blockedFloors:batch.blockedFloors.map(i=>i+1)});
     if(batch.issues.length){this.runtimeLog?.patch(result.logId,{partial:true});this.aiActivity?.warning?.('部分条目未通过校验，可用更新已单独整理；详情见运行日志。');}
     if(batch.issues.length&&!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!guide){reviewed.readOnly=true;if(taishiWorkflow||batch.issues.some(i=>i.conflicts?.length))this.pendingArchiveReview=reviewed;this.runtimeLog?.patch(result.logId,{noUpdates:true});this.notice(`本次 ${batch.issues.length} 项未通过校验，未推进读取进度。请查看运行日志后重查。`,true);if(!options.silent)this.ui.showArchiveReview({...reviewed,readOnly:true},power,snapshot.ctx.chat);return;}
-    if (!(taishiWorkflow&&batch.issues.length) && !options.setupReferences && options.autoSave && !reviewed.creationResults.some(c=>c.recovery) && !reviewed.changes.some(c => c.recovery) && !reviewed.terminalResults.some(c => c.recovery)) {
+    const needsScopeConfirmation=isTaishi(power)&&reviewed.changes.some(c=>!c.before);
+    if (!(taishiWorkflow&&batch.issues.length) && !needsScopeConfirmation && !options.setupReferences && options.autoSave && !reviewed.creationResults.some(c=>c.recovery) && !reviewed.changes.some(c => c.recovery) && !reviewed.terminalResults.some(c => c.recovery)) {
       assert(!this.pendingArchiveReview, '已有待确认结果，自动更新暂停');
       const committed = await this.commitArchiveReview(reviewed, new Map(reviewed.changes.map((c, i) => [i, c.id])), { automatic: true });
       this.archiveAutoIncomplete ||= {};this.archiveAutoIncomplete[power.id]=Boolean(reviewed.blockedFloors.length);
@@ -260,7 +270,7 @@ export const archiveReviewMethods = {
     }
     this.pendingArchiveReview = reviewed;
     if (!options.silent) this.ui.showArchiveReview(this.pendingArchiveReview, power, snapshot.ctx.chat);
-    else this.notice([...reviewed.changes,...reviewed.terminalResults,...reviewed.creationResults].some(c => c.recovery) ? 'AI已重新整理来源失效的档案，请打开首页确认恢复；尚未自动保存。' : 'AI已整理本轮变化，打开首页查看并接受。');
+    else this.notice(needsScopeConfirmation?'太始天发现新的关联对象，请打开待确认核对归属；本轮未自动保存。':[...reviewed.changes,...reviewed.terminalResults,...reviewed.creationResults].some(c => c.recovery) ? 'AI已重新整理来源失效的档案，请打开首页确认恢复；尚未自动保存。' : 'AI已整理本轮变化，打开首页查看并接受。');
     this.refresh();
   },
   async retryTaishiWorkflow(role){

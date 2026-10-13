@@ -9,8 +9,8 @@ import {archiveSource,saveArchive,archiveCurrent} from '../src/archives.js';
 import {archivePrompt,archiveSources,normalizeArchiveBatch} from '../src/archive-review.js';
 import {creationConfig} from '../src/creation-config.js';
 const entry=()=>builtinEntries().find(e=>e.name.startsWith('太始天（完整版'));
-async function setup(){const f=fixture();f.app.ui.closeDialog=()=>{};f.app.ui.showArchiveReview=()=>{};await f.app.openTaishi();f.app.settings.mode='st';return f;}
-const change=(name,id='world',type='environment')=>({name,type,status:'active',fields:type==='member'?{role:'太始天眷属，负责世界建设'}:{conditions:'成熟世界，独立运行'},recordId:id,details:id==='companion'?{world:'海蓝界',action:'建设灵圃',progress:'第一期完成'}:{stage:'成熟世界',setting:'保留个人设定'},sourceIndex:0,quote:''});
+async function setup(){const f=fixture();f.app.ui.closeDialog=()=>{};f.app.ui.showArchiveReview=()=>{};await f.app.openTaishi();f.app.settings.mode='st';f.ctx.chat[0].mes='太始天已纳入海蓝界。太始天已纳入赤砂界。云岚已正式加入太始天。';return f;}
+const change=(name,id='world',type='environment')=>({name,type,status:'active',fields:type==='member'?{role:'太始天眷属，负责世界建设'}:{conditions:'成熟世界，独立运行'},recordId:id,details:id==='companion'?{world:'海蓝界',action:'建设灵圃',progress:'第一期完成'}:{stage:'成熟世界',setting:'保留个人设定'},sourceIndex:0,quote:id==='companion'?name+'已正式加入太始天。':'太始天已纳入'+name+'。'});
 test('independent space recognizes full official rules, not a coincidental name',()=>{
  const p=createPower(entry());assert.equal(isTaishi(p),true);assert.equal(powerSpace(p),'taishi');
  assert.equal(isTaishi({...p,name:'太始天',primaryRules:'别的金手指'}),false);
@@ -42,6 +42,7 @@ test('manual and automatic review use same schema and retain world-local fields 
 });
 test('automatic record updates without selecting its page and third party text changes do not expire it',async()=>{
  const f=await setup(),id=f.app.powerId;await f.store.transact(s=>{s.powers[id].autoArchiveReview=true;s.powers[id].autoArchiveSave=true;s.powers[id].autoArchiveStart=0;});
+ const seed=f.store.read().powers[id];for(const c of [change('海蓝界'),change('云岚','companion','member')])saveArchive(seed,{type:c.type,name:c.name,status:'active',fields:c.fields},archiveSource(f.ctx.chat,'玩家已经明确建立范围'));await f.store.transact(s=>{s.powers[id]=seed;});
  f.app.model.request=async()=>JSON.stringify({changes:[change('海蓝界'),change('云岚','companion','member')]});
  f.app.ui.space='wuku';f.app.powerId=f.power.id;
  await f.app.reviewArchives({powerId:id,automatic:true,autoSave:true,silent:true});

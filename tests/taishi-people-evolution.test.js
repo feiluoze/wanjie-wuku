@@ -95,7 +95,7 @@ test('selected plus pinned people update, excluded and new people remain untouch
   for(const advanced of [false,true]){const f=await setup();
     await f.store.transact(s=>{const p=s.powers[f.app.powerId];p.taishiWorkflow=advanced;p.taishiPeople={mode:'selected',selected:[],pinned:[f.a],joining:{[f.a]:'direct'}};});
     f.app.model.request=async(p,{connection})=>JSON.stringify(connection.task==='taishiSummary'?{message:'已筛选'}:connection.task==='taishiWorld'?{changes:[]}:{changes:[personRow(f,f.a,'云岚'),personRow(f,f.b,'青禾'),{...personRow(f,undefined,'新人物'),archiveId:undefined}]});
-    await f.app.reviewArchives();const pending=f.app.pendingArchiveReview;assert.equal(pending.changes.length,1);assert.equal(pending.changes[0].id,f.a);assert.match(pending.message,/跳过 2 名人物/);
+    await f.app.reviewArchives();const pending=f.app.pendingArchiveReview;assert.equal(pending.changes.length,1);assert.equal(pending.changes[0].id,f.a);assert.match(pending.message,/跳过 1 名人物/);assert(pending.issues.some(i=>/归属/.test(i.reason)));
     await f.app.commitArchiveReview(pending,new Map([[0,f.a]]));const p=f.store.read().powers[f.app.powerId];assert(p.archives[f.b]);assert.equal(p.archives[f.b].specific.fields.action,undefined);assert.equal(p.taishiPeople.joining[f.a],'direct');assert.equal(Object.keys(p.archives).length,4);
   }
 });

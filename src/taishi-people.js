@@ -11,7 +11,7 @@ export function validatePeopleControls(value){
 export function personSelected(power,id){const c=peopleControls(power);return c.mode==='all'||Boolean(id&&(c.selected.includes(id)||c.pinned.includes(id)));}
 export function peoplePolicy(power){
   const c=peopleControls(power);
-  return {...c,instruction:'只更新筛选范围内人物。pinned为玩家自选保留，与selected一起参与更新；未选中只暂停更新，绝不删除、替换、移除或自动解除眷属身份。joining为玩家明确指定的身份，AI不能修改。all允许从剧情登记新人物，selected不登记未选新人物。世界等其他档案照常核对。'};
+  return {...c,instruction:'只更新筛选范围内人物。pinned为玩家自选保留，与selected一起参与更新；未选中只暂停更新，绝不删除、替换、移除或自动解除眷属身份。joining为玩家明确指定的身份，AI不能修改。all只允许核对已关联太始天世界的人物，不把外界出场当作加入；新人物须有归属依据并确认，selected不登记未选新人物。世界等其他档案照常核对。'};
 }
 export function filterPeopleBatch(batch,power){
   const original=batch.changes;

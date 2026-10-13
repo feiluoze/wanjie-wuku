@@ -87,6 +87,6 @@ export function protectTaishiBaseline(batch) {
   });
   return batch;
 }
-export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。每个实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
+export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。正文自动整理只登记明确纳入太始天的世界及关联对象；外界相遇不自动注册世界或眷属。新对象需要玩家确认。每个已纳入的实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
 世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。区域region、独立组织organization和事件event按明确资料独立记录，不把概述扩写为虚构细节。世界能力体系使用abilities、战斗combat_style、日常技艺crafts；未知留空。关联世界使用已知完整名称，已有world档案存在时填写其world_id，不猜测ID。
 各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`;

@@ -88,8 +88,8 @@ test('quotes solely from planning or unchosen opportunities cannot establish a s
 });
 test('declared adapters retain valid generic facts without guessing a dedicated category',()=>{
  const f=fixture(),p=createPower(builtinEntries().find(e=>e.name==='挂机'));
- assert.ok(creationConfig(p));f.state.powers[p.id]=p;
- const data={changes:[{type:'record',name:'旧通用条目',status:'active',fields:{description:'内容'},sourceIndex:0}]};
+ assert.ok(creationConfig(p));f.state.powers[p.id]=p;f.ctx.chat[0].mes='挂机已记录旧通用条目的实际任务进展。';
+ const data={changes:[{type:'record',name:'旧通用条目',status:'active',fields:{description:'内容'},sourceIndex:0,quote:f.ctx.chat[0].mes}]};
  const batch=normalizeArchiveBatch(data,p,archiveSources(f.ctx.chat,f.state,p),f.ctx.chat,'',f.state,{strictProtocol:true});
  assert.equal(batch.changes.length,1);assert.equal(batch.issues.length,0);assert.equal(batch.changes[0].specific,undefined);
  const invalid=normalizeArchiveBatch({changes:[{...data.changes[0],recordId:'invented',details:{state:'内容'}}]},p,archiveSources(f.ctx.chat,f.state,p),f.ctx.chat,'',f.state,{strictProtocol:true});

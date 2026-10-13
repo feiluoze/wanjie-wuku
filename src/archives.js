@@ -50,7 +50,8 @@ export function findArchiveObject(power, name, module) {
 const archiveFacts = r => ({ownerPowerId:r.ownerPowerId||null,name:r.name,type:r.type,status:r.status,fields:r.fields,module:r.module||null,...(r.specific?{specific:{adapterId:r.specific.adapterId,recordId:r.specific.recordId,fields:r.specific.fields}}:{})});
 export const archiveStamp = r => hash(stable({ ...archiveFacts(r), source:r.source }));
 export function saveArchiveUpdate(power, before, saved, sources, {automatic=false, arrangements=0, chat=[]} = {}) {
-  const records = saved.filter(r=>!before[r.id] || stable(archiveFacts(before[r.id]))!==stable(archiveFacts(r)) || !archiveCurrent(before[r.id],chat)).map(r=>({id:r.id,signature:archiveStamp(r),kind:!before[r.id]?'created':!archiveCurrent(before[r.id],chat)?'recovered':'updated'}));
+  const final = [...new Map(saved.map(r=>[r.id,power.archives[r.id]||r])).values()];
+  const records = final.filter(r=>!before[r.id] || stable(archiveFacts(before[r.id]))!==stable(archiveFacts(r)) || !archiveCurrent(before[r.id],chat)).map(r=>({id:r.id,signature:archiveStamp(r),kind:!before[r.id]?'created':!archiveCurrent(before[r.id],chat)?'recovered':'updated'}));
   power.lastArchiveUpdate = { at:Date.now(), automatic, arrangements, sourceIndices:[...new Set(sources.map(s=>s.index))], records };
 }
 export function archiveUpdateSummary(power, chat, module = null) {

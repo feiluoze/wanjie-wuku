@@ -98,7 +98,7 @@ test('generic mechanism scope precedes extraction and does not treat storage cat
 
 test('scope contracts preserve world state, cultivation assets and explicit non-story tasks',()=>{
  assert.equal(archiveScopePolicy({moduleKind:'taishi'}).kind,'world-state');
- assert.match(archiveScopePolicy({moduleKind:'taishi'}).boundary,/不要求每条世界事实都由金手指触发/);
+ assert.match(archiveScopePolicy({moduleKind:'taishi'}).boundary,/外部世界、普通相遇人物不因出场进入本模块/);
  assert.equal(archiveScopePolicy({moduleKind:'mmlc'}).kind,'cultivation-state');
  assert.match(archiveScopePolicy({moduleKind:'mmlc'}).boundary,/道场、设施、物资/);
  for(const taskMode of ['supplement','worldbook','draft','evolution']){

@@ -10,9 +10,9 @@ import {saveArchive,archiveSource} from '../src/archives.js';
 import {managementProfile} from '../src/management-profiles.js';
 import {creationConfig} from '../src/creation-config.js';
 
-const row=(recordId='world')=>({name:recordId==='world'?'海蓝界':'云岚',type:recordId==='world'?'environment':'member',status:'active',fields:recordId==='world'?{conditions:'海洋世界'}:{role:'灵植师'},recordId,details:recordId==='world'?{overview:'群岛文明'}:{profile:'沉稳'},sourceIndex:0});
+const row=(recordId='world')=>({name:recordId==='world'?'海蓝界':'云岚',type:recordId==='world'?'environment':'member',status:'active',fields:recordId==='world'?{conditions:'海洋世界'}:{role:'灵植师'},recordId,details:recordId==='world'?{overview:'群岛文明'}:{profile:'沉稳'},sourceIndex:0,quote:recordId==='world'?'太始天已纳入海蓝界。':'云岚已正式加入太始天。'});
 const prompt={system:'核对剧情',user:JSON.stringify({current:[],recordSchemas:[{id:'world'},{id:'companion'}]})};
-async function setup(advanced=false){const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};if(advanced)await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);return f;}
+async function setup(advanced=false){const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};f.ctx.chat[0].mes='太始天已纳入海蓝界。云岚已正式加入太始天。';if(advanced)await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);return f;}
 
 test('supplied author text is the runtime rule, and recognized old rules migrate without losing archives',()=>{
   const body=readFileSync(new URL('../data/taishi-rules.txt',import.meta.url),'utf8');

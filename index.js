@@ -205,7 +205,7 @@ export class WukuApp {
       if(prompt.setupReferences)assert(reference.payload.books.some(b=>b.entries.length),'请先选择并保存个人世界书条目；尚未调用模型');
       const actualPrompt=attachReferences(prompt,reference);
       referenceReport={books:reference.summary,characters:reference.characters,fingerprint:reference.fingerprint,at:Date.now(),status:'发送中'};this.referenceLast=referenceReport;
-      this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,references:reference.summary});
+      this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,inputCharacters:prompt.inputCharacters||{},references:reference.summary});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
       const send=async(p,plan)=>requestWithFallback(plan,selected=>this.model.request(p,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
