@@ -1,3 +1,4 @@
+import {taishiScheduleMethods} from './src/taishi-schedule-controller.js';
 import {taishiControlMethods} from './src/taishi-controls.js';
 import {requestWithFallback} from './src/api-fallback.js';
 import {exportModule,validateModuleBackup,mergeModuleBackup,MODULE_NAMES} from './src/module-backup.js';
@@ -604,6 +605,8 @@ export class WukuApp {
       case 'refresh': return this.refresh();
       case 'modules-open': return this.ui.showModules(this.store.read());
       case 'modules-save': return this.saveModules(data.values || {});
+      case 'mmlc-rulebook': return this.ui.showMmlcRulebook();
+      case 'mmlc-rule-chapter': return this.ui.openMmlcRuleChapter(data.id);
       case 'space-wuku': this.ui.space = 'wuku'; this.ui.tab = 'management'; this.powerId = Object.values(this.store.read().powers).find(p => powerSpace(p)==='wuku')?.id; this.plans = []; this.selected = null; return this.refresh();
       case 'space-mmlc': return this.action('add-mmlc', {});
       case 'space-taishi': return this.openTaishi();
@@ -632,6 +635,8 @@ export class WukuApp {
       case 'taishi-setting-draft': return this.writeTaishiSetting();
       case 'taishi-setting-preview': return this.previewTaishiSetting(data.values||{});
       case 'taishi-clock-save': return this.saveTaishiClock();
+      case 'taishi-schedule-test': return this.testTaishiSchedule(data.values);
+      case 'taishi-schedule-save': return this.saveTaishiSchedule(data.values);
       case 'taishi-development': return this.openTaishiDevelopment();
       case 'taishi-autonomy-save': return this.saveTaishiAutonomy(data.values);
       case 'taishi-story-evolve': return this.evolveTaishiStory(data.id);
@@ -886,7 +891,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 

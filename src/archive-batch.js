@@ -23,7 +23,7 @@ export function createArchiveBatch(chat,values,read){
    let end=Math.min(content.length,offset+characters);if(end<content.length){const breaks=['\n','。','；'].map(c=>content.lastIndexOf(c,end-1)).filter(i=>i>offset+characters*.6);if(breaks.length)end=Math.max(...breaks)+1;else if(/[\uD800-\uDBFF]/.test(content[end-1]))end--;}
    // Keep settlement/status envelopes intact: a cut must never turn the tail of
    // an unselected opportunity into apparent narrative evidence.
-   for(const block of content.matchAll(/<(WJWK-settle|WJWK-status)\b[^>]*>[\s\S]*?<\/\1\s*>/gi))if(block.index<end&&block.index+block[0].length>end){
+   for(const block of content.matchAll(/<([a-z][a-z0-9_]*-(?:settle|status|state)|MMLC-archive)\b[^>]*>[\s\S]*?<\/\1\s*>/gi))if(block.index<end&&block.index+block[0].length>end){
     assert(block[0].length<=characters,'单个结算或状态块超过每批字符上限，请提高上限后重新划分；尚未调用API');
     end=block.index>offset?block.index:block.index+block[0].length;
    }

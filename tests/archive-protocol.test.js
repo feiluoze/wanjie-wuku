@@ -22,6 +22,14 @@ test('separate module protocols use the same evidence path instead of remaining 
  const parts=evidenceParts('普通事实<MMLC-settle>修行已完成</MMLC-settle><MMLC-state>境界保持不变</MMLC-state><CUSTOM-settle>工具已交付\n下一步：尚未选择</CUSTOM-settle>');
  assert.equal(parts.body,'普通事实');assert.equal(parts.settlements.length,2);assert.equal(parts.settlements[0].protocol,'MMLC-settle');assert.deepEqual(parts.statusSnapshots,['境界保持不变']);assert.doesNotMatch(parts.settlements[1].facts,/尚未选择/);
 });
+
+test('MMLC long-term archives are current snapshots and cannot clear known facts by omission',()=>{
+ const source='到达港口。<MMLC-settle>本轮新产出：灵材两份</MMLC-settle><MMLC-state>境界：筑基</MMLC-state><MMLC-archive>旧库存：灵材十份</MMLC-archive>';
+ const parts=evidenceParts(source);assert.equal(parts.body,'到达港口。');assert.deepEqual(parts.statusSnapshots,['境界：筑基','旧库存：灵材十份']);assert.equal(parts.settlements.length,1);assert.doesNotMatch(parts.settlements[0].facts,/十份/);
+ assert.throws(()=>assertSnapshotPatch({fields:{description:'已保存灵材十份'}},{description:'暂无'},{},'旧库存：暂无','<MMLC-archive>旧库存：暂无</MMLC-archive>'),/快照不能/);
+ assert.doesNotThrow(()=>assertFactEvidence('旧库存：灵材十份',source));
+ const f=fixture();f.ctx.chat[0].mes=source;const prompt=archivePrompt(f.power,archiveSources(f.ctx.chat,f.state,f.power),f.ctx.chat),input=JSON.parse(prompt.user);assert.deepEqual(input.sources[0].statusSnapshots,parts.statusSnapshots);assert.doesNotMatch(input.sources[0].content,/旧库存/);assert.match(prompt.system,/总档.*旧库存/);
+});
 test('prompt uses structured evidence and requires floor acknowledgements without changing old anchors',()=>{
  const f=fixture();f.ctx.chat[0].mes+='<story_driver>规划不应发送</story_driver><WJWK-settle>实际取得甲成果</WJWK-settle>';
  const sources=archiveSources(f.ctx.chat,f.state,f.power),stamp=stable(sources),p=JSON.parse(archivePrompt(f.power,sources,f.ctx.chat).user);

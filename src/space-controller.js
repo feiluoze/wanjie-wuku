@@ -113,7 +113,7 @@ export const spaceMethods={
   openTaishiDevelopment(){
     const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(isTaishi(p)&&p.active,'请先启用太始天');
     this.taishiEvolutionDraft={powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}};
-    this.ui.showTaishiDevelopment(p,this.settings.mode,storyTimeEvents(p,s.ctx.chat));
+    this.ui.showTaishiDevelopment(p,this.settings.mode,storyTimeEvents(p,s.ctx.chat),this.scheduleSettingsStatus(p));
   },
   async saveTaishiAutonomy(values){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');

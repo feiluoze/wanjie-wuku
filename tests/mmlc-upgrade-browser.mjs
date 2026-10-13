@@ -20,6 +20,10 @@ try{
   });app.settings.mode='st';app.model.request=async prompt=>{const input=JSON.parse(prompt.user);window.lastModule=input.operation.id;return JSON.stringify({draft:{title:'玄黄舰维修方案',content:'路线一：在北海维护可修部件。路线二：召回道场集中维修。推荐先确认舰体损伤，再决定是否回场。',conditions:'舰体损伤和已解析修复方法待正文判定，不宣称已完成维修。',ruleQuote:input.rules.slice(0,20)}});};app.refresh();
  });
  await page.locator('[data-action="space-mmlc"]').click();await page.locator('.wjwk-mmlc-grid').waitFor();assert.equal(await page.locator('.wjwk-mmlc-tile').count(),8);
+ await page.locator('[data-action="mmlc-rulebook"]').click();assert.equal(await page.locator('[data-mmlc-chapter]').count(),21);
+ for(const width of [1400,390,320]){await page.setViewportSize({width,height:980});assert.equal(await page.locator('[data-mmlc-rulebook]').evaluate(e=>e.scrollWidth>e.clientWidth+2),false);await page.screenshot({path:out+`/mmlc-rulebook-${width}.png`});}
+ await page.locator('[data-action="mmlc-rule-chapter"][data-id="21"]').click();assert(await page.locator('[data-mmlc-chapter="21"]').getAttribute('open')!==null);assert((await page.locator('[data-mmlc-chapter="21"]').textContent()).includes('混沌珠'));
+ await page.locator('[data-action="dialog-close"]').click();await page.setViewportSize({width:1400,height:980});
  await page.screenshot({path:out+'/mmlc-overview-desktop.png'});
  await page.locator('.wjwk-mmlc-nav [data-section="land"]').click();await page.getByText('当前家底',{exact:true}).waitFor();assert.ok((await page.locator('.wjwk-mmlc-current').textContent()).includes('二十亩'));
  const relation=page.locator('[data-mmlc-record]').filter({hasText:'道韵试验炉'}).getByRole('button',{name:'北坡福地 · 已建立',exact:true});await relation.click();await page.locator('.wjwk-modal').getByText('关联成果',{exact:true}).waitFor();assert.ok((await page.locator('.wjwk-modal').textContent()).includes('道韵试验炉'));await page.locator('.wjwk-modal [data-action="dialog-close"]').click();
@@ -36,11 +40,11 @@ try{
   ctx.chat.push({is_user:false,is_system:false,swipe_id:0,mes:'北海玄黄舰完成维修，两艘均可用，仍部署在北海。'});
   app.creationAttempt.ended=true;app.creationAttempt.rendered=ctx.chat.length-1;await app.completeCreation();
   const delivered=app.store.read().creations.at(-1).status;
-  await app.store.transact(n=>{n.powers[mmlcId].autoArchiveReview=true;n.powers[mmlcId].autoArchiveSave=true;});
-  app.model.request=async prompt=>{const input=JSON.parse(prompt.user),source=input.sources.find(s=>s.content.includes('两艘均可用')),r=input.current.find(r=>r.name==='北海玄黄舰');return JSON.stringify({changes:[{archiveId:r.id,name:r.name,type:r.type,module:'fleet',status:'active',fields:{description:source.content},recordId:'fleet',details:{availability:'两艘均可用'},sourceIndex:source.index,quote:source.content,ruleQuote:input.rules.slice(0,20)}],creationResults:[{creationId:input.creationItems[0].id,status:'completed',summary:'舰船维修完成',sourceIndex:source.index,quote:source.content,archiveRefs:[{changeIndex:0}]}],message:''});};
+  await app.store.transact(n=>{n.powers[mmlcId].autoArchiveReview=true;n.powers[mmlcId].autoArchiveSave=true;n.powers[mmlcId].autoArchiveStart=ctx.chat.length-1;});
+  app.model.request=async prompt=>{const input=JSON.parse(prompt.user),source=input.sources.find(s=>s.content.includes('两艘均可用')),r=input.current.find(r=>r.name==='北海玄黄舰');return JSON.stringify({changes:[{archiveId:r.id,name:r.name,type:r.type,module:'fleet',status:'active',fields:{description:source.content},recordId:'fleet',details:{availability:'两艘均可用'},sourceIndex:source.index,quote:source.content,ruleQuote:input.rules.slice(0,20)}],creationResults:[{creationId:input.creationItems[0].id,status:'completed',summary:'舰船维修完成',sourceIndex:source.index,quote:source.content,archiveRefs:[{changeIndex:0}]}],floorReviews:[{sourceIndex:source.index,status:'reviewed',changeCount:2}],message:''});};
   await app.reviewArchives({powerId:mmlcId,autoSave:true,automatic:true});
   const state=app.store.read(),r=Object.values(state.powers[mmlcId].archives).find(r=>r.name==='北海玄黄舰');
   return {delivered,availability:r.specific.fields.availability,history:r.history.length,progress:state.creations.at(-1).progress?.status,count:Object.keys(state.powers[mmlcId].archives).length};
  });assert.deepEqual(roundtrip,{delivered:'delivered',availability:'两艘均可用',history:1,progress:'completed',count:4});
- assert.deepEqual(errors,[]);await writeFile(out+'/browser-evidence.json',JSON.stringify({mockHost:true,modules:8,desktop:true,mobile390:true,relations:true,automaticGoal:true,adoptionQueued:true,narrativeInjection:true,automaticResultRoundtrip:roundtrip,realModelCalls:0,errors},null,2));console.log('MMLC browser checks passed');
+ assert.deepEqual(errors,[]);await writeFile(out+'/browser-evidence.json',JSON.stringify({mockHost:true,modules:8,fullRulebookChapters:21,rulebookMobile320:true,desktop:true,mobile390:true,relations:true,automaticGoal:true,adoptionQueued:true,narrativeInjection:true,automaticResultRoundtrip:roundtrip,realModelCalls:0,errors},null,2));console.log('MMLC browser checks passed');
 }finally{await browser?.close();server.close();}

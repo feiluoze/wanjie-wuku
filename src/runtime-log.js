@@ -1,5 +1,15 @@
 // Local, bounded diagnostics. Kept separate from chat facts, prompts and backups.
 import {hash} from './primitives.js';
+export function validationIssueCode(issue){
+ const reason=String(issue.reason||'');
+ if(issue.kind==='设定冲突'||/冲突/.test(reason))return 'conflict';
+ if(/引用.*档案.*不存在|档案ID不存在|引用对象.*不存在/.test(reason))return 'missing_archive';
+ if(/归属|其他金手指|所属世界/.test(reason))return 'ownership';
+ if(/来源|楼层|逐层|读取进度/.test(reason)||issue.kind==='逐层核对')return 'invalid_source';
+ if(/身份|玩家保护|受保护|不可覆盖/.test(reason))return 'protected_identity';
+ if(/字段|专用统计/.test(reason))return 'invalid_fields';
+ return 'validation_rejected';
+}
 export function redactLog(value,secrets=[],{limit=100000}={}){
  const cleanString=s=>{for(const secret of secrets)if(secret)s=s.split(secret).join('[已隐藏]');return s.replace(/Bearer\s+[^\s"'<>]+/gi,'Bearer [已隐藏]').replace(/sk-[\w-]+/g,'[已隐藏]').replace(/((?:api[-_]?key|(?:access[-_]?)?token|authorization|password)["']?\s*[=:]\s*["']?)[^\s"'&,}]+/gi,'$1[已隐藏]');};
  const walk=(v,depth=0)=>{if(depth>12)return '[层级过深]';if(typeof v==='string')return cleanString(v).slice(0,limit);if(Array.isArray(v))return v.slice(0,200).map(x=>walk(x,depth+1));if(v&&typeof v==='object')return Object.fromEntries(Object.entries(v).filter(([k])=>!['__proto__','constructor','prototype'].includes(k)).map(([k,x])=>[k,/api[-_]?key|token|authorization|password|secret/i.test(k)?'[已隐藏]':walk(x,depth+1)]));return v;};return walk(value);
@@ -16,7 +26,7 @@ export class RuntimeLog{
  find(ticket){return ticket&&this.rows(ticket.account).find(r=>r.id===ticket.id);}
  patch(ticket,data){const row=this.find(ticket);if(!row)return;Object.assign(row,redactLog(data,this.secret()));this.persist(ticket.account);}
  step(ticket,phase,data={}){const row=this.find(ticket);if(!row)return;
-  if(!row.detail&&phase==='校验结果')data={...data,issues:(data.issues||[]).map(i=>({kind:i.kind,sourceIndex:i.sourceIndex,code:/字段/.test(i.reason)?'invalid_fields':/来源|楼层/.test(i.reason)?'invalid_source':/归属/.test(i.reason)?'ownership':/冲突/.test(i.reason)?'conflict':'validation_rejected'})),skippedOwnership:(data.skippedOwnership||[]).map(()=>({code:'foreign_owner'}))};
+  if(!row.detail&&phase==='校验结果')data={...data,issues:(data.issues||[]).map(i=>({kind:i.kind,sourceIndex:i.sourceIndex,code:validationIssueCode(i)})),skippedOwnership:(data.skippedOwnership||[]).map(()=>({code:'foreign_owner'}))};
   row.steps.push(redactLog({phase,at:this.now(),...data},this.secret()));if(row.steps.length>30)row.steps.shift();this.persist(ticket.account);}
  capture(ticket,phase,value){if(this.find(ticket)?.detail){const characters=(typeof value==='string'?value:JSON.stringify(value)).length,clean=redactLog(value,this.secret(),{limit:220000}),body=typeof clean==='string'?clean:JSON.stringify(clean);this.step(ticket,phase,{content:body.slice(0,100000),characters,truncated:characters>100000||body.length>100000});}}
  finish(ticket,status,error=''){const row=this.find(ticket);if(!row)return;this.patch(ticket,{status:row.noUpdates&&status==='成功'?'未更新':row.partial&&status==='成功'?'部分完成':status,error,endedAt:this.now(),durationMs:Math.max(0,this.now()-row.startedAt)});}

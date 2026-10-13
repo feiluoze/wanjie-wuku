@@ -6,11 +6,31 @@ import { creationConfig, creationRules } from '../src/creation-config.js';
 import { creationPrompt, normalizeCreation, creationCurrent, creationMethods } from '../src/creation.js';
 import { createPower, emptyState, validateState, clone } from '../src/core.js';
 import { saveArchive, archiveSource } from '../src/archives.js';
-import { archivePrompt, normalizeArchiveChanges, applyArchiveChanges } from '../src/archive-review.js';
+import { archivePrompt, archiveSources, normalizeArchiveChanges, applyArchiveChanges } from '../src/archive-review.js';
 import { mmlcDashboard, mmlcFacts, mmlcLinked, mmlcRelations } from '../src/mmlc-view.js';
 import { memoryPlan } from '../src/archive-memory.js';
 import { WorkbenchUI } from '../src/ui.js';
 const setup=()=>{const p=createPower(MMLC_ENTRY),s=emptyState();s.powers[p.id]=p;return {p,s};};
+
+test('new rule classification is in the dedicated preset and uses the existing eight schemas only',()=>{
+ const {p}=setup(),prompt=archivePrompt(p,[],[]),input=JSON.parse(prompt.user);
+ assert.match(prompt.system,/漫漫长路分类与字段映射/);assert.match(prompt.system,/纯图纸即使名称含玄黄舰也不新建fleet实舰/);assert.match(prompt.system,/编队总量是汇总口径/);assert.match(prompt.system,/旧存量不作为新收益累加/);
+ assert.equal(input.recordSchemas.length,8);assert.equal(MMLC_CONFIG.records.reduce((n,r)=>n+r.fields.length,0),48);assert(prompt.system.length<14000,'classification must not send the full rulebook');
+ const ordinary=createPower({id:'ordinary-test',entryId:'ordinary-test',name:'普通能力',book:'测试',content:'只记录已有物品'});assert.doesNotMatch(archivePrompt(ordinary,[],[]).system,/漫漫长路分类与字段映射/);
+});
+
+test('preset-shaped mixed outcomes preserve designs, actual stock and shared identities without new gameplay state',()=>{
+ const {p,s}=setup(),chat=[{is_user:false,mes:'<MMLC-settle>织云舰图纸研究完成，尚未制造。灵材本轮产出两份，已交付一份，现存十一份。青禾器灵换到新载体，仍是原个体。</MMLC-settle><MMLC-archive>灵材现存十一份。</MMLC-archive>'}];
+ const spirit=add(p,'青禾','spirits',{form:'旧载体',condition:'保留记忆'},'','active',chat);
+ const rows=[{name:'织云舰图纸',type:'research',module:'projects',recordId:'projects',status:'active',fields:{outcome:'图纸研究已完成，尚无实舰'},details:{stage:'图纸完成，实体尚未制造',outcome:'已完成设计图纸'}},
+ {name:'灵材',type:'record',module:'items',recordId:'items',status:'active',fields:{description:'已有库存'},details:{quantity:'现存十一份',condition:'本轮产出两份，已交付一份'}},
+ {archiveId:spirit.id,name:'青禾',type:'record',module:'spirits',recordId:'spirits',status:'active',fields:{description:'更换载体'},details:{form:'新载体',condition:'沿用原个体及记忆'}}].map(row=>({...row,sourceIndex:0}));
+ const sources=archiveSources(chat,s,p),before=JSON.stringify({resources:p.resources,assets:p.assets});
+ const changes=normalizeArchiveChanges({changes:rows},p,sources,chat);applyArchiveChanges(p,changes,sources,new Map(changes.map((c,i)=>[i,c.id])),chat);
+ assert.equal(Object.keys(p.archives).length,3);assert.equal(Object.values(p.archives).filter(r=>r.module==='fleet').length,0);assert.equal(p.archives[spirit.id].specific.fields.form,'新载体');assert.equal(p.archives[spirit.id].history.length,1);
+ const again=normalizeArchiveChanges({changes:rows},p,sources,chat);applyArchiveChanges(p,again,sources,new Map(again.map((c,i)=>[i,c.id])),chat);
+ assert.equal(Object.keys(p.archives).length,3);assert.equal(Object.values(p.archives).find(r=>r.module==='items').specific.fields.quantity,'现存十一份');assert.equal(p.archives[spirit.id].history.length,1);assert.equal(JSON.stringify({resources:p.resources,assets:p.assets}),before);validateState(clone(s));
+});
 function add(p,name,module='land',fields={facilities:'已建成的试验炉'},links='',status='active',chat=[]){
  const d=MMLC_CONFIG.records.find(d=>d.id===module);
  return saveArchive(p,{type:'record',name,status,module,fields:{description:'正文确认已有'},specific:{adapterId:MMLC_CONFIG.id,recordId:module,version:'1.0.0',label:d.label,labels:Object.fromEntries(d.fields.map(f=>[f.id,f.label])),fields:{...fields,links}}},archiveSource(chat,'玩家确认已有成果'));

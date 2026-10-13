@@ -38,7 +38,7 @@ export function taishiConfig(base = preset) {
     {id:'companion',label:'眷属与行动',description:'仅记录具有明确太始天身份的人物；同伴不自动成为眷属。',fields:[field('world','所在世界'),field('location','具体所在'),field('role','身份与职责'),field('action','当前行动'),field('progress','行动进展'),field('relationship','关系与约定'),field('limits','限制与未决事项')]},
     {id:'development',label:'发展事项',description:'每项建设、研究或跨界安排独立追踪，计划和已完成分开。',fields:[field('world','所属世界'),field('participants','参与者'),field('goal','目标'),field('progress','实际进展'),field('result','已形成成果'),field('next','后续事项'),field('limits','限制与阻碍')]}
   ])if(!c.records.some(x=>x.id===r.id))c.records.push(r);
-  for(const [id,label,description] of [['region','区域','只记录明确区域与地理现状'],['organization','组织与势力','仅记录明确存在的独立组织，不把世界简介里的名称扩写成事实'],['event','事件','实际事件与计划区分；本版只登记概况，不自动推演因果']])if(!c.records.some(r=>r.id===id))c.records.push({id,label,description,fields:[field('world','所属世界'),field('location','所在区域'),field('overview','当前概况'),field('participants','明确参与者'),field('result','实际结果与状态'),field('limits','限制与未知事项')]});
+  for(const [id,label,description] of [['region','区域','只记录明确区域与地理现状'],['organization','组织与势力','仅记录明确存在的独立组织，不把世界简介里的名称扩写成事实'],['event','事件','记录已发生过程、实际结果及明确因果；传闻保留未证实性质，不自动演算影响']])if(!c.records.some(r=>r.id===id))c.records.push({id,label,description,fields:[field('world','所属世界'),field('location','所在区域'),field('overview','当前概况'),field('participants','明确参与者'),field('result','实际结果与状态'),field('limits','限制与未知事项')]});
   for(const r of c.records)if(r.id!=='world'&&!r.fields.some(f=>f.id==='world_id'))r.fields.push(field('world_id','所属世界档案ID','仅填写输入current中存在的world档案ID；未知留空，不能编造ID'));
   const companion=c.records.find(r=>r.id==='companion');
   if(companion){
@@ -55,7 +55,10 @@ export function taishiConfig(base = preset) {
   for(const f of [field('state','当前状态'),field('territory','活动区域'),field('internal','内政与运作'),field('pillars','权力支柱'),field('diplomacy','外交关系'),field('leaders','核心人物'),field('actions','重要行动'),field('official_reputation','官方声誉'),field('public_reputation','民间声誉'),field('hidden_reputation','暗域声誉'),field('industry_reputation','业界声誉')])if(org&&!org.fields.some(x=>x.id===f.id))org.fields.push(f);
   for(const f of [field('position','组织职位'),field('current_goal','当前目标')])if(companion&&!companion.fields.some(x=>x.id===f.id))companion.fields.push(f);
   if(!c.records.some(r=>r.id==='relation'))c.records.push({id:'relation',label:'人物与势力关系',description:'每对有方向的关系沿用同一档案，状态变化保留历史与来源；玩家指定内容不可自动覆盖。',fields:[field('world_id','所属世界档案ID'),field('world','所属世界'),field('subject_id','关系主体档案ID'),field('target_id','关系对象档案ID'),field('direction','方向','单向或双向；单向为主体到对象'),field('state','当前关系状态'),field('cause','变化原因'),field('event_id','来源事件档案ID','已有事件档案时关联；不得编造ID'),field('evidence','来源事件说明','明确说明哪个已发生事件或玩家设定形成此关系；不只留数值')]});
-  c.version='1.4.1';return c;
+  const event=c.records.find(r=>r.id==='event');
+  const eventDescriptions={overview:'明确起因和已发生过程；计划、可能性与传闻分别标明，不补出缺失因果。',participants:'明确参与者与实际作用；在场不代表参与或知道全部秘密。',location:'事件明确发生的地点；不推定消息已经跨区域传播。',result:'实际结果、已明确发生的后续影响及事件阶段；传闻只记录有人传播，不将传闻内容当已证实事实。',limits:'未知、未证实部分、后续可能性及信息来源；可能性不当已发生结果。'};
+  for(const f of event?.fields||[])if(eventDescriptions[f.id])f.description=eventDescriptions[f.id];
+  c.version='1.4.2';return c;
 }
 export function taishiSection(record) {
   const id=record.specific?.recordId;
@@ -99,4 +102,10 @@ export function protectTaishiBaseline(batch) {
 }
 export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。正文自动整理只登记明确纳入太始天的世界及关联对象；外界相遇不自动注册世界或眷属。新对象需要玩家确认。每个已纳入的实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
 世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。区域region、独立组织organization和事件event按明确资料独立记录，不把概述扩写为虚构细节。世界能力体系使用abilities、战斗combat_style、日常技艺crafts；未知留空。关联世界使用已知完整名称，已有world档案存在时填写其world_id，不猜测ID。
-各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`+TAISHI_140_POLICY+`势力organization分别保留state当前状态、territory活动区域、internal内政、pillars权力支柱、diplomacy外交、leaders核心人物、actions重要行动；四类声誉仅在适用且明确时填写，未知不编造。人物organization_id与position分别记录所属组织和职位，region_id与location记录已确认所在区域，current_goal为当前目标。具体人物/势力关系使用relation，subject_id到target_id明确方向（单向/双向）、state、cause和evidence来源事件说明，已有事件另填event_id。只更新有实际变化的关系，不把友好数值当作完整关系，不自动反向、传播秘密或授予身份。玩家保护的关系和peopleSelection.joining身份不得覆盖；岗位与地点可按实际事件更新。`;
+各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`+TAISHI_140_POLICY+`势力organization分别保留state当前状态、territory活动区域、internal内政、pillars权力支柱、diplomacy外交、leaders核心人物、actions重要行动；四类声誉仅在适用且明确时填写，未知不编造。人物organization_id与position分别记录所属组织和职位，region_id与location记录已确认所在区域，current_goal为当前目标。具体人物/势力关系使用relation，subject_id到target_id明确方向（单向/双向）、state、cause和evidence来源事件说明，已有事件另填event_id。只更新有实际变化的关系，不把友好数值当作完整关系，不自动反向、传播秘密或授予身份。玩家保护的关系和peopleSelection.joining身份不得覆盖；岗位与地点可按实际事件更新。
+【事件、历史与信息边界】
+事件event优先复用current中同一事件的archiveId；名称改写、进展、不同目击版本不自动生成第二个事件。独立发生的新事件才另建，不因同名强合并。overview写明确起因和已发生过程，participants写真实参与者，location写发生地点，result写实际结果及明确后续影响，limits保留未知或可能性。因果不明确就不补，趋势无明确数值依据用文字阶段。
+status根据事件本身填写：working为仍在发生，ended为明确已结束；active可用于已成立的现状，planned只用于玩家已确定的安排。事件结束不代表成果失去；历史保留原记录及变化，不另建一份“历史成果”，不再次发放影响、资源或奖励。
+传闻、传说和秘密复用现有字段，明确写“传闻/流传版本/未证实”及已知来源；有人传说某事只证明传播发生，不证明所述事实。只有明确听到或亲历的人才更新knowledge，记录已知/误信和获知途径；同处世界、关系友好或档案对叙事者可见都不是获知证据。玩家可见事实不自动成为人物已知信息。没有传播依据时不更新其他人的认知，不模拟扩散范围。
+普通整理只登记已发生事实，不根据计划或时间流逝自行补全后续事件；自主发展仍按允许的剧情跨度生成待确认候选。输入来源改写、重抽或删除后的回退交由既有来源校验，不能把旧分支内容重新当成新事实。
+`;

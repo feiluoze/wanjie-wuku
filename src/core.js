@@ -1,3 +1,4 @@
+import {validateSchedule} from './taishi-schedule.js';
 import {validateTaishiLocks} from './taishi-relations.js';
 import {validateArchiveBatch} from './archive-batch.js';
 import {validateTaishiTime} from './state-validation.js';
@@ -21,7 +22,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.4.1';
+export const VERSION = '1.4.2';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -440,6 +441,7 @@ export function validateState(data) {
     if (p.adapterBinding !== undefined) validateAdapterBinding(p.adapterBinding);
     p.archiveStart ??= data.managementStart;
     assert(Number.isSafeInteger(p.archiveStart) && p.archiveStart >= 0, '档案核对起点无效');
+    validateSchedule(p.taishiSchedule);
     validateTaishiLocks(p.taishiLocks);
     validateArchiveBatch(p.archiveBatch);
     p.archiveReviewed ||= [];

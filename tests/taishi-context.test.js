@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {fixture} from './mvu-fixture.js';
 import {saveArchive,archiveSource,sceneArchiveContext} from '../src/archives.js';
 import {memoryPlan} from '../src/archive-memory.js';
-import {archivePrompt} from '../src/archive-review.js';
+import {archivePrompt,archiveSources,normalizeArchiveChanges,applyArchiveChanges} from '../src/archive-review.js';
+import {rollbackStoryRecords} from '../src/archive-branch.js';
 import {creationPrompt} from '../src/creation.js';
 import {clone,hash,storyText,stable} from '../src/core.js';
 import {taishiScope,taishiProjection,TAISHI_KNOWLEDGE_POLICY} from '../src/taishi-context.js';
@@ -17,6 +18,24 @@ async function setup(){
  f.stranger=add('砂舟','member','companion',{world:'赤砂界',action:'异界人物行动标记'});
  f.config={auto:true,budget:12000,selections:{}};return f;
 }
+
+test('event preset reuses existing fields for causes, history and rumors without extra configuration',async()=>{
+ const f=await setup(),prompt=archivePrompt(f.power,[],f.ctx.chat),payload=JSON.parse(prompt.user),event=payload.recordSchemas.find(r=>r.id==='event');
+ assert.match(prompt.system,/事件、历史与信息边界/);assert.match(prompt.system,/有人传说某事只证明传播发生/);assert.match(prompt.system,/事件结束不代表成果失去/);assert.match(event.fields.find(f=>f.id==='overview').description,/明确起因/);assert.match(event.fields.find(f=>f.id==='result').description,/传闻/);
+ assert(!payload.recordSchemas.some(r=>['rumor','legend','history'].includes(r.id)));
+});
+
+test('event progress and closure preserve one identity and revert with its source without changing uninformed people',async()=>{
+ const f=await setup();f.ctx.chat[0].mes='海蓝界港口封锁已经开始。';
+ const event=saveArchive(f.power,{name:'港口封锁',type:'record',status:'working',fields:{description:'封锁进行中'},specific:{adapterId:'wuku.primordial_world',version:'1.4.2',recordId:'event',label:'事件',labels:{world_id:'所属世界ID',world:'所属世界',overview:'当前概况',result:'实际结果'},fields:{world_id:f.world.id,world:'海蓝界',overview:'港口开始封锁',result:'封锁仍在进行'}}},archiveSource(f.ctx.chat,'玩家确认事件已开始'));
+ const knowledge=f.power.archives[f.person.id].specific.fields.knowledge;
+ f.ctx.chat.push({is_user:false,swipe_id:0,mes:'海蓝界港口封锁已解除，货运恢复。'});const sources=archiveSources(f.ctx.chat,f.state,f.power);
+ const rows=[{archiveId:event.id,type:'record',name:event.name,status:'ended',fields:{description:'封锁结束'},recordId:'event',details:{result:'封锁解除，货运恢复'},sourceIndex:f.ctx.chat.length-1,quote:'海蓝界港口封锁已解除，货运恢复。'}];
+ const changes=normalizeArchiveChanges({changes:rows},f.power,sources,f.ctx.chat);applyArchiveChanges(f.power,changes,sources,new Map([[0,event.id]]),f.ctx.chat);
+ const again=normalizeArchiveChanges({changes:rows},f.power,sources,f.ctx.chat);applyArchiveChanges(f.power,again,sources,new Map(again.map((c,i)=>[i,c.id])),f.ctx.chat);
+ assert.equal(Object.values(f.power.archives).filter(r=>r.specific?.recordId==='event').length,1);assert.equal(f.power.archives[event.id].history.length,1);assert.equal(f.power.archives[event.id].status,'ended');assert.equal(f.power.archives[f.person.id].specific.fields.knowledge,knowledge);
+ f.ctx.chat.pop();rollbackStoryRecords(f.state,f.ctx.chat);assert.equal(f.power.archives[event.id].status,'working');assert.equal(f.power.archives[event.id].specific.fields.result,'封锁仍在进行');
+});
 
 test('explicit world or person names select their world; unknown scope sends no automatic global overview',async()=>{
  const f=await setup();for(const query of ['去海蓝界看看','找云岚说话']){
@@ -72,3 +91,4 @@ test('compact feedback obeys budget and keeps whole records; legacy non-Taishi f
  const legacy=fixture();saveArchive(legacy.power,{name:'药圃',type:'environment',status:'active',fields:{conditions:'传统概况保持'}},archiveSource(legacy.ctx.chat,'手工'));
  assert(memoryPlan(legacy.state,legacy.ctx.chat,'',f.config).packet.includes('传统概况保持'));
 });
+

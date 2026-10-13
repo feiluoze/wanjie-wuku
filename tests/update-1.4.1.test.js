@@ -27,6 +27,14 @@ test('long floors split exactly without bisecting settlement opportunities or lo
  const p=createArchiveBatch(chat,range,archiveReadText),pieces=[];for(p.cursor=0;p.cursor<p.parts.length;p.cursor++){const s=archiveBatchSources(p,chat,archiveReadText);pieces.push(...s.map(s=>s.content));assert(s.every(s=>s.length-s.offset<=4000));}assert.equal(pieces.join(''),archiveReadText(raw));assert.equal(pieces.filter(t=>t.includes('<WJWK-settle>')).length,1);assert(pieces.find(t=>t.includes('<WJWK-settle>')).includes('</WJWK-settle>'));
  assert.throws(()=>createArchiveBatch([dialogue('<WJWK-status>'+'字'.repeat(4100)+'</WJWK-status>')],range,archiveReadText),/单个结算/);
 });
+
+test('MMLC receipts and long-term snapshots stay whole across batch boundaries',()=>{
+ for(const tag of ['MMLC-settle','MMLC-state','MMLC-archive','CUSTOM-settle']){
+  const block=`<${tag}>`+'事实。'.repeat(350)+`</${tag}>`,raw='前文。'.repeat(1150)+block+'尾声。'.repeat(300),chat=[dialogue(raw)],plan=createArchiveBatch(chat,range,archiveReadText),pieces=[];
+  while(plan.cursor<plan.parts.length){pieces.push(...archiveBatchSources(plan,chat,archiveReadText).map(s=>s.content));plan.cursor++;}
+  assert.equal(pieces.join(''),archiveReadText(raw));assert.equal(pieces.filter(s=>s.includes(block)).length,1);assert.throws(()=>createArchiveBatch([dialogue(`<${tag}>`+'字'.repeat(4100)+`</${tag}>`)],range,archiveReadText),/单个结算/);
+ }
+});
 test('edited swipes, tampered descriptors and stale tokens reject without advancing',()=>{
  const chat=[dialogue('实际成果已建立')],p=createArchiveBatch(chat,range,archiveReadText),sources=archiveBatchSources(p,chat,archiveReadText);assert.throws(()=>advanceArchiveBatch({archiveBatch:p},{id:'wrong',cursor:0},sources));assert.equal(p.cursor,0);chat[0].swipe_id=1;assert.throws(()=>archiveBatchSources(p,chat,archiveReadText),/变化|改写/);assert.throws(()=>validateArchiveBatch({...p,cursor:-1}));
 });

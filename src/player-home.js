@@ -44,7 +44,7 @@ export const playerHomeMethods = {
   schedulePlayerReview(type) {
     if (!['normal', 'continue', 'regenerate', 'swipe'].includes(type)) return;
     const s = this.contextSnapshot(); if(this.settings.mode === 'off')return;
-    const powerIds=Object.values(s.state.powers).filter(p=>p.active&&p.autoArchiveReview&&(p.autoArchiveSave||p.id===this.powerId)).map(p=>p.id);
+    const powerIds=Object.values(s.state.powers).filter(p=>p.active&&(p.autoArchiveReview&&(p.autoArchiveSave||p.id===this.powerId)||p.taishiAutonomy===true&&p.taishiSchedule?.config.enabled&&!p.taishiSchedule.paused)).map(p=>p.id);
     if(!powerIds.length)return;
     const capture = { chatKey:s.chatKey, powerId:powerIds[0], powerIds, stateId:s.state.id, hash:hash(stable(chatHashes(s.ctx.chat))) };
     if(this.lastPlayerAuto === stable(capture))return;
@@ -79,6 +79,12 @@ export const playerHomeMethods = {
     const run = {}; this.lastPlayerAuto = id; this.playerAutoRunning = run;
     try {
       for(const powerId of capture.powerIds || [capture.powerId]){
+        if(this.pendingArchiveReview||this.playerAutoRunning!==run)break;
+        const scheduledPower=this.contextSnapshot().state.powers[powerId];
+        if(scheduledPower?.taishiAutonomy&&scheduledPower.taishiSchedule?.config.enabled&&!scheduledPower.taishiSchedule.paused){
+          try{if(await this.runTaishiScheduled(powerId))continue;}catch(error){this.notice('按剧情时间演化已暂停：'+error.message,true);continue;}
+        }
+
         let first=capture.drainingPowerId!==powerId;
         while(true){
           const snapshot=this.contextSnapshot(),p=snapshot.state.powers[powerId];
