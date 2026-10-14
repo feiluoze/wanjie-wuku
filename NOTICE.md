@@ -7,3 +7,6 @@
 SillyTavern 是独立项目，其名称仅用于说明兼容目标。本项目未附带 SillyTavern 源代码，亦不代表官方背书。
 
 开发测试页的少量规则、价格与模型返回是明确标注的测试数据，不构成原世界书的权威解释或通用定价。
+
+
+数据库预设试验附注：本试验包含用户指定 AlbusKen/shujuku naiv1.2.9 源码中的短提示词片段及 withCreativeIdentity_ACU 插入逻辑。来源 https://gcore.jsdelivr.net/gh/AlbusKen/shujuku@naiv1.2.9/index.js ，下载快照 SHA256 46015f633bb7b752cf31e308a07930434a611d1ba374d84d7217562520d552c1。保留原片段，不代表数据库作者背书；未捆绑或执行其完整脚本。该试验独立于1.4.4正式包，用于本地对照，不改变其他部分的许可说明。

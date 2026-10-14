@@ -110,7 +110,7 @@ export class ModelConnection {
       assert(!this.rawPending, '上一笔酒馆请求仍在结束中，请稍后再试');
       const ctx = this.context(); assert(typeof ctx?.generateRaw === 'function', '当前酒馆未提供原始生成接口，请使用独立连接');
       this.rawPending = true;
-      const raw = Promise.resolve().then(() => ctx.generateRaw({ systemPrompt: prompt.system, prompt: prompt.user, trimNames: false }));
+      const raw = Promise.resolve().then(() => ctx.generateRaw({ systemPrompt: prompt.messages?'':prompt.system, prompt: prompt.messages?clone(prompt.messages):prompt.user, trimNames: false }));
       raw.finally(() => { this.rawPending = false; }).catch(() => {});
       // Do not call stopGeneration: it can stop the player's main chat generation.
       let timer, abortHandler;
@@ -132,7 +132,7 @@ export class ModelConnection {
     try {
       const urls = endpoints(settings.baseUrl);
       for (let i = 0; i < urls.length; i++) {
-        const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: [{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
+        const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
         if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }

@@ -15,7 +15,7 @@ test('worldbook setup gets ten minutes even for saved 120 second profiles; ordin
  assert.equal(requestTimeoutSeconds({timeoutSeconds:120},'setup'),600);
  assert.equal(requestTimeoutSeconds({timeoutSeconds:90},'archive'),90);
  assert.equal(requestTimeoutSeconds({},'setup'),600);
- assert.equal(requestTimeoutSeconds({timeoutSeconds:99999},'archive'),300);
+ assert.equal(requestTimeoutSeconds({timeoutSeconds:99999},'archive'),600);
 });
 test('both transports actually arm the setup timer for 600 seconds',async()=>{
  const original=globalThis.setTimeout, seen=[];

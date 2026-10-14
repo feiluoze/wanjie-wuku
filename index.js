@@ -1,3 +1,4 @@
+import {databasePromptTrial,DATABASE_PROMPT_TRIAL_ID} from './src/database-prompt-trial.js';
 import {reviewCheckpointMethods} from './src/review-checkpoint.js';
 import {taishiScheduleMethods} from './src/taishi-schedule-controller.js';
 import {taishiControlMethods} from './src/taishi-controls.js';
@@ -214,12 +215,12 @@ export class WukuApp {
       this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,inputCharacters:prompt.inputCharacters||{},references:reference.summary});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
-      const send=async(p,plan)=>requestWithFallback(plan,selected=>this.model.request(p,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
+      const send=async(p,plan)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial||taishiWorkflow));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
         signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
         onAttempt:selected=>{this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
         onFailure:(selected,error)=>this.runtimeLog?.step(logId,'API尝试失败',{task:selected.task,attempt:selected.attempt,kind:error.transportKind||'non-transport',httpStatus:error.httpStatus}),
         onSwitch:info=>this.runtimeLog?.step(logId,'切换备用API',{task:info.from.task,from:info.from.profileName,to:info.to.profileName,kind:info.kind,httpStatus:info.httpStatus})
-      });
+      });};
       const invoke=async(p,role)=>{
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         this.store.assertCapture(captured);

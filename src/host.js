@@ -1,10 +1,10 @@
-import { GENERATION_DEFAULTS } from './preferences.js';
+import { GENERATION_DEFAULTS, upgradeTimeoutDefaults } from './preferences.js';
 import { CONNECTION_FIELDS, themeId, connectionValues } from './preferences.js';
 import { MODULE_ID, ASYNC_MARKER, STATE_MARKER, assert, text, buildInjection, clone, emptyState, hash, stable, uid, validateState, stripVariableReceipts } from './core.js';
 import { hasVariableReceipt, hasStatusReceipt } from './receipt.js';
 
 import { normalizeTaskRoutes, normalizeTaskFallbacks, taskConnection, taskConnectionPlan } from './task-routing.js';
-export const DEFAULT_SETTINGS = Object.freeze({ mode: 'off', baseUrl: '', model: '', ...GENERATION_DEFAULTS, autoSync: false, catalog: [], position: null, contextMessages: 8, theme:'follow', activeConnectionProfile:'' });
+export const DEFAULT_SETTINGS = Object.freeze({ mode: 'off', baseUrl: '', model: '', ...GENERATION_DEFAULTS, timeoutDefaultsVersion:1, autoSync: false, catalog: [], position: null, contextMessages: 8, theme:'follow', activeConnectionProfile:'' });
 export function getContext() {
   try { return globalThis.SillyTavern?.getContext?.() || null; } catch { return null; }
 }
@@ -50,7 +50,7 @@ function savedSettings(ctx) {
   const settings = ctx?.extensionSettings || globalThis.extension_settings || {};
   let saved = settings[MODULE_ID] || {};
   try { const local = storage()?.getItem(settingsKey(ctx)); if (local) saved = JSON.parse(local); } catch { /* Host settings remain available. */ }
-  return saved;
+  return upgradeTimeoutDefaults(saved);
 }
 export function getApiKey(ctx = getContext()) {
   return String(savedSettings(ctx).apiKey || '').trim();
@@ -72,7 +72,7 @@ function persistAccountSettings(clean,ctx) {
   assert(durable,'设置无法保存，请检查浏览器存储和酒馆连接');
 }
 export async function saveSettings(value, ctx = getContext(), apiKey = getApiKey(ctx)) {
-  const clean=clone(value);delete clean.apiKey;delete clean.adapterLibrary;
+  const clean=clone(value);clean.timeoutDefaultsVersion=1;delete clean.apiKey;delete clean.adapterLibrary;
   const latest=savedSettings(ctx);if(latest.adapterLibrary!==undefined)clean.adapterLibrary=clone(latest.adapterLibrary);
   if(latest.connectionProfiles!==undefined)clean.connectionProfiles=clone(latest.connectionProfiles);
   else delete clean.connectionProfiles;

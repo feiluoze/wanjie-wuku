@@ -1,10 +1,10 @@
 {
-  "display_name": "万界武库通用插件",
+  "display_name": "万界武库",
   "loading_order": 90,
   "js": "bootstrap.js",
   "css": "style.css",
   "author": "万界武库项目",
-  "version": "1.4.4",
+  "version": "1.4.5",
   "auto_update": false,
   "minimum_client_version": "1.12.14"
 }

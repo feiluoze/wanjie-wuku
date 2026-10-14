@@ -16,7 +16,7 @@ import {peoplePolicy,filterPeopleBatch,retainDraftPeople,protectPeopleIdentity} 
 import {taishiDraftInstruction,protectTaishiDraft} from './taishi-draft.js';
 import {ownershipContext,foreignArchiveOwner} from './archive-ownership.js';
 import { readerReport } from './archive-reader.js';
-import {evidenceParts,canonicalFields,fieldDiagnostic,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
+import {evidenceParts,settledOwnership,canonicalFields,fieldDiagnostic,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
 import { journalSnapshot, saveArchiveUndo } from './archive-journal.js';
 import { creationConfig } from './creation-config.js';
 import { normalizeSpecific } from './specialized-records.js';
@@ -82,7 +82,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   });
   payload.preset={id:preset.id,mode:preset.mode,groups:preset.groups};
   const body=JSON.stringify(payload);assert(body.length<=120000,'本批规则与正文超过120000字符，请减少参考前文或缩小手动读取范围');
-  return {setupReferences,system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
+  return {databasePromptTrial:true,setupReferences,system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
 export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '') {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');
@@ -119,7 +119,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     if(!manual&&!before&&creationConfig(power)?.id==='wuku.idle_campaign'){
       const alias=power.name.split(/[（(]/)[0].trim();
       const owned=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId==='wuku.idle_campaign').map(r=>r.name);
-      assert(quote&&source.content.includes(quote)&&quote.split(/[。！？\n]/).some(sentence=>sentence.includes(name)&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n)))),'挂机归属缺少连续原文依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
+      assert(quote&&source.content.includes(quote)&&(quote.split(/[。！？\n]/).some(sentence=>sentence.includes(name)&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n))))||settledOwnership(source.content,power.name,name)),'挂机归属缺少正文或本层正式结算依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
     }
     if(!before&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});

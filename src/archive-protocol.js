@@ -19,6 +19,21 @@ export function evidenceParts(content){
  return {body:clean.replace(envelope,'').trim(),settlements:receipts,statusSnapshots:blocks.filter(m=>!/-settle$/i.test(m[1])).map(m=>m[2].trim()).filter(Boolean)};
 }
 
+// A model's archive title need not occur verbatim in its narrative quote.
+// Bind that title through an explicit receipt from the same source floor;
+// planning, future opportunities and other powers cannot supply ownership.
+export function settledOwnership(content,powerName,objectName,worldName=''){
+ const alias=String(powerName||'').split(/[（(]/)[0].trim(),name=String(objectName||'').trim();
+ if(!alias||!name)return false;
+ return evidenceParts(content).settlements.some(receipt=>receipt.facts.split(/\r?\n/).some(line=>{
+  const markers=[...line.matchAll(/【([^】·]+)(?:·[^】]*)?】/g)].map(m=>m[1].trim());
+  const owner=markers.length?markers.every(marker=>marker===alias):line.includes(alias);
+  return owner&&line.includes(name)&&(!worldName||line.includes(worldName))
+   &&!/(?:尚未|未曾|未能|没有|计划|准备|拟将|如果|可能|预计)/.test(line)
+   &&/(?:成功|已生效|已到账|已交付|已完成|已建立|已取得|已获得|已结算|已暂存|已延期|资格已保留)/.test(line);
+ }));
+}
+
 // Deterministic aliases only: declared IDs and UI labels, never guessed keys.
 export function canonicalFields(raw,types,definition,{resolutions={}}={}){
  const allowed=types[raw.type];if(!allowed)return raw;

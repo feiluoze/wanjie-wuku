@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 test('recommended defaults work for new connections and saved custom values remain intact',()=>{
   assert.equal(DEFAULT_SETTINGS.maxTokens,60000);
   assert.equal(DEFAULT_SETTINGS.temperature,0.85);
-  assert.equal(DEFAULT_SETTINGS.timeoutSeconds,120);
+  assert.equal(DEFAULT_SETTINGS.timeoutSeconds,300);
   const values={mode:'custom',baseUrl:'https://example.test/v1',model:'chat',contextMessages:8,...GENERATION_DEFAULTS};
   assert.equal(connectionValues(values).maxTokens,60000);
   const ctx={userHandle:'default-settings-test',extensionSettings:{},saveSettingsDebounced(){}};
