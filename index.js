@@ -5,6 +5,7 @@ import {taishiControlMethods} from './src/taishi-controls.js';
 import {requestWithFallback} from './src/api-fallback.js';
 import {exportModule,validateModuleBackup,mergeModuleBackup,MODULE_NAMES} from './src/module-backup.js';
 import {archiveBranchMethods} from './src/archive-branch.js';
+import {taishiCivilizationMethods} from './src/taishi-civilization-controller.js';
 import { spaceMethods, powerSpace, moduleEnabled } from './src/space-controller.js';
 import { mountEntry } from './src/entry.js';
 import { isTaishi } from './src/taishi.js';
@@ -615,6 +616,9 @@ export class WukuApp {
       case 'space-wuku': this.ui.space = 'wuku'; this.ui.tab = 'management'; this.powerId = Object.values(this.store.read().powers).find(p => powerSpace(p)==='wuku')?.id; this.plans = []; this.selected = null; return this.refresh();
       case 'space-mmlc': return this.action('add-mmlc', {});
       case 'space-taishi': return this.openTaishi();
+      case 'taishi-civilization-add': return this.openTaishiCivilization();
+      case 'taishi-civilization-save': return this.saveTaishiCivilization(data.values);
+      case 'taishi-civilization-dismiss': this.taishiCivilizationDraft=null;return;
       case 'taishi-section': return this.selectTaishiSection(data.section);
       case 'taishi-workflow-retry': return this.retryTaishiWorkflow(data.stage);
       case 'taishi-workflow-cancel': return this.cancel();
@@ -897,7 +901,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 

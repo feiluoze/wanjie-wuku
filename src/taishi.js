@@ -62,7 +62,10 @@ export function taishiConfig(base = preset) {
   for(const f of event?.fields||[])if(eventDescriptions[f.id])f.description=eventDescriptions[f.id];
   const economy=world?.fields.find(f=>f.id==='resources');
   if(economy)economy.description='按已知事实整理资源分布、主要产业、贸易关系、供需变化及明确价格（带单位和交易条件）；未知省略，不推算世界总库存，不修改玩家余额。可在同一文本中按小标题分段。';
-  c.version='1.4.4';return c;
+  const civilization=c.records.find(r=>r.id==='inhabitants');
+  if(civilization){civilization.label='文明与族群';civilization.description='实际世界内部已明确的文明、族群或社会共同体；一个文明可有多种体系、跨多个地域。同一世界不同大陆不是独立世界，不按能力体系自动拆文明。';if(!civilization.fields.some(f=>f.id==='civilization'))civilization.fields.push(field('civilization','文明概况'));}
+  for(const record of c.records)if(!['world','inhabitants','relation'].includes(record.id)&&!record.fields.some(f=>f.id==='civilization_id'))record.fields.push(field('civilization_id','所属文明档案ID','只引用current中已有inhabitants档案ID；跨文明或公共成果留空，不按体系或名称猜归属'));
+  c.version='1.4.6';return c;
 }
 export function taishiSection(record) {
   const id=record.specific?.recordId;

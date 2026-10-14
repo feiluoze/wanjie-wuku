@@ -93,7 +93,7 @@ test('real controller preview, confirmation, history and undo preserve exact sou
  await f.app.commitArchiveReview(pending,new Map([[0,null]]));
  const state=f.store.read(),power=state.powers[f.app.powerId],person=Object.values(power.archives)[0];assert.equal(JSON.parse(person.specific.fields.source_profile)[0].content,chunk().payload.books[0].entries[0].content);validateState(state);
  const restored=clone(state);undoArchiveUpdate(restored,power.id);assert.equal(Object.keys(restored.powers[power.id].archives).length,0);
- assert.equal(taishiConfig().records.find(r=>r.id==='companion').fields.length,30);
+ assert.equal(taishiConfig().records.find(r=>r.id==='companion').fields.length,31);
 });
 
 test('model-authored marker text cannot manufacture extra request blocks',async()=>{

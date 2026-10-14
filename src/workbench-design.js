@@ -2,7 +2,8 @@ import {worldSchedules} from './taishi-schedule.js';
 // Shared presentation for the approved three-module design. No state writes or requests.
 export const designNames = {arsenal:'能力藏馆',journey:'修行道场',taishi:'诸界观测台'};
 const marks = {arsenal:'库',journey:'道',taishi:'始'};
-export function designHero({module,title,description,tag,stats,actions,extras='',esc}) {
+export function designHero({module,title,description,tag,stats,actions,extras='',compact=false,esc}) {
+  if(compact)return `<section class="wjwk-taishi-title" data-design-hero><div><small>${esc(tag)}</small><h1>${esc(title)}</h1></div><details class="wjwk-help"><summary>简介</summary><p>${esc(description)}</p></details></section>${stats}<section class="wjwk-design-actions" aria-label="主要操作">${actions}</section>${extras?`<div class="wjwk-design-more">${extras}</div>`:''}`;
   return `<section class="wjwk-design-hero" data-design-hero><div class="wjwk-design-copy"><span class="wjwk-eyebrow">${designNames[module]} · 当前聊天</span><h1>${esc(title)}</h1><details class="wjwk-help"><summary>简介</summary><p>${esc(description)}</p></details><span class="wjwk-design-tag">${esc(tag)}</span></div><div class="wjwk-design-orb" aria-hidden="true"><i></i><i></i><i></i><span>${marks[module]}</span><small>${designNames[module]}</small></div></section>${stats}<section class="wjwk-design-actions" aria-label="主要操作">${actions}</section>${extras?`<div class="wjwk-design-more">${extras}</div>`:''}`;
 }
 export function designCover(index=0,label='') {

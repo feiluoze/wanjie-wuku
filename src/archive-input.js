@@ -17,7 +17,7 @@ export function selectArchiveInput(records,query,{compact=false,focusIds=null}={
  const selected=new Set(focusIds||full.filter(r=>[r.name,...r.previousNames].some(n=>key(n).length>=2&&text.includes(key(n)))).map(r=>r.id));
  for(const r of full.filter(r=>selected.has(r.id))){
   const f=r.specific?.fields||{};
-  for(const id of [f.world_id,f.region_id,f.organization_id,f.subject_id,f.target_id,f.event_id])if(id)selected.add(id);
+  for(const id of [f.world_id,f.region_id,f.organization_id,f.civilization_id,f.subject_id,f.target_id,f.event_id])if(id)selected.add(id);
   if(!f.world_id&&f.world)for(const w of full)if(w.specific?.recordId==='world'&&key(w.name)===key(f.world))selected.add(w.id);
  }
  return full.map(r=>selected.has(r.id)?r:{id:r.id,name:r.name,type:r.type,status:r.status,previousNames:r.previousNames,identityOnly:true,...(r.module?{module:r.module}:{}),...(r.ownerPowerId?{ownerPowerId:r.ownerPowerId}:{}),...(r.specific?{specific:{adapterId:r.specific.adapterId,recordId:r.specific.recordId,fields:Object.fromEntries(Object.entries(r.specific.fields).filter(([k])=>['world_id','world'].includes(k)))}}:{})});

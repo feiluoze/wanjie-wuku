@@ -44,7 +44,7 @@ test('missing or foreign stable references reject; world rename retains links an
 test('descent candidates require an actual registered world, survive save without asset duplication and retract same ID',async()=>{
  const f=await setup(),p=f.store.read().powers[f.app.powerId];f.ctx.chat[0].mes='海蓝界的青岚降界已经展开在城外。';const sources=archiveSources(f.ctx.chat,f.store.read(),p,{rescan:true});
  const row={name:'青岚降界',type:'record',status:'active',fields:{description:'城外真实展开'},recordId:'manifestation',details:{world_id:f.world.id,world:'海蓝界',mode:'局部',anchor:'城外',geometry:'青岚山脉',condition:'已经展开'},sourceIndex:0,quote:f.ctx.chat[0].mes};
- const batch=normalizeArchiveBatch({changes:[row]},p,sources,f.ctx.chat);assert.equal(batch.changes.length,1);assert.equal(creationConfig(p).records.find(r=>r.id==='manifestation').fields.length,10);
+ const batch=normalizeArchiveBatch({changes:[row]},p,sources,f.ctx.chat);assert.equal(batch.changes.length,1);assert.equal(creationConfig(p).records.find(r=>r.id==='manifestation').fields.length,11);
  assert.equal(normalizeArchiveBatch({changes:[{...row,details:{...row.details,world_id:'fake'}}]},p,sources,f.ctx.chat).changes.length,0);
  assert.equal(normalizeArchiveBatch({changes:[{...row,recordId:'world',type:'environment',details:{time_state:'{}'}}]},p,sources,f.ctx.chat).changes.length,0);
  const beforeResources=stable(p.resources),beforeWorld=clone(p.archives[f.world.id]);f.app.refresh();

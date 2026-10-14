@@ -20,10 +20,10 @@ export function worldBriefData(power,worldId,chat=[]){
 export function worldLinksHTML(power,record,chat,esc){
  const world=worldForRecord(power,record,chat);if(!world)return '';
  const data=worldBriefData(power,world.id,chat);
- const direct=Object.entries(record.specific?.fields||{}).filter(([key])=>['region_id','organization_id'].includes(key)).map(([,id])=>power.archives?.[id]).filter(r=>r&&r.status!=='ended'&&archiveCurrent(r,chat));
+ const direct=Object.entries(record.specific?.fields||{}).filter(([key])=>['region_id','organization_id','civilization_id'].includes(key)).map(([,id])=>power.archives?.[id]).filter(r=>r&&r.status!=='ended'&&archiveCurrent(r,chat));
  const relations=relationLinks(power,record);
  for(const id of ['subject_id','target_id','event_id']){const r=power.archives?.[record.specific?.fields[id]];if(r&&!direct.some(d=>d.id===r.id))direct.push(r);}
- for(const r of Object.values(power.archives||{}))if(r.id!==record.id&&(r.specific?.fields.organization_id===record.id||r.specific?.fields.region_id===record.id)&&!direct.some(d=>d.id===r.id))direct.push(r);
+ for(const r of Object.values(power.archives||{}))if(r.id!==record.id&&r.status!=='ended'&&archiveCurrent(r,chat)&&(r.specific?.fields.organization_id===record.id||r.specific?.fields.region_id===record.id||r.specific?.fields.civilization_id===record.id)&&!direct.some(d=>d.id===r.id))direct.push(r);
  const link=r=>`<button type="button" class="wjwk-link" data-action="open-archive" data-id="${esc(r.id)}">${esc(r.name)}</button>`;
  return `<section data-world-links><h3>${record.id===world.id?'此世界关联档案':'所属世界'}</h3>${record.id!==world.id?link(world)+direct.map(link).join('')+relations.map(r=>`<p>${link(r)} · ${esc(r.specific.fields.direction)} · ${esc(r.specific.fields.state)}</p>`).join(''):data.groups.map(g=>`<details><summary>${g.label} · ${g.records.length}</summary>${g.records.map(link).join('')}</details>`).join('')||'<p class="wjwk-muted">暂无明确关联的独立档案。</p>'}</section>`;
 }

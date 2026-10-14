@@ -1,3 +1,4 @@
+import {taishiLayoutUIMethods,taishiFieldControl,layoutTitles} from './taishi-layout-ui.js';
 import {worldSchedules} from './taishi-schedule.js';
 import {designHero,designCover,designAside} from './workbench-design.js';
 import {MMLC_RULEBOOK} from './mmlc-rulebook.js';
@@ -46,7 +47,7 @@ export const workbenchAppearance = power => isMmlc(power) ? 'journey' : isTaishi
 const appearanceLabels = { arsenal:'能力藏馆', journey:'修行道场', taishi:'诸界观测台' };
 const moduleMarks = {land:'山',sect:'宗',arts:'经',body:'修',items:'器',spirits:'灵',fleet:'舟',projects:'研'};
 
-export const requiresFormValidation = action => ['taishi-schedule-test','taishi-schedule-save','taishi-relation-save','archive-batch-create', 'taishi-world-action-draft', 'taishi-setting-preview', 'taishi-clock-preview', 'taishi-descent-draft', 'taishi-evolve', 'taishi-draft-submit', 'taishi-people-save', 'archive-correct-draft', 'creation-draft', 'creation-refine', 'terminal-draft', 'terminal-confirm', 'save-archive-range', 'register', 'save-baseline', 'save-balances', 'save-settings', 'save-api-profile', 'role-save', 'save-management', 'save-workflow', 'save-archive', 'save-manual-story', 'save-memory', 'preview-memory'].includes(action);
+export const requiresFormValidation = action => ['taishi-civilization-save','taishi-schedule-test','taishi-schedule-save','taishi-relation-save','archive-batch-create', 'taishi-world-action-draft', 'taishi-setting-preview', 'taishi-clock-preview', 'taishi-descent-draft', 'taishi-evolve', 'taishi-draft-submit', 'taishi-people-save', 'archive-correct-draft', 'creation-draft', 'creation-refine', 'terminal-draft', 'terminal-confirm', 'save-archive-range', 'register', 'save-baseline', 'save-balances', 'save-settings', 'save-api-profile', 'role-save', 'save-management', 'save-workflow', 'save-archive', 'save-manual-story', 'save-memory', 'preview-memory'].includes(action);
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const archiveStatus = r => r.status === 'active' ? ({ member: '在册', skill: '已掌握', bond: '有效' })[r.type] || ARCHIVE_STATUS.active : ARCHIVE_STATUS[r.status];
@@ -70,6 +71,10 @@ export class WorkbenchUI {
       event.stopPropagation();
       const button = event.target.closest('[data-action]'); if (!button || button.disabled) return;
       const name = button.dataset.action;
+      if(name==='taishi-layout-mode'){this.setTaishiLayout({mode:button.dataset.mode});return;}
+      if(name==='taishi-enter-world'){this.setTaishiLayout({mode:'single',worldId:button.dataset.id});return;}
+      if(name==='taishi-enter-civilization'){this.taishiSection='civilizations';this.setTaishiLayout({civilizationId:button.dataset.id});return;}
+      if(name==='taishi-layout-search'){this.taishiQuery=this.panel.querySelector('[data-taishi-query]')?.value||'';this.render(this.view);return;}
       if(name==='ai-ref-all'||name==='ai-ref-none'){this.selectReferenceRows(name==='ai-ref-all');return;}
       if (name === 'minimize-fab') { this.minimizeFloating(); return; }
       if (name === 'restore-fab') { this.restoreFloating(); return; }
@@ -81,7 +86,7 @@ export class WorkbenchUI {
       if (name === 'toggle') { if (this.dragged) { this.dragged = false; return; } this.setOpen(!this.open); return; }
       if (name === 'new-api-profile') { this.newConnectionProfile(); return; }
       if (name === 'close') { this.setOpen(false); return; }
-      if (name === 'dialog-close') { if(this.modal.querySelector('[data-taishi-descent],[data-taishi-clock],[data-taishi-clock-preview]'))this.action('taishi-control-dismiss',{}); if(this.modal.querySelector('[data-outbox-dialog]')) this.action('outbox-dismiss',{}); if(this.modal.querySelector('[data-ai-reference-dialog]')) this.action('ai-ref-dismiss',{}); if(this.modal.querySelector('[data-archive-tool-dialog]')) this.action('archive-tool-dismiss',{}); if(this.modal.querySelector('[data-taishi-workflow-review]')) this.action('taishi-workflow-cancel',{}); if(this.modal.querySelector('[data-taishi-build]')) this.action('taishi-build-dismiss',{}); if(this.modal.querySelector('[data-taishi-development]')) this.action('taishi-development-dismiss',{}); if(this.modal.querySelector('[data-taishi-relation]')) this.action('taishi-relation-dismiss',{}); if(this.modal.querySelector('[data-taishi-people]')) this.action('taishi-people-dismiss',{}); if(this.modal.querySelector('[data-taishi-draft]')) this.action('taishi-draft-dismiss',{}); if(this.modal.querySelector('[data-creation-dialog]')) this.action('creation-dismiss',{}); if(this.modal.querySelector('[data-terminal-dialog]')) this.action('terminal-dismiss',{}); if (this.modal.querySelector('[data-scene-dialog]')) this.action('cancel-scene', {}); this.action('cancel-model-list', {}); this.closeDialog(); return; }
+      if (name === 'dialog-close') { if(this.modal.querySelector('[data-taishi-civilization-draft]'))this.action('taishi-civilization-dismiss',{}); if(this.modal.querySelector('[data-taishi-descent],[data-taishi-clock],[data-taishi-clock-preview]'))this.action('taishi-control-dismiss',{}); if(this.modal.querySelector('[data-outbox-dialog]')) this.action('outbox-dismiss',{}); if(this.modal.querySelector('[data-ai-reference-dialog]')) this.action('ai-ref-dismiss',{}); if(this.modal.querySelector('[data-archive-tool-dialog]')) this.action('archive-tool-dismiss',{}); if(this.modal.querySelector('[data-taishi-workflow-review]')) this.action('taishi-workflow-cancel',{}); if(this.modal.querySelector('[data-taishi-build]')) this.action('taishi-build-dismiss',{}); if(this.modal.querySelector('[data-taishi-development]')) this.action('taishi-development-dismiss',{}); if(this.modal.querySelector('[data-taishi-relation]')) this.action('taishi-relation-dismiss',{}); if(this.modal.querySelector('[data-taishi-people]')) this.action('taishi-people-dismiss',{}); if(this.modal.querySelector('[data-taishi-draft]')) this.action('taishi-draft-dismiss',{}); if(this.modal.querySelector('[data-creation-dialog]')) this.action('creation-dismiss',{}); if(this.modal.querySelector('[data-terminal-dialog]')) this.action('terminal-dismiss',{}); if (this.modal.querySelector('[data-scene-dialog]')) this.action('cancel-scene', {}); this.action('cancel-model-list', {}); this.closeDialog(); return; }
       if (name === 'mmlc-section') { this.mmlcSection = button.dataset.section || null; this.tab = 'management'; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); return; }
       if (name === 'tab') { this.tab = button.dataset.tab; this.render(this.view); return; }
       let data = { ...button.dataset };
@@ -91,6 +96,7 @@ export class WorkbenchUI {
     listen('submit', event => event.preventDefault());
     listen('keydown', event => { if (event.target.matches('input,select,textarea')) event.stopPropagation(); });
     listen('input', event => {
+      if(event.target.matches('[data-taishi-query]')){this.taishiQuery=event.target.value;clearTimeout(this.taishiSearchTimer);this.taishiSearchTimer=setTimeout(()=>{if(!this.destroyed)this.render(this.view);},180);}
       if(event.target.matches('[data-library-query]')) { this.libraryFilter.query=event.target.value;this.libraryFilter.page=0;this.updateArchiveLibrary(); }
       if(event.target.matches('[data-ai-ref-search]')) this.filterReferenceRows(event.target.value,event.target.dataset.aiRefSearch);
       if (event.target.matches('[data-coverage-search]')) { this.coverageQuery = event.target.value; this.updateCoverage(); }
@@ -101,6 +107,8 @@ export class WorkbenchUI {
       if (event.target.matches('[data-entry-search]')) this.filterEntries(event.target.value);
     });
     listen('change', event => {
+      if(event.target.matches('[data-taishi-main-world]')){this.setTaishiLayout({worldId:event.target.value});return;}
+      if(event.target.matches('[data-taishi-civilization]')){this.setTaishiLayout({civilizationId:event.target.value});return;}
       if(event.target.matches('[data-schedule-world]')&&event.target.value)Promise.resolve(this.action('taishi-schedule-world',{id:event.target.value})).catch(e=>this.setNotice(e.message,true));
       if(event.target.matches('[name="schedule:source"],[name="schedule:timeKind"]')) {
         const form=event.target.closest('form');
@@ -138,7 +146,7 @@ export class WorkbenchUI {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true; this.eventController.abort();
-    clearInterval(this.aiTick); clearTimeout(this.aiHide); cancelAnimationFrame(this.positionFrame);
+    clearInterval(this.aiTick); clearTimeout(this.aiHide); clearTimeout(this.taishiSearchTimer); cancelAnimationFrame(this.positionFrame);
     this.aiTick = this.aiHide = this.positionFrame = null;
     this.action = () => {}; this.view = this.aiState = null; this.root.remove();
   }
@@ -214,7 +222,7 @@ export class WorkbenchUI {
     node.innerHTML=`<p role="status">共 ${data.total} 项 · 匹配 ${data.matched} 项 · 第 ${data.page+1}/${data.pages} 页</p><div class="wjwk-archive-grid">${data.rows.map(r=>this.archiveCard(r,this.view.managementChat||[],this.view.busy,true)).join('') || '<p>没有匹配档案。调整筛选即可查看其他内容。</p>'}</div><div class="wjwk-library-pages">${btn('archive-library-page','上一页','wjwk-secondary',data.page===0).replace('data-action="archive-library-page"','data-action="archive-library-page" data-direction="-1"')}${btn('archive-library-page','下一页','wjwk-secondary',data.page===data.pages-1).replace('data-action="archive-library-page"','data-action="archive-library-page" data-direction="1"')}</div>`;
   }
   hideAIActivity() {
-    clearInterval(this.aiTick); clearTimeout(this.aiHide);
+    clearInterval(this.aiTick); clearTimeout(this.aiHide); clearTimeout(this.taishiSearchTimer);
     this.aiTick = this.aiHide = null;
     this.aiHiddenId = this.aiState?.id;
     this.root.querySelector('.wjwk-ai-activity').hidden = true;
@@ -223,7 +231,7 @@ export class WorkbenchUI {
     if (this.destroyed) return;
     this.aiState = state;
     const node = this.root.querySelector('.wjwk-ai-activity');
-    clearInterval(this.aiTick); clearTimeout(this.aiHide); this.aiTick = this.aiHide = null;
+    clearInterval(this.aiTick); clearTimeout(this.aiHide); clearTimeout(this.taishiSearchTimer); this.aiTick = this.aiHide = null;
     if (this.aiHiddenId === state.id) return;
     node.hidden = false; node.dataset.status = state.status;
     node.querySelector('[data-ai-title]').textContent = state.label;
@@ -257,6 +265,7 @@ export class WorkbenchUI {
     const { state, power, operations = [], selected, busy, querying, committing, continuing, settings, save, historyMismatch, bridge, error, roleError } = view;
     if (!state) { this.panelContext = null; this.renderWelcome(view); return; }
     if ((isMmlc(power)||isTaishi(power)) && ['operations', 'assets'].includes(this.tab)) this.tab = 'management';
+    const layoutNames=isTaishi(power)?layoutTitles(this.getTaishiLayout(power,view.managementChat||[]).mode):{};
     const context = JSON.stringify([view.chatKey, state.id, power?.id, this.space, this.tab, this.mmlcSection, this.taishiSection]);
     const saved = context === this.panelContext ? this.capturePanel() : null;
     this.panelContext = context;
@@ -266,7 +275,7 @@ export class WorkbenchUI {
     const appearance = workbenchAppearance(power);
     const status = error || (historyMismatch ? '剧情历史发生改写。请先处理账本接续，再执行或同步。' : querying ? '正在查询模型，账目尚未变化…' : committing ? save?.note || '正在提交账目…' : continuing ? '正在承接续写与角色变量…' : busy ? '主叙事正在生成…' : save?.note || '词条与账目随当前聊天保存');
     this.panel.innerHTML = `<header class="wjwk-header"><div class="wjwk-brand">${icon('arsenal')}<div><strong>万界武库</strong><small>${appearanceLabels[appearance]} · 当前聊天 · v${VERSION}</small></div></div><div class="wjwk-header-actions"><span class="wjwk-chip">${connection}</span>${btn('theme', icon('theme'), 'wjwk-icon-button').replace('<button ', '<button title="切换界面主题" aria-label="切换界面主题" ')}${btn('settings', icon('settings'), 'wjwk-icon-button')}${btn('minimize-fab','收起','wjwk-link')}${btn('close', icon('close'), 'wjwk-icon-button')}</div><nav class="wjwk-spaces" aria-label="内容空间">${btn('space-wuku', '万界武库<span class="wjwk-space-caption">能力藏馆</span>', isMmlc(power)||isTaishi(power) ? '' : 'is-active', busy)}${moduleEnabled(state,'mmlc')?btn('space-mmlc', '漫漫长路<span class="wjwk-space-caption">修行道场</span>', isMmlc(power) ? 'is-active' : '', busy):''}${moduleEnabled(state,'taishi')?btn('space-taishi','太始天<span class="wjwk-space-caption">诸界观测台</span>',isTaishi(power)?'is-active':'',busy):''}${btn('modules-open','模块开关','wjwk-link',busy)}</nav></header>${this.outboxButton(state,busy)}${power?.archiveSummaryRecovery?`<p class="wjwk-muted" role="status">${esc(power.archiveSummaryRecovery)}</p>`:''}
-      <div class="wjwk-layout ${isMmlc(power) ? 'wjwk-mmlc-layout' : isTaishi(power)?'wjwk-taishi-layout':''} ${this.tab !== 'operations' || !selected ? 'wjwk-management-layout' : ''}"><aside class="wjwk-sidebar"><div class="wjwk-design-side-heading"><span>${appearanceLabels[appearance]}</span><small>当前聊天</small></div>${isTaishi(power)?`<nav class="wjwk-mmlc-nav" aria-label="太始天模块"><button data-action="taishi-section" data-section="" class="${!this.taishiSection?'is-selected':''}">诸界总览</button>${TAISHI_SECTIONS.map(s=>`<button data-action="taishi-section" data-section="${s.id}" class="${this.taishiSection===s.id?'is-selected':''}">${s.title}</button>`).join('')}</nav>`:isMmlc(power) ? `<nav class="wjwk-mmlc-nav" aria-label="漫漫长路模块"><button data-action="mmlc-section" data-section="" class="${!this.mmlcSection ? 'is-selected' : ''}">道场总览</button>${MMLC_MODULES.map(m => `<button data-action="mmlc-section" data-section="${m.id}" class="${this.mmlcSection === m.id ? 'is-selected' : ''}">${m.title}</button>`).join('')}</nav>` : `<div class="wjwk-section-heading"><span>我的金手指</span>${btn('manage', icon('plus'), 'wjwk-icon-button', busy)}</div>
+      <div class="wjwk-layout ${isMmlc(power) ? 'wjwk-mmlc-layout' : isTaishi(power)?'wjwk-taishi-layout':''} ${this.tab !== 'operations' || !selected ? 'wjwk-management-layout' : ''}"><aside class="wjwk-sidebar"><div class="wjwk-design-side-heading"><span>${appearanceLabels[appearance]}</span><small>当前聊天</small></div>${isTaishi(power)?`<nav class="wjwk-mmlc-nav" aria-label="太始天模块"><button data-action="taishi-section" data-section="" class="${!this.taishiSection?'is-selected':''}">${layoutNames.overview}</button>${TAISHI_SECTIONS.map(s=>`<button data-action="taishi-section" data-section="${s.id}" class="${this.taishiSection===s.id?'is-selected':''}">${layoutNames[s.id]||s.title}</button>`).join('')}</nav>`:isMmlc(power) ? `<nav class="wjwk-mmlc-nav" aria-label="漫漫长路模块"><button data-action="mmlc-section" data-section="" class="${!this.mmlcSection ? 'is-selected' : ''}">道场总览</button>${MMLC_MODULES.map(m => `<button data-action="mmlc-section" data-section="${m.id}" class="${this.mmlcSection === m.id ? 'is-selected' : ''}">${m.title}</button>`).join('')}</nav>` : `<div class="wjwk-section-heading"><span>我的金手指</span>${btn('manage', icon('plus'), 'wjwk-icon-button', busy)}</div>
       <div class="wjwk-mobile-power"><label><span>当前金手指</span><select data-power-picker>${powers.map(p => `<option value="${esc(p.id)}" ${p.id === power?.id ? 'selected' : ''}>${esc(p.name)}${p.active ? '' : '（已暂停）'}</option>`).join('') || '<option>尚未接入</option>'}</select></label>${btn('manage', '＋ 添加金手指', 'wjwk-secondary wjwk-mobile-add', busy)}</div>
       <div class="wjwk-power-list">${powers.map(p => `<button type="button" data-action="select-power" data-id="${esc(p.id)}" class="wjwk-power ${power?.id === p.id ? 'is-selected' : ''}"><span class="wjwk-orb ${p.active ? '' : 'is-paused'}"></span><span>${esc(p.name)}<small>${p.active ? '已接入' : '已暂停'} · ${esc(p.source?.book || '导入词条')}</small></span></button>`).join('') || empty('先接入一个金手指词条')}</div>`}
       ${resources.length ? `<div class="wjwk-resource-heading">${esc(power?.name || '当前词条')} · 资源</div>${btn('baseline','手动修正余额','wjwk-secondary wjwk-manual-balance',busy)}` : ''}${resources.map(r => `<div class="wjwk-resource"><span>${esc(r.name)}</span><strong>${r.balance === null ? '未确认' : esc(r.balance)}</strong></div>`).join('')}
@@ -557,7 +566,7 @@ export class WorkbenchUI {
   showArchive(power, record = null, chat = [], state = this.view?.state || {}) {
     const type = record?.type || archivePanel(power).defaultType;
     const editSpecific=isTaishi(power)&&record?.specific?creationConfig(power)?.records.find(r=>r.id===record.specific.recordId)?.fields.filter(f=>f.id!=='time_state').map(f=>({id:f.id,label:f.label,value:record.specific.fields[f.id]||''}))||specificRows(record):specificRows(record);
-    const form = `<form><label>类型<select name="type" data-archive-type ${record ? 'disabled' : ''}>${Object.entries(ARCHIVE_TYPES).map(([id, label]) => `<option value="${id}" ${type === id ? 'selected' : ''}>${label}</option>`).join('')}</select>${record ? `<input type="hidden" name="type" value="${type}">` : ''}</label><label>名称<input name="name" required maxlength="200" value="${esc(record?.name || '')}"></label><label>状态<select name="status">${Object.entries(ARCHIVE_STATUS).map(([id, label]) => `<option value="${id}" ${(record?.status || 'active') === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label><div data-archive-fields></div>${record?.specific?editSpecific.filter(f=>f.id!=='source_profile').map(f=>`<label>${esc(f.label)}<textarea name="specific:${esc(f.id)}" maxlength="4000" rows="2">${esc(f.value)}</textarea></label>`).join(''):''}${isTaishi(power)&&record?.specific&&['companion','relation'].includes(record.specific.recordId)?`<label class="wjwk-checkbox"><input type="checkbox" name="protectRelations" ${power.taishiLocks?.[record.id]===undefined||power.taishiLocks[record.id].length?'checked':''}>保护这里填写的关系，禁止AI覆盖</label><small>保护社交与关系字段；人物眷属身份另在人物身份入口确认。取消勾选并保存可解除关系保护。</small>`:''}<p class="wjwk-muted">只填写已有依据的情况；没有明确数量时可以填“少量”，未知字段留空。</p><label>核对依据<input name="note" maxlength="600" value="${esc(record?.source.note || '')}" placeholder="例如：已核对当前剧情中的育种成果"></label>${btn('save-archive', record ? '保存更新' : '保存档案', 'wjwk-primary')}</form>`;
+    const form = `<form><label>类型<select name="type" data-archive-type ${record ? 'disabled' : ''}>${Object.entries(ARCHIVE_TYPES).map(([id, label]) => `<option value="${id}" ${type === id ? 'selected' : ''}>${label}</option>`).join('')}</select>${record ? `<input type="hidden" name="type" value="${type}">` : ''}</label><label>名称<input name="name" required maxlength="200" value="${esc(record?.name || '')}"></label><label>状态<select name="status">${Object.entries(ARCHIVE_STATUS).map(([id, label]) => `<option value="${id}" ${(record?.status || 'active') === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label><div data-archive-fields></div>${record?.specific?editSpecific.filter(f=>f.id!=='source_profile').map(f=>taishiFieldControl(power,record,f,esc,chat)).join(''):''}${isTaishi(power)&&record?.specific&&['companion','relation'].includes(record.specific.recordId)?`<label class="wjwk-checkbox"><input type="checkbox" name="protectRelations" ${power.taishiLocks?.[record.id]===undefined||power.taishiLocks[record.id].length?'checked':''}>保护这里填写的关系，禁止AI覆盖</label><small>保护社交与关系字段；人物眷属身份另在人物身份入口确认。取消勾选并保存可解除关系保护。</small>`:''}<p class="wjwk-muted">只填写已有依据的情况；没有明确数量时可以填“少量”，未知字段留空。</p><label>核对依据<input name="note" maxlength="600" value="${esc(record?.source.note || '')}" placeholder="例如：已核对当前剧情中的育种成果"></label>${btn('save-archive', record ? '保存更新' : '保存档案', 'wjwk-primary')}</form>`;
     const current=record&&archiveContextCurrent(record,chat);
     const floors=record?[...new Set([record.source.anchor,...(record.source.anchors||[])].filter(Boolean).map(a=>a.index+1))]:[];
     const brief=record&&isTaishi(power)?taishiBrief(record,[...Object.entries(record.fields).filter(([,v])=>v).map(([id,value])=>({id,label:ARCHIVE_FIELDS[type][id]||id,value})),...specificRows(record)],esc):null;
@@ -744,7 +753,7 @@ export class WorkbenchUI {
   }
 }
 
-Object.assign(WorkbenchUI.prototype,taishiUIMethods({esc,btn,empty}),referenceUIMethods);
+Object.assign(WorkbenchUI.prototype,taishiUIMethods({esc,btn,empty}),taishiLayoutUIMethods({esc,btn}),referenceUIMethods);
 
 Object.assign(WorkbenchUI.prototype,runtimeLogUIMethods);
 

@@ -465,3 +465,54 @@
 .wjwk-continuity-group{padding:18px;border:1px solid var(--wk-line);border-radius:14px;margin:14px 0;background:var(--wk-card)}
 .wjwk-continuity-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;min-height:44px;text-align:left;border:0;border-bottom:1px solid var(--wk-line);background:transparent;color:inherit;padding:12px 4px}
 .wjwk-continuity-row span{font-size:.85em;opacity:.75;white-space:nowrap}
+/* World and civilization layouts share the archive; this layer is presentation. */
+.wjwk .wjwk-world-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 0 18px;border-bottom:1px solid var(--wk-line);margin-bottom:18px;min-width:0}
+.wjwk .wjwk-world-toolbar label{margin:0;min-width:0;max-width:100%;font-size:12px;color:var(--wk-muted)}
+.wjwk .wjwk-world-toolbar select{max-width:240px;min-height:44px}
+.wjwk .wjwk-layout-switch{display:inline-flex;gap:4px;padding:4px;background:var(--wk-soft);border:1px solid var(--wk-line);border-radius:12px}
+.wjwk .wjwk-layout-switch button{min-height:44px;border-color:transparent}
+.wjwk .wjwk-layout-switch button.is-active{background:var(--wk-primary)!important;border-color:var(--wk-cyan);font-weight:700}
+.wjwk .wjwk-world-search{flex:1 1 180px}
+.wjwk .wjwk-world-search input{min-height:44px}
+.wjwk .wjwk-civilization-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin:16px 0 24px}
+.wjwk .wjwk-civilization-card{position:relative;min-width:0;padding:22px;background:var(--wk-card);border:1px solid var(--wk-line);border-top:3px solid var(--wk-cyan);border-radius:14px;overflow-wrap:anywhere}
+.wjwk .wjwk-civilization-card:nth-child(even){border-top-color:var(--wk-gold)}
+.wjwk .wjwk-civilization-mark{display:block;font-size:12px;letter-spacing:.14em;color:var(--wk-muted);margin-bottom:10px}
+.wjwk .wjwk-civilization-card p{color:var(--wk-muted);font-size:13px;line-height:1.75}
+.wjwk .wjwk-civilization-card button{min-height:44px;margin:4px 4px 0 0}
+.wjwk .wjwk-civilization-tags{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0;font-size:12px;color:var(--wk-muted)}
+.wjwk .wjwk-civilization-tags span{padding:3px 8px;border-radius:20px;background:var(--wk-soft)}
+.wjwk .wjwk-civilization-section{min-width:0;padding:18px 0;margin:12px 0 20px;border-top:2px solid var(--wk-line)}
+.wjwk .wjwk-civilization-section>.wjwk-section-heading{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.wjwk .wjwk-civilization-section>.wjwk-section-heading h2{font-size:20px;flex:1;margin:0;overflow-wrap:anywhere}
+.wjwk .wjwk-civilization-section[data-group-kind="common"]{border-top-style:dashed}
+.wjwk .wjwk-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:600px){.wjwk .wjwk-world-toolbar{gap:8px}.wjwk .wjwk-world-toolbar label:not(.wjwk-world-search){flex:1 1 135px}.wjwk .wjwk-world-toolbar select{max-width:100%}.wjwk .wjwk-layout-switch{width:100%}.wjwk .wjwk-layout-switch button{flex:1}.wjwk .wjwk-civilization-grid{grid-template-columns:1fr}.wjwk .wjwk-civilization-card{padding:18px}.wjwk .wjwk-civilization-section>.wjwk-section-heading h2{font-size:18px}}
+
+/* Compact Taishi headings leave the first screen to actual worlds/civilizations. */
+.wjwk .wjwk-taishi-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:10px 0;padding:6px 0;min-width:0}
+.wjwk .wjwk-taishi-title h1{font:26px SimSun,serif;letter-spacing:2px;margin:4px 0;overflow-wrap:anywhere}
+.wjwk .wjwk-taishi-title small{font-size:11px}
+.wjwk .wjwk-taishi-title details{max-width:60%;font-size:12px}
+.wjwk[data-appearance="taishi"] .wjwk-design-overview{margin:10px 0;padding:10px 0;gap:10px}
+.wjwk[data-appearance="taishi"] .wjwk-design-actions{gap:8px;margin-bottom:6px}
+.wjwk[data-appearance="taishi"] .wjwk-design-actions>button{min-height:44px;padding:9px 12px}
+.wjwk[data-appearance="taishi"] .wjwk-design-content{margin-top:10px}
+.wjwk[data-appearance="taishi"] .wjwk-world-toolbar{margin-bottom:8px;padding-bottom:10px}
+@media(max-width:600px){
+ .wjwk .wjwk-taishi-title h1{font-size:23px}
+ .wjwk .wjwk-taishi-title details{max-width:35%}
+ .wjwk[data-appearance="taishi"] .wjwk-design-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wjwk[data-appearance="taishi"] .wjwk-design-actions>button:first-child{grid-column:1/-1}
+ .wjwk[data-appearance="taishi"] .wjwk-design-actions>button:before{display:none}
+ .wjwk[data-appearance="taishi"] .wjwk-design-more{margin:4px 0;gap:8px}
+ .wjwk[data-appearance="taishi"] .wjwk-sidebar{padding-block:8px}
+ .wjwk[data-appearance="taishi"] .wjwk-design-side-tools{display:flex;gap:12px;padding:4px 0;margin:0}
+}
+.wjwk .wjwk-taishi-title{align-self:start;line-height:1.25;margin:0;padding:8px 0;align-items:flex-start}
+.wjwk .wjwk-taishi-title h1{line-height:1.25;margin:4px 0}
+.wjwk .wjwk-taishi-title small{display:block;line-height:1.25}
+.wjwk .wjwk-taishi-title>.wjwk-help{border:0;padding:0;margin:0}
+.wjwk[data-appearance="taishi"] .wjwk-content{align-content:start;gap:6px}
+.wjwk[data-appearance="taishi"] .wjwk-design-more{margin:0 0 6px;gap:12px}
+.wjwk[data-appearance="taishi"] .wjwk-design-overview{align-self:start}
