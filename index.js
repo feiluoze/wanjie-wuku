@@ -1,3 +1,4 @@
+import {reviewCheckpointMethods} from './src/review-checkpoint.js';
 import {taishiScheduleMethods} from './src/taishi-schedule-controller.js';
 import {taishiControlMethods} from './src/taishi-controls.js';
 import {requestWithFallback} from './src/api-fallback.js';
@@ -126,6 +127,8 @@ export class WukuApp {
       this.ui.space=available.some(p=>powerSpace(p)==='wuku')?'wuku':powerSpace(available[0]);
       this.ui.taishiSection=null;this.ui.mmlcSection=null;
     }
+    this.restoreReviewCheckpoint(snapshot);
+    if(this.pendingArchiveReview&&!this.busy&&!this.archiveReviewJob)this.saveReviewCheckpoint();
     if (this.ui.space !== 'wuku' && !moduleEnabled(state,this.ui.space)) this.ui.space='wuku';
     const visiblePowers = Object.values(state?.powers || {}).filter(p => powerSpace(p) === (this.ui.space || 'wuku'));
     let power = visiblePowers.find(p => p.id === this.powerId); if (!power) { power = visiblePowers[0]; this.powerId = power?.id; }
@@ -187,7 +190,7 @@ export class WukuApp {
     if(this.manualBatchRun)this.manualBatchRun.stopped=true;
     this.aiActivity?.cancel(); this.modelListController?.abort();
   }
-  async query(prompt, snapshot, { task = 'general', taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {} } = {}) {
+  async query(prompt, snapshot, { task = 'general', taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
     assert(!this.destroyed, '插件实例已释放');
     assert(!this.busy, '已有查询进行中');
     const connectionPlan = resolveTaskConnectionPlan(task,getContext(),this.settings,this.apiKey), connection=connectionPlan[0];this.requestSecrets=[this.apiKey,...accountSecrets()];
@@ -232,14 +235,14 @@ export class WukuApp {
       };
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
       if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
-      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
+      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');
       if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
-      return { data, captured, contextHash, logId };
+      return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint };
     } catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
@@ -614,7 +617,7 @@ export class WukuApp {
       case 'taishi-section': return this.selectTaishiSection(data.section);
       case 'taishi-workflow-retry': return this.retryTaishiWorkflow(data.stage);
       case 'taishi-workflow-cancel': return this.cancel();
-      case 'taishi-workflow-discard': this.cancel(); this.pendingArchiveReview=null; this.ui.closeDialog(); this.refresh(); return this.resumePlayerReview();
+      case 'taishi-workflow-discard': this.clearReviewCheckpoint(); this.pendingArchiveReview=null; this.cancel(); this.ui.closeDialog(); this.refresh(); return this.resumePlayerReview();
       case 'taishi-setup': return this.initializeTaishi();
       case 'taishi-build-run': return this.runTaishiBuild();
       case 'taishi-build-select': return this.selectTaishiBuildReferences();
@@ -636,6 +639,7 @@ export class WukuApp {
       case 'taishi-setting-draft': return this.writeTaishiSetting();
       case 'taishi-setting-preview': return this.previewTaishiSetting(data.values||{});
       case 'taishi-clock-save': return this.saveTaishiClock();
+      case 'taishi-schedule-world': return this.selectScheduleWorld(data.id);
       case 'taishi-schedule-test': return this.testTaishiSchedule(data.values);
       case 'taishi-schedule-save': return this.saveTaishiSchedule(data.values);
       case 'taishi-development': return this.openTaishiDevelopment();
@@ -703,7 +707,7 @@ export class WukuApp {
         const registered = createPower(entry, companions);
         await this.store.transact(next => {
           const old = next.powers[registered.id]; if (old) upgradeBuiltinPower(old);
-          if (old) { if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if(old.taishiWorkflow!==undefined)registered.taishiWorkflow=old.taishiWorkflow; if(old.taishiPeople)registered.taishiPeople=clone(old.taishiPeople); if(old.taishiBuild)registered.taishiBuild=clone(old.taishiBuild); if(old.taishiTime)registered.taishiTime=clone(old.taishiTime); if(old.taishiAutonomy!==undefined)registered.taishiAutonomy=old.taishiAutonomy; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
+          if (old) { if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if(old.taishiWorkflow!==undefined)registered.taishiWorkflow=old.taishiWorkflow; if(old.taishiPeople)registered.taishiPeople=clone(old.taishiPeople); if(old.taishiBuild)registered.taishiBuild=clone(old.taishiBuild); if(old.taishiTime)registered.taishiTime=clone(old.taishiTime);if(old.taishiSchedule)registered.taishiSchedule=clone(old.taishiSchedule);if(old.taishiSchedules)registered.taishiSchedules=clone(old.taishiSchedules); if(old.taishiAutonomy!==undefined)registered.taishiAutonomy=old.taishiAutonomy; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
           autoAssociateAdapter(registered,this.associationLibrary());
           next.powers[registered.id] = registered;
           if (!Object.keys(s.state.powers).length) { next.syncCursor = s.ctx.chat.length; next.managementStart = s.ctx.chat.length; next.historyAnchor = s.hashes; }
@@ -892,7 +896,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 

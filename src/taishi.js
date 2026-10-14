@@ -1,3 +1,4 @@
+import {TAISHI_CONTINUITY_POLICY} from './taishi-continuity-policy.js';
 import {TAISHI_140_POLICY} from './taishi-links.js';
 // Independent space, shared archive storage. No demo worlds or second ledger.
 import { hash, clone } from './primitives.js';
@@ -56,11 +57,12 @@ export function taishiConfig(base = preset) {
   for(const f of [field('position','组织职位'),field('current_goal','当前目标')])if(companion&&!companion.fields.some(x=>x.id===f.id))companion.fields.push(f);
   if(!c.records.some(r=>r.id==='relation'))c.records.push({id:'relation',label:'人物与势力关系',description:'每对有方向的关系沿用同一档案，状态变化保留历史与来源；玩家指定内容不可自动覆盖。',fields:[field('world_id','所属世界档案ID'),field('world','所属世界'),field('subject_id','关系主体档案ID'),field('target_id','关系对象档案ID'),field('direction','方向','单向或双向；单向为主体到对象'),field('state','当前关系状态'),field('cause','变化原因'),field('event_id','来源事件档案ID','已有事件档案时关联；不得编造ID'),field('evidence','来源事件说明','明确说明哪个已发生事件或玩家设定形成此关系；不只留数值')]});
   const event=c.records.find(r=>r.id==='event');
+  for(const id of ['event','development']){const record=c.records.find(r=>r.id===id);for(const f of [field('phase','事项阶段','进行中、受阻、搁置、已完成或已取消；依据不足留空，不将active视为完成'),field('completion','完成条件','已有设定、任务或剧情明确的完成条件；不自行授予成功')])if(record&&!record.fields.some(v=>v.id===f.id))record.fields.push(f);}
   const eventDescriptions={overview:'明确起因和已发生过程；计划、可能性与传闻分别标明，不补出缺失因果。',participants:'明确参与者与实际作用；在场不代表参与或知道全部秘密。',location:'事件明确发生的地点；不推定消息已经跨区域传播。',result:'实际结果、已明确发生的后续影响及事件阶段；传闻只记录有人传播，不将传闻内容当已证实事实。',limits:'未知、未证实部分、后续可能性及信息来源；可能性不当已发生结果。'};
   for(const f of event?.fields||[])if(eventDescriptions[f.id])f.description=eventDescriptions[f.id];
   const economy=world?.fields.find(f=>f.id==='resources');
   if(economy)economy.description='按已知事实整理资源分布、主要产业、贸易关系、供需变化及明确价格（带单位和交易条件）；未知省略，不推算世界总库存，不修改玩家余额。可在同一文本中按小标题分段。';
-  c.version='1.4.3';return c;
+  c.version='1.4.4';return c;
 }
 export function taishiSection(record) {
   const id=record.specific?.recordId;
@@ -102,7 +104,7 @@ export function protectTaishiBaseline(batch) {
   });
   return batch;
 }
-export const TAISHI_REVIEW = PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。正文自动整理只登记明确纳入太始天的世界及关联对象；外界相遇不自动注册世界或眷属。新对象需要玩家确认。每个已纳入的实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
+export const TAISHI_REVIEW = TAISHI_CONTINUITY_POLICY+PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。正文自动整理只登记明确纳入太始天的世界及关联对象；外界相遇不自动注册世界或眷属。新对象需要玩家确认。每个已纳入的实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
 世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。区域region、独立组织organization和事件event按明确资料独立记录，不把概述扩写为虚构细节。世界能力体系使用abilities、战斗combat_style、日常技艺crafts；未知留空。关联世界使用已知完整名称，已有world档案存在时填写其world_id，不猜测ID。
 各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`+TAISHI_140_POLICY+`势力organization分别保留state当前状态、territory活动区域、internal内政、pillars权力支柱、diplomacy外交、leaders核心人物、actions重要行动；四类声誉仅在适用且明确时填写，未知不编造。人物organization_id与position分别记录所属组织和职位，region_id与location记录已确认所在区域，current_goal为当前目标。具体人物/势力关系使用relation，subject_id到target_id明确方向（单向/双向）、state、cause和evidence来源事件说明，已有事件另填event_id。只更新有实际变化的关系，不把友好数值当作完整关系，不自动反向、传播秘密或授予身份。玩家保护的关系和peopleSelection.joining身份不得覆盖；岗位与地点可按实际事件更新。
 【事件、历史与信息边界】

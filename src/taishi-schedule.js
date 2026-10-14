@@ -40,3 +40,9 @@ export function validateSchedule(value){
  for(const o of [value.baseline,...value.history.flatMap(r=>[r.from,r.to])].filter(Boolean)){assert(o&&typeof o.raw==='string'&&o.raw.length<=500&&stable(parseNarrativeTime(o.raw,value.config.calendar))===stable(o.stamp),'剧情时间基准无效');const a=o.anchor;assert(a&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>=0&&/^[a-f0-9]{16}$/.test(a.textHash),'剧情时间来源无效');}
  for(const r of value.history)assert(r&&/^[a-f0-9]{16}$/.test(r.id)&&r.from&&r.to&&r.to.stamp.minutes>r.from.stamp.minutes,'演化时间记录无效');
 }
+
+export function worldSchedules(power){return {...(power.taishiSchedules||{}),...(power.taishiSchedule?.config.worldId?{[power.taishiSchedule.config.worldId]:power.taishiSchedule}:{})};}
+export function scheduleFor(power,worldId){return worldSchedules(power)[worldId];}
+export function hasWorldSchedule(power){return Object.values(worldSchedules(power)).some(s=>s.config.enabled&&!s.paused);}
+export function putWorldSchedule(power,value){power.taishiSchedules=worldSchedules(power);power.taishiSchedules[value.config.worldId]=value;if(!power.taishiSchedule||power.taishiSchedule.config.worldId===value.config.worldId)power.taishiSchedule=value;}
+export function validateWorldSchedules(values){if(values===undefined)return;assert(values&&typeof values==='object'&&!Array.isArray(values)&&Object.keys(values).length<=128,'各世界时间设置无效');for(const [id,s] of Object.entries(values)){assert(id===s?.config?.worldId&&!['__proto__','constructor','prototype'].includes(id),'世界时间身份无效');validateSchedule(s);}}

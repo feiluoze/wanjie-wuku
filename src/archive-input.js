@@ -10,11 +10,11 @@ export function inputCharacterBreakdown(payload) {return Object.fromEntries(Obje
 
 // Large narrative updates carry full relevant records and a complete identity
 // index for the rest. Never mutate saved facts or trim individual field values.
-export function selectArchiveInput(records,query,{compact=false}={}){
+export function selectArchiveInput(records,query,{compact=false,focusIds=null}={}){
  const full=records.map(archiveInputRecord);
- if(!compact||JSON.stringify(full).length<=24000)return full;
+ if(!focusIds&&(!compact||JSON.stringify(full).length<=24000))return full;
  const key=s=>String(s||'').normalize('NFKC').replace(/\s/g,'').toLowerCase(),text=key(query);
- const selected=new Set(full.filter(r=>[r.name,...r.previousNames].some(n=>key(n).length>=2&&text.includes(key(n)))).map(r=>r.id));
+ const selected=new Set(focusIds||full.filter(r=>[r.name,...r.previousNames].some(n=>key(n).length>=2&&text.includes(key(n)))).map(r=>r.id));
  for(const r of full.filter(r=>selected.has(r.id))){
   const f=r.specific?.fields||{};
   for(const id of [f.world_id,f.region_id,f.organization_id,f.subject_id,f.target_id,f.event_id])if(id)selected.add(id);

@@ -1,3 +1,4 @@
+import {worldSchedules,putWorldSchedule} from './taishi-schedule.js';
 import {timeReceiptCurrent} from './taishi-time.js';
 import {clone,hash,stable,storyText} from './core.js';
 import {archiveContextCurrent} from './archives.js';
@@ -19,11 +20,11 @@ export function rollbackStoryRecords(state,chat){
       changed=true;
     }
     for(const [id,r] of Object.entries(p.managementRecords||{}))if(!managementContextCurrent(r,chat)){delete p.managementRecords[id];result.removed++;changed=true;}
-    if(p.taishiSchedule){
-      const schedule=p.taishiSchedule,current=o=>o&&archiveContextCurrent({source:{type:'story',anchor:o.anchor}},chat);const history=[];
+    for(const schedule of Object.values(worldSchedules(p))){
+      const current=o=>o&&archiveContextCurrent({source:{type:'story',anchor:o.anchor}},chat);const history=[];
       for(const row of schedule.history){if(!current(row.from)||!current(row.to))break;history.push(row);}
       if(history.length!==schedule.history.length||schedule.baseline&&!current(schedule.baseline)){
-        const original=schedule.history[0]?.from;schedule.history=history;const baseline=history.at(-1)?.to||(current(original)?original:null);if(baseline)schedule.baseline=clone(baseline);else delete schedule.baseline;schedule.paused=true;changed=true;
+        const original=schedule.history[0]?.from;schedule.history=history;const baseline=history.at(-1)?.to||(current(original)?original:null);if(baseline)schedule.baseline=clone(baseline);else delete schedule.baseline;schedule.paused=true;putWorldSchedule(p,schedule);changed=true;
       }
     }
     if(p.taishiTime){const receipts=p.taishiTime.receipts.filter(r=>{const world=p.archives?.[r.worldId];return timeReceiptCurrent(r,chat)&&world&&[...(world.history||[]),world].some(v=>v.source?.note?.includes('#'+r.id));});if(receipts.length!==p.taishiTime.receipts.length){p.taishiTime={receipts};changed=true;}}

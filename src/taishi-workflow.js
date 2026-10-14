@@ -11,7 +11,7 @@ const failed=(role,reason,kind='专职任务',name=role)=>({kind,name,role,reaso
 // Cache lives in the pending preview only, never in chat data, keys or model profiles.
 // A resumed action invokes exactly one role. The normal validator and commit queue
 // still own archive writes and progress; summary can only replace the display text.
-export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},parallel=true,resume=null,retryRole=null,validateChanges=()=>[],onAttempt=()=>{}}={}){
+export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},parallel=true,resume=null,retryRole=null,validateChanges=()=>[],onAttempt=()=>{},onCheckpoint=()=>{}}={}){
   const check=()=>{if(signal?.aborted)throw new DOMException('查询已取消','AbortError');};
   const input=JSON.parse(prompt.user),promptHash=hash(stable(prompt));
   let state={version:1,promptHash,stages:Object.fromEntries(TAISHI_ROLES.map(role=>[role,{status:'pending',attempts:0,changes:[],issues:[],message:''}]))};
@@ -26,7 +26,7 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
   }else assert(!retryRole,'缺少可续跑候选');
   const specialist=async role=>{
     check();const stage=state.stages[role],attempts=stage.attempts+1;
-    state.stages[role]={status:'failed',attempts,changes:[],issues:[],message:''};const current=state.stages[role];onAttempt(role,attempts);
+    state.stages[role]={status:'failed',attempts,changes:[],issues:[],message:''};const current=state.stages[role];onAttempt(role,attempts);onCheckpoint(clone(state));
     const payload={...input,explainRules:false,terminalOrders:[],creationItems:[],recordSchemas:(input.recordSchemas||[]).filter(r=>owns(role,r.id))};
     payload.responseContract=archiveResponseContract(payload);
     payload.specialist={role,recordIds:payload.recordSchemas.map(r=>r.id)};
@@ -42,14 +42,16 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
       current.floorReviews=Array.isArray(data.floorReviews)?data.floorReviews:[];
       current.message=String(data.message||'').slice(0,1500);current.status=current.issues.length?'failed':'success';
     }catch(error){check();current.issues.push(failed(role,error.message||'任务失败'));}
+    onCheckpoint(clone(state));
   };
   const summary=async()=>{
     check();const stage=state.stages.taishiSummary,attempts=stage.attempts+1;
-    state.stages.taishiSummary={status:'failed',attempts,changes:[],issues:[],message:''};const current=state.stages.taishiSummary;onAttempt('taishiSummary',attempts);
+    state.stages.taishiSummary={status:'failed',attempts,changes:[],issues:[],message:''};const current=state.stages.taishiSummary;onAttempt('taishiSummary',attempts);onCheckpoint(clone(state));
     try{
       const result=await invoke(archiveSummaryPreset(TAISHI_ROLES.slice(0,2).flatMap(role=>state.stages[role].changes),TAISHI_ROLES.slice(0,2).map(role=>state.stages[role].message)),'taishiSummary');
       check();assert(typeof result?.message==='string','摘要返回无效，保留原候选');current.message=result.message.slice(0,3000);current.status='success';
     }catch(error){check();current.issues.push(failed('taishiSummary',error.message||'汇总失败'));}
+    onCheckpoint(clone(state));
   };
   check();
   if(resume){onStage('单独续跑：'+TAISHI_STAGE_NAMES[retryRole]+'（1次请求）');await (retryRole==='taishiSummary'?summary():specialist(retryRole));}

@@ -1,3 +1,4 @@
+import {recentTaishiChanges} from './taishi-continuity.js';
 import {isTaishi} from './taishi.js';
 import {taishiMemorySettings,taishiPerson,taishiMemoryText,TAISHI_MEMORY_CHANNELS} from './taishi-memory.js';
 import {taishiScope,taishiProjection,TAISHI_KNOWLEDGE_POLICY} from './taishi-context.js';
@@ -43,6 +44,7 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
         {金手指:p.name,记忆类别:'当前概况（节选，非完整清单）',模块:group.title,档案数:Object.fromEntries(Object.entries(group.counts).map(([k,v])=>[ARCHIVE_STATUS[k],v])),对象:records});
     }
   }
+  const recent=new Map();for(const p of Object.values(state.powers).filter(isTaishi))for(const row of recentTaishiChanges(p,chat,query)){const id=archiveIdentity(p,row.record);if(!(config.feedback||[]).some(d=>d.id===id&&d.signature===row.signature&&archiveContextCurrent({source:{type:'story',anchor:d.anchor}},chat)))recent.set(id,row);}
   const linkedMatches=new Set();
   for(const p of Object.values(state.powers))for(const edge of mmlcRelations(p,chat)){
     const a=p.archives[edge.from],b=p.archives[edge.to];
@@ -58,6 +60,11 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
     const inScope=scope&&(channel==='people'?scope.direct.includes(r.id):scope.includes(r));
     if(scope&&!explicit&&!inScope){if(channelAuto)omitted.push({id,name:r.name,reason:'不在本次明确世界或人物范围'});continue;}
     const projection=scope?taishiProjection(r,{explicit}):r;
+    const change=recent.get(id);
+    if(change&&!explicit&&channelAuto){
+      add(id,r.name,p,selection,true,archiveContextCurrent(r,chat),4,{发送分区:'world',金手指:p.name,对象:r.name,状态:ARCHIVE_STATUS[r.status],情况:{'近期已确认变化（非新任务）':change.details.map(d=>d.label+'：'+d.value).join('；')||'当前状态：'+ARCHIVE_STATUS[r.status]},信息边界:projection.informationBoundary,来源:r.source.type==='story'?`正文第${r.source.anchor.index+1}条，已核对保存`:'玩家已确认保存'});
+      const item=candidates.find(c=>c.id===id);if(item)item.feedback={id,signature:change.signature};continue;
+    }
     const auto = channelAuto && r.status !== 'ended' && (Boolean(scope)||phrases.some(s=>q.includes(s))||linkedMatches.has(id));
     add(id,r.name,p,selection,auto,archiveContextCurrent(r,chat),q.includes(normalize(r.name))?2:1,{...(scope?{发送分区:channel}:{}),金手指:p.name,对象:r.name,类型:r.specific?.label||ARCHIVE_TYPES[r.type],...(projection.provenance?{资料性质:projection.provenance}:{}),...(projection.informationBoundary?{信息边界:projection.informationBoundary}:{}),...(projection.specific?{专用统计:Object.fromEntries(specificRows(projection).map(f=>[f.label,f.value]))}:{}),状态:ARCHIVE_STATUS[r.status],情况:Object.fromEntries(Object.entries(projection.fields).filter(([,v])=>v).map(([k,v])=>[ARCHIVE_FIELDS[r.type][k]||k,v])),来源:r.source.type==='story'?`正文第${r.source.anchor.index+1}条／回复${r.source.anchor.swipeId+1}，玩家确认`:'玩家手工核对'});
   }
@@ -73,7 +80,7 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
     const channel=channels[c.channel];
     if(channel.count>=16||channel.size+c.payload.length>channel.budget){omitted.push({id:c.id,name:c.name,reason:channel.label+'超过本区字符预算或16项上限，整项未带入'});continue;}
     channel.size+=c.payload.length;channel.packet+=c.payload;channel.count++;
-    included.push({id:c.id,name:c.name,channel:c.channel,mode:c.mode,token:c.token,signature:hash(c.payload)});
+    included.push({id:c.id,name:c.name,channel:c.channel,mode:c.mode,token:c.token,signature:hash(c.payload),...(c.feedback?{feedback:c.feedback}:{})});
   }
   const packets=Object.entries(channels).filter(([,c])=>c.count).map(([id,c])=>({id,label:c.label,packet:c.packet+footer,count:c.count,budget:c.budget}));
   return {packet:packets.map(c=>c.packet).join('\n'),packets,blocks:packets.length,included,omitted,budget:packets.reduce((n,c)=>n+c.budget,0)};
@@ -204,6 +211,10 @@ export const archiveMemoryMethods = {
     try { await this.store.transact(next => {
       const config = next.archiveMemory; if (!config) return;
       for (const c of a.plan.included) if (c.mode === 'next' && config.selections[c.id]?.token === c.token) delete config.selections[c.id];
+      if(observed?.status==='matched'){
+        const anchor={index:a.rendered,swipeId:m.swipe_id??0,length:body.length,textHash:hash(body)};
+        config.feedback=[...(config.feedback||[]).filter(d=>archiveContextCurrent({source:{type:'story',anchor:d.anchor}},s.ctx.chat)),...a.plan.included.filter(c=>c.feedback).map(c=>({...c.feedback,anchor}))].slice(-64);
+      }
       config.last = { packet: text(a.plan.packet, 36002), at: Date.now(), index: a.rendered, count: a.plan.included.length };
     }, { captured: { chatKey: a.chatKey, stateId: a.stateId, revision: s.state.revision }, facts: false });
       if (a.diagnostic) a.diagnostic.saved = true;

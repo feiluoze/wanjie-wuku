@@ -82,9 +82,9 @@ test('automatic partial runs pause for preview; successful cache cannot be resum
   const old=pending(f);await f.app.commitArchiveReview(old,new Map([[0,null]]));assert.equal(f.store.read().powers[f.app.powerId].archiveReviewed.length,0);await assert.rejects(f.app.retryTaishiWorkflow('taishiPeople'));assert.equal(f.calls.length,2);
 });
 
-test('workflow panel exposes individual retry, budget, cancel/discard and refresh limitation',async()=>{
+test('workflow panel exposes individual retry, budget, cancel/discard and local recovery',async()=>{
   const f=await setup();await f.app.reviewArchives();const html=WorkbenchUI.prototype.taishiWorkflowReview.call({},pending(f));
-  assert(html.includes('data-stage="taishiPeople"'));assert(!html.includes('data-stage="taishiWorld"'));assert(html.includes('2/9'));assert(html.includes('刷新后需重新核对'));assert(html.includes('taishi-workflow-discard'));
+  assert(html.includes('data-stage="taishiPeople"'));assert(!html.includes('data-stage="taishiWorld"'));assert(html.includes('2/9'));assert(html.includes('刷新后可继续未完成阶段'));assert(pending(f).checkpointSaved);assert(html.includes('taishi-workflow-discard'));
 });
 
 test('invalid resume input fails without invoking a model',async()=>{

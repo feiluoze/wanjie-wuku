@@ -1,3 +1,4 @@
+import {worldSchedules,hasWorldSchedule} from './taishi-schedule.js';
 export { normalizePlayerGuide, currentPlayerGuide } from './player-guide.js';
 import { archiveSources } from './archive-review.js';
 import { normalizeArchiveAuto } from './archive-scope.js';
@@ -37,15 +38,15 @@ export const playerHomeMethods = {
   async togglePlayerAutoSave() {
     const s = this.ensureStable(), p = s.state.powers[this.powerId]; assert(p?.active, '请先选择当前金手指');
     assert(!this.busy && !this.mainBusy && !this.committing, '请等待当前操作完成');
-    const enabled = !(p.autoArchiveReview || p.autoArchiveSave || p.taishiSchedule?.config.enabled);
-    await this.store.transact(next => { next.powers[p.id].autoArchiveSave = enabled; next.powers[p.id].autoArchiveReview = enabled; if (!enabled && next.powers[p.id].taishiSchedule) next.powers[p.id].taishiSchedule.config.enabled=false; if (enabled) next.powers[p.id].autoArchiveStart ??= Math.max(0,s.ctx.chat.length-1); }, { facts: false, captured: { chatKey: s.chatKey, stateId: s.state.id, revision: s.state.revision } });
+    const enabled = !(p.autoArchiveReview || p.autoArchiveSave || Object.values(worldSchedules(p)).some(s=>s.config.enabled));
+    await this.store.transact(next => { next.powers[p.id].autoArchiveSave = enabled; next.powers[p.id].autoArchiveReview = enabled; if(!enabled)for(const value of Object.values(worldSchedules(next.powers[p.id])))value.config.enabled=false; if (enabled) next.powers[p.id].autoArchiveStart ??= Math.max(0,s.ctx.chat.length-1); }, { facts: false, captured: { chatKey: s.chatKey, stateId: s.state.id, revision: s.state.revision } });
     if(!enabled){this.archiveAutoStatus ||= {};this.archiveAutoStatus[p.id]='自动更新已关闭';}
     this.refresh(); this.notice(enabled ? '已开启自动整理并保存：正文完成后调用已配置API，整理出的成果按字段格式保存并保留历史；无需保持打开该词条，漫漫长路八个模块一并更新；已有待确认结果先由你处理。' : '已关闭正文后自动整理、自动保存和剧情时间自动触发，不再因此调用API。');
   },
   schedulePlayerReview(type) {
     if (!['normal', 'continue', 'regenerate', 'swipe'].includes(type)) return;
     const s = this.contextSnapshot(); if(this.settings.mode === 'off')return;
-    const powerIds=Object.values(s.state.powers).filter(p=>p.active&&(p.autoArchiveReview&&(p.autoArchiveSave||p.id===this.powerId)||p.taishiAutonomy===true&&p.taishiSchedule?.config.enabled&&!p.taishiSchedule.paused)).map(p=>p.id);
+    const powerIds=Object.values(s.state.powers).filter(p=>p.active&&(p.autoArchiveReview&&(p.autoArchiveSave||p.id===this.powerId)||p.taishiAutonomy===true&&hasWorldSchedule(p))).map(p=>p.id);
     if(!powerIds.length)return;
     const capture = { chatKey:s.chatKey, powerId:powerIds[0], powerIds, stateId:s.state.id, hash:hash(stable(chatHashes(s.ctx.chat))) };
     if(this.lastPlayerAuto === stable(capture))return;
@@ -82,7 +83,7 @@ export const playerHomeMethods = {
       for(const powerId of capture.powerIds || [capture.powerId]){
         if(this.pendingArchiveReview||this.playerAutoRunning!==run)break;
         const scheduledPower=this.contextSnapshot().state.powers[powerId];
-        if(scheduledPower?.taishiAutonomy&&scheduledPower.taishiSchedule?.config.enabled&&!scheduledPower.taishiSchedule.paused){
+        if(scheduledPower?.taishiAutonomy&&hasWorldSchedule(scheduledPower)){
           try{if(await this.runTaishiScheduled(powerId))continue;}catch(error){this.notice('按剧情时间演化已暂停：'+error.message,true);continue;}
         }
 

@@ -1,4 +1,4 @@
-import {validateSchedule} from './taishi-schedule.js';
+import {validateSchedule,validateWorldSchedules} from './taishi-schedule.js';
 import {validateTaishiLocks} from './taishi-relations.js';
 import {validateArchiveBatch} from './archive-batch.js';
 import {validateTaishiTime} from './state-validation.js';
@@ -22,7 +22,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.4.3';
+export const VERSION = '1.4.4';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -435,6 +435,7 @@ export function validateState(data) {
       assert(m.taishi&&typeof m.taishi==='object'&&!Array.isArray(m.taishi)&&Object.keys(m.taishi).every(k=>['world','people'].includes(k)),'太始天发送分区无效');
       for(const c of Object.values(m.taishi))assert(c&&typeof c.auto==='boolean'&&Number.isSafeInteger(c.budget)&&c.budget>=750&&c.budget<=12000,'太始天分区预算无效');
     }
+    if(m.feedback!==undefined){assert(Array.isArray(m.feedback)&&m.feedback.length<=64,'变化回传记录无效');for(const r of m.feedback){assert(r&&typeof r.id==='string'&&r.id.length<=500&&/^[a-f0-9]{16}$/.test(r.signature),'变化回传身份无效');const a=r.anchor;assert(a&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>=0&&/^[a-f0-9]{16}$/.test(a.textHash),'变化回传来源无效');}}
     if (m.last) assert(text(m.last.packet, 36002) && Number.isSafeInteger(m.last.at) && Number.isSafeInteger(m.last.index) && m.last.index >= 0 && Number.isInteger(m.last.count) && m.last.count > 0 && m.last.count <= 48, '上次正文记忆无效');
   }
   for (const [id, p] of Object.entries(data.powers)) {
@@ -442,7 +443,7 @@ export function validateState(data) {
     if (p.adapterBinding !== undefined) validateAdapterBinding(p.adapterBinding);
     p.archiveStart ??= data.managementStart;
     assert(Number.isSafeInteger(p.archiveStart) && p.archiveStart >= 0, '档案核对起点无效');
-    validateSchedule(p.taishiSchedule);
+    validateSchedule(p.taishiSchedule);validateWorldSchedules(p.taishiSchedules);
     validateTaishiLocks(p.taishiLocks);
     validateArchiveBatch(p.archiveBatch);
     p.archiveReviewed ||= [];
