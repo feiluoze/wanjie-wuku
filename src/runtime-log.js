@@ -1,6 +1,8 @@
 // Local, bounded diagnostics. Kept separate from chat facts, prompts and backups.
 import {hash} from './primitives.js';
 export function validationIssueCode(issue){
+ if(['result_list','batch_validation','relation_validation'].includes(issue.diagnostic?.stage))return issue.diagnostic.code||'result_list_invalid';
+ if(issue.diagnostic?.stage==='reference_validation')return issue.diagnostic.code||'reference_validation';
  const reason=String(issue.reason||'');
  if(issue.kind==='设定冲突'||/冲突/.test(reason))return 'conflict';
  if(/引用.*档案.*不存在|档案ID不存在|引用对象.*不存在/.test(reason))return 'missing_archive';

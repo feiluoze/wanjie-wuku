@@ -39,7 +39,7 @@ test('world ending blocks the entire evolution including people and elapsed time
   for(const details of [{overview:'世界已经毁灭'},{}]){
     const f=await setup();await enable(f);const before=clone(f.store.read());
     f.app.model.request=async()=>JSON.stringify({changes:[{...worldRow(f),status:'ended',details},{...personRow(f,f.a,'云岚'),sourceIndex:-1}]});
-    await f.app.evolveTaishi(values(f));assert(!f.app.pendingArchiveReview);assert.deepEqual(f.store.read(),before);
+    await f.app.evolveTaishi(values(f));assert(f.app.pendingArchiveReview?.readOnly);assert.equal(f.app.pendingArchiveReview.changes.length,0);assert.deepEqual(f.store.read(),before);
   }
 });
 
@@ -56,7 +56,7 @@ test('major consequences hidden in action, memories or world events are triaged 
     const f=await setup();await enable(f);const before=clone(f.store.read());
     f.app.model.request=async()=>JSON.stringify({changes:id==='world'?[{...worldRow(f),details}]:[worldRow(f),{...personRow(f,f.a,'云岚'),sourceIndex:-1,details:{world:'海蓝界',...details}}]});
     await f.app.evolveTaishi(values(f));const pending=f.app.pendingArchiveReview;
-    if(id==='world')assert(!pending);else {assert.equal(pending.changes.length,1);assert(pending.issues.some(i=>i.kind==='高影响后果'));}
+    if(id==='world'){assert(pending?.readOnly);assert.equal(pending.changes.length,0);}else {assert.equal(pending.changes.length,1);assert(pending.issues.some(i=>i.kind==='高影响后果'));}
     assert.deepEqual(f.store.read(),before);
   }
 });
@@ -143,7 +143,8 @@ test('evolution rejects another world, personal rewards, excluded people and cro
 });
 
 test('missing world candidate blocks person-only evolution, and closing ignores late returns',async()=>{
-  const f=await setup();await enable(f);f.app.model.request=async()=>JSON.stringify({changes:[{...personRow(f,f.a,'云岚'),sourceIndex:-1}]});await f.app.evolveTaishi(values(f));assert(!f.app.pendingArchiveReview);
+  const f=await setup();await enable(f);f.app.model.request=async()=>JSON.stringify({changes:[{...personRow(f,f.a,'云岚'),sourceIndex:-1}]});await f.app.evolveTaishi(values(f));assert(f.app.pendingArchiveReview?.readOnly);assert.equal(f.app.pendingArchiveReview.changes.length,0);
+  f.app.clearReviewCheckpoint(f.app.pendingArchiveReview.captured);f.app.pendingArchiveReview=null;
   f.app.openTaishiDevelopment();let release;f.app.model.request=()=>new Promise(r=>release=r);const pending=f.app.evolveTaishi(values(f));await new Promise(r=>setTimeout(r,0));f.app.dismissTaishiDevelopment();release(JSON.stringify({changes:[worldRow(f)]}));await assert.rejects(pending);assert(!f.app.pendingArchiveReview);assert.equal(f.store.read().powers[f.app.powerId].archives[f.world].specific.fields.clock,'第九年');
 });
 

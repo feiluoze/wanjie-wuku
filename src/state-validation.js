@@ -14,9 +14,9 @@ export function validateSpecific(s){
  if(s?.adapterId==='wuku.primordial_world'&&s.recordId==='world'&&s.fields?.time_state)validateWorldClock(JSON.parse(s.fields.time_state));
  assert(object(s)&&Object.keys(s).every(k=>['adapterId','recordId','version','label','labels','fields'].includes(k)),'专用统计结构无效');
  assert(typeof s.adapterId==='string'&&s.adapterId.length<=160&&identifier(s.recordId)&&/^\d+\.\d+\.\d+$/.test(s.version)&&text(s.label,100).trim(),'专用统计身份无效');
- assert(object(s.labels)&&object(s.fields)&&Object.keys(s.labels).length<=(s.adapterId==='wuku.primordial_world'&&['companion','world','organization'].includes(s.recordId)?40:16)&&Object.keys(s.fields).length>0&&Object.values(s.fields).some(Boolean),'专用统计字段无效');
+ assert(object(s.labels)&&object(s.fields)&&Object.keys(s.labels).length<=(s.adapterId==='wuku.primordial_world'&&['companion','world','organization','region'].includes(s.recordId)?40:16)&&Object.keys(s.fields).length>0&&Object.values(s.fields).some(Boolean),'专用统计字段无效');
  for(const [k,v]of Object.entries(s.labels))assert(identifier(k)&&typeof v==='string'&&v.trim()&&v.length<=100,'专用统计标签无效');
- for(const [k,v]of Object.entries(s.fields))assert(Object.hasOwn(s.labels,k)&&typeof v==='string'&&v.length<=(s.adapterId==='wuku.primordial_world'&&['companion','world'].includes(s.recordId)&&k==='source_profile'?60000:4000),'专用统计内容无效');
+ for(const [k,v]of Object.entries(s.fields))assert(Object.hasOwn(s.labels,k)&&typeof v==='string'&&v.length<=(s.adapterId==='wuku.primordial_world'&&['companion','world','region'].includes(s.recordId)&&k==='source_profile'?60000:4000),'专用统计内容无效');
 }
 
 export function validateCreationProgress(o){

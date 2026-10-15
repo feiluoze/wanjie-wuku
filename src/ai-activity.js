@@ -45,7 +45,7 @@ export class AIActivity {
 
 export function installAIActivity(prototype) {
   const jobs = {
-    draftArchiveCorrection: '拟定档案纠错', generateArchiveRecap: '回顾阶段成长', reviewArchives: '整理成果', reviewManagement: '核对管理记录', sceneActions: '生成场景建议',
+    repairArchiveWithAI: 'AI 修复待确认项', draftArchiveCorrection: '拟定档案纠错', generateArchiveRecap: '回顾阶段成长', reviewArchives: '整理成果', reviewManagement: '核对管理记录', sceneActions: '生成场景建议',
     draftCreation: '拟定新内容', draftTerminal: '拟定终端安排', generate: '生成方案', sync: '核对正文状态',
     reviewStory: '核对正文承接', prepareSelectedRole: '准备变量写回',
   };

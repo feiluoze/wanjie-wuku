@@ -26,6 +26,7 @@ export const aiWorldbookMethods={
  assertReferenceDraft(d){assert(d&&this.referenceDraft===d,'世界书选择窗口已失效');this.ensureStable();this.store.assertCapture(d.captured);},
  async openAIWorldbooks({taishiPowerId=''}={}){
   const s=this.ensureStable();assert(!this.busy&&!this.mainBusy,'请等待当前AI操作完成');
+  if(taishiPowerId&&!s.state.powers[taishiPowerId]?.taishiWorldStructure)return this.openTaishiStructure('references');
   if(taishiPowerId)assert(!this.pendingArchiveReview&&!this.committing&&isTaishi(s.state.powers[taishiPowerId])&&s.state.powers[taishiPowerId].active,'请先处理当前任务或待确认结果');
   const config=taishiPowerId?s.state.powers[taishiPowerId].taishiBuildReferences:s.state.aiWorldbooks;
   const d={taishiPowerId,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},config:clone(config||{mode:'manual',books:[]}),loaded:new Map(),names:[],error:'',loading:false};this.referenceDraft=d;

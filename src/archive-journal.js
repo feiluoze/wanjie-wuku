@@ -1,6 +1,6 @@
 // Bounded, one-step undo. No host or controller dependencies.
 import { assert, clone, stable, hash } from './primitives.js';
-const META = ['taishiSchedules', 'taishiSchedule', 'taishiLocks', 'archiveBatch', 'archiveReviewed', 'playerGuide', 'lastArchiveUpdate', 'autoArchiveStart', 'taishiPeople', 'taishiBuild', 'taishiTime'];
+const META = ['taishiWorldStructure','taishiSchedules', 'taishiSchedule', 'taishiLocks', 'archiveBatch', 'archiveReviewed', 'playerGuide', 'lastArchiveUpdate', 'autoArchiveStart', 'taishiPeople', 'taishiBuild', 'taishiTime'];
 const safe = s => typeof s === 'string' && s.length > 0 && s.length <= 200 && !['__proto__','constructor','prototype'].includes(s);
 const digest = v => hash(stable(v === undefined ? null : v));
 const selections = (state, id) => Object.fromEntries(Object.entries(state.archiveMemory?.selections || {}).filter(([k]) => k.startsWith(id + '/')));

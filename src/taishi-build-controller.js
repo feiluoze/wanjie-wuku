@@ -11,13 +11,16 @@ export const taishiBuildMethods={
   async initializeTaishi(){
     assert(!this.busy&&!this.mainBusy&&!this.committing&&!this.pendingArchiveReview,'请先处理当前任务或待确认结果');
     const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(isTaishi(p)&&p.active,'请先启用太始天');
+    if(!p.taishiWorldStructure)return this.openTaishiStructure('references');
+    if(p.taishiWorldStructure.mode==='single')assert(p.archives?.[p.taishiWorldStructure.worldId]?.specific?.recordId==='world'&&p.archives[p.taishiWorldStructure.worldId].status!=='ended','指定主世界已失效，请重新选择建档结构');
     if(!p.taishiBuildReferences?.books.some(b=>b.entryIds.length)){await this.openAIWorldbooks({taishiPowerId:p.id});return this.notice('请为太始天构建单独选择世界书和词条；共享参考不会自动加入。');}
     let connectionLabel;try{connectionLabel=taskConnectionLabel(resolveTaskConnection('setup',s.ctx,this.settings,this.apiKey));}catch{connectionLabel='世界书初始化 · 未配置可用连接，请到连接设置检查任务分流';}
-    const d={connectionLabel,selectionSummary:p.taishiBuildReferences.books.filter(b=>b.entryIds.length).map(b=>`${b.name}（${b.entryIds.length}条）`).join('、'),powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},loading:true,error:''};this.taishiBuildDraft=d;this.ui.showTaishiBuild(d);
+    const d={includePeople:false,structure:p.taishiWorldStructure,connectionLabel,selectionSummary:p.taishiBuildReferences.books.filter(b=>b.entryIds.length).map(b=>`${b.name}（${b.entryIds.length}条）`).join('、'),powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},loading:true,error:''};this.taishiBuildDraft=d;this.ui.showTaishiBuild(d);
     try{
       const reference=await readReferencePacket(p.taishiBuildReferences,{ctx:s.ctx,limit:REFERENCE_BUILD_LIMIT});
       assert(this.taishiBuildDraft===d,'构建窗口已关闭');this.store.assertCapture(d.captured);
-      d.plan=planTaishiBuild(reference,p.ruleVersion);
+      d.includePeople=reference.payload.books.flatMap(b=>b.entries).every(e=>/^【人物】/.test(e.title));
+      d.plan=planTaishiBuild(reference,p.ruleVersion,p.taishiWorldStructure);
       try{assertBuildMatch(p.taishiBuild,d.plan);if(p.taishiBuild)Object.assign(d.plan,p.taishiBuild);}catch(e){d.changed=true;d.error=e.message;}
     }catch(e){if(this.taishiBuildDraft===d)d.error=e.message;}
     finally{if(this.taishiBuildDraft===d){d.loading=false;this.ui.showTaishiBuild(d);}}
@@ -25,14 +28,14 @@ export const taishiBuildMethods={
   async runTaishiBuild(){
     const d=this.taishiBuildDraft;assert(d?.plan&&!d.loading&&!d.changed,'请先读取有效的世界书批次');
     assert(!this.pendingArchiveReview,'请先处理待确认结果');this.ensureStable({model:true});this.store.assertCapture(d.captured);
-    assert(d.plan.next<d.plan.total,'所有批次已经处理完成');d.loading=true;d.error='';this.ui.showTaishiBuild(d);
+    assert(d.plan.next<d.plan.total,'所有批次已经处理完成');d.includePeople=this.ui.modal?.querySelector?.('[data-build-people]')?.checked??d.includePeople;d.loading=true;d.error='';this.ui.showTaishiBuild(d);
     try{
       // Re-read before every request; source edits must never silently resume the old cursor.
       const s=this.ensureStable({model:true}),p=s.state.powers[d.powerId];
       const reference=await readReferencePacket(p.taishiBuildReferences,{ctx:s.ctx,limit:REFERENCE_BUILD_LIMIT});
       assert(this.taishiBuildDraft===d,'构建窗口已关闭');this.store.assertCapture(d.captured);
-      const fresh=planTaishiBuild(reference,p.ruleVersion);assertBuildMatch(buildProgress(d.plan),fresh);assertBuildMatch(p.taishiBuild,fresh);
-      await this.reviewArchives({setupReferences:true,taishiBuild:buildProgress(d.plan),referenceBatch:fresh.chunks[d.plan.next]});
+      const fresh=planTaishiBuild(reference,p.ruleVersion,p.taishiWorldStructure);assertBuildMatch(buildProgress(d.plan),fresh);assertBuildMatch(p.taishiBuild,fresh);
+      await this.reviewArchives({setupReferences:true,skipSetupPeople:!d.includePeople,taishiBuild:buildProgress(d.plan),referenceBatch:fresh.chunks[d.plan.next]});
       if(this.pendingArchiveReview?.taishiBuild)this.taishiBuildDraft=null;
       else d.error='本批没有可确认的有效候选，进度未推进；请查看运行日志后重试或明确跳过。';
     }catch(e){if(this.taishiBuildDraft===d){d.error=e.message;this.notice(e.message,true);}else throw e;}
@@ -53,7 +56,7 @@ export const taishiBuildMethods={
   async selectTaishiBuildReferences(){
     const d=this.taishiBuildDraft;assert(d&&!d.loading,'请等待读取或生成结束');
     this.store.assertCapture(d.captured);this.taishiBuildDraft=null;
-    return this.openAIWorldbooks({taishiPowerId:d.powerId});
+    return this.openTaishiStructure('references');
   },
   dismissTaishiBuild(){if(this.taishiBuildDraft)this.cancel();this.taishiBuildDraft=null;this.resumePlayerReview();},
 };

@@ -5,6 +5,7 @@ import {taishiControlMethods} from './src/taishi-controls.js';
 import {requestWithFallback} from './src/api-fallback.js';
 import {exportModule,validateModuleBackup,mergeModuleBackup,MODULE_NAMES} from './src/module-backup.js';
 import {archiveBranchMethods} from './src/archive-branch.js';
+import {taishiStructureMethods} from './src/taishi-structure-controller.js';
 import {taishiCivilizationMethods} from './src/taishi-civilization-controller.js';
 import { spaceMethods, powerSpace, moduleEnabled } from './src/space-controller.js';
 import { mountEntry } from './src/entry.js';
@@ -206,7 +207,7 @@ export class WukuApp {
     this.runtimeLog?.step(logId,'准备请求',{task,profile:connection.profileName,mode:connection.settings.mode,model:connection.settings.model||'酒馆当前连接',revision:captured.revision});
     try {
       this.aiActivity?.phase('准备附加世界书');
-      assert(!referenceBatch||prompt.setupReferences,'分批参考仅供太始天底稿任务');
+      assert(!referenceBatch||prompt.setupReferences||prompt.archiveRepair,'分批参考仅供太始天底稿任务');
       const reference=referenceBatch||(snapshot.state.aiWorldbooks?await readReferencePacket(snapshot.state.aiWorldbooks,{ctx:snapshot.ctx,signal:controller.signal}):{payload:{books:[]},summary:[],characters:0,fingerprint:""});
       if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat)))===contextHash,'准备世界书期间剧情已变化，请重试');
@@ -244,7 +245,7 @@ export class WukuApp {
       if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
-      return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint };
+      return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences?{referencePacket:reference}:{}) };
     } catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
@@ -573,6 +574,7 @@ export class WukuApp {
       case 'runtime-log-open': this.ui.showRuntimeLog(this.runtimeLog);return;
       case 'runtime-log-detail': this.runtimeLog.detail=Boolean(data.enabled);return;
       case 'runtime-log-clear': this.runtimeLog.clear();this.ui.showRuntimeLog(this.runtimeLog);return;
+      case 'failed-review-export': {const snapshot=this.contextSnapshot(),raw=this.store.storageImpl?.getItem('wanjie-wuku:review-checkpoint:'+snapshot.chatKey+':failed');assert(raw,'本聊天暂无失败候选备份');const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='武库失败候选-仅供本人核对-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return;}
       case 'runtime-log-export': {const blob=new Blob([JSON.stringify(this.runtimeLog.export(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='万界武库运行日志-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return;}
       case 'ai-ref-open': return this.openAIWorldbooks();
       case 'ai-ref-mode': return this.referenceMode(data.mode);
@@ -616,6 +618,9 @@ export class WukuApp {
       case 'space-wuku': this.ui.space = 'wuku'; this.ui.tab = 'management'; this.powerId = Object.values(this.store.read().powers).find(p => powerSpace(p)==='wuku')?.id; this.plans = []; this.selected = null; return this.refresh();
       case 'space-mmlc': return this.action('add-mmlc', {});
       case 'space-taishi': return this.openTaishi();
+      case 'taishi-structure-open': this.taishiBuildDraft=null;return this.openTaishiStructure('references');
+      case 'taishi-structure-save': return this.saveTaishiStructure(data.values);
+      case 'taishi-structure-dismiss': this.taishiStructureDraft=null;return;
       case 'taishi-civilization-add': return this.openTaishiCivilization();
       case 'taishi-civilization-save': return this.saveTaishiCivilization(data.values);
       case 'taishi-civilization-dismiss': this.taishiCivilizationDraft=null;return;
@@ -849,6 +854,9 @@ export class WukuApp {
       case 'player-pending': return this.openPlayerReview();
       case 'player-auto-save': return this.togglePlayerAutoSave();
       case 'player-auto': return this.togglePlayerAuto();
+      case 'repair-archive-ai': return this.repairArchiveWithAI();
+      case 'retry-archive-references': return this.retryArchiveReferences();
+      case 'repair-archive-candidate': return this.repairArchiveCandidate(data);
       case 'repair-archive-conflict': return this.repairArchiveConflict(data);
       case 'apply-archive-review': return this.applyArchiveReview(data);
       case 'terminal-memory': return this.openMemory(null,data.id);
@@ -901,7 +909,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, taishiStructureMethods, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 

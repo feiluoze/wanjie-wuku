@@ -35,7 +35,7 @@ test('80 independent precedents survive normalization, review, repeated review a
  assert.equal(archiveLibraryPage(p,{category:'wuku.precedent/invocation'}).matched,0);
  assert.equal(archiveLibraryPage(p,{page:100}).page,3);
  assert.match(archivePrompt(p,sources,chat).user,/不只保留最近几条/);
- assert.throws(()=>normalizeArchiveBatch({changes:Array(257).fill(raw.changes[0])},p,sources,chat),/上限/);
+ assert.equal(normalizeArchiveBatch({changes:Array(257).fill(raw.changes[0])},p,sources,chat).changes.length,1,'overflow is grouped locally and identical facts remain deduplicated');
  const manual=saveArchive(p,{name:'手动先例',type:'record',status:'active',fields:{description:'玩家确认'}},{type:'manual',note:'手工记录'});
  chat[0].swipe_id=1;chat[0].mes='新分支没有发生这些事件。';const rolled=rollbackStoryRecords(state,chat);assert.equal(rolled.removed,80);assert.equal(Object.keys(p.archives).length,1);assert(p.archives[manual.id]);
 });

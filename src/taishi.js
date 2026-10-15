@@ -8,7 +8,7 @@ const preset = CREATION_PRESETS.find(c => c.id === 'wuku.primordial_world');
 export const isTaishi = power => Boolean(power && preset.target.primaryHashes.includes(hash(power.primaryRules ?? power.rules ?? '')));
 export const TAISHI_SECTIONS = Object.freeze([
   {id:'worlds',title:'诸界',hint:'每个世界自己的格局、时间与变化'},
-  {id:'companions',title:'眷属与人物',hint:'人物的所在、职责、行动与关系；普通人物不自动缔约'},
+  {id:'companions',title:'人物与眷属',hint:'人物的所在、职责、行动与关系；普通人物不自动缔约'},
   {id:'civilizations',title:'众生与文明',hint:'区域、族群、组织与文明成果'},
   {id:'development',title:'发展事项',hint:'正在推进的建设、研究与跨界安排'},
   {id:'available',title:'可调用成果',hint:'世界内现存的资源、知识与支持'},
@@ -43,6 +43,7 @@ export function taishiConfig(base = preset) {
   for(const r of c.records)if(r.id!=='world'&&!r.fields.some(f=>f.id==='world_id'))r.fields.push(field('world_id','所属世界档案ID','仅填写输入current中存在的world档案ID；未知留空，不能编造ID'));
   const companion=c.records.find(r=>r.id==='companion');
   if(companion){
+    companion.label='人物档案';
     companion.description='眷属与相关人物独立建档；普通人物、拟邀约者与已缔约眷属明确区分，不自动缔约。';
     for(const f of [field('profile','人物简介'),field('appearance','外貌与仪态'),field('personality','性格与行为'),field('background','身世与经历'),field('motivation','核心动机'),field('speech','说话方式'),field('preferences','喜好与习惯'),field('source_profile','世界书原文片段','由程序按本批词条引用复制保存；AI不得填写'),field('abilities','能力与专长'),field('combat_style','战斗方式','依据原文保留武器、战术、招式配合、应敌习惯和限制；日常人物无此设定时留空，不强行补战斗'),field('crafts','能力与技艺','日常或职业世界记录手艺、职业技能、生活专长、熟练程度及限制；不改写成战斗能力'),field('goals','长期目标'),field('social','社交关系'),field('knowledge','知道与不知道'),field('recent_memory','近期记忆'),field('settled_memory','沉淀记忆'),field('core_memory','核心记忆'),field('origin','设定来源')])if(!companion.fields.some(x=>x.id===f.id))companion.fields.push(f);
     const knowledge=companion.fields.find(f=>f.id==='knowledge');
@@ -65,7 +66,9 @@ export function taishiConfig(base = preset) {
   const civilization=c.records.find(r=>r.id==='inhabitants');
   if(civilization){civilization.label='文明与族群';civilization.description='实际世界内部已明确的文明、族群或社会共同体；一个文明可有多种体系、跨多个地域。同一世界不同大陆不是独立世界，不按能力体系自动拆文明。';if(!civilization.fields.some(f=>f.id==='civilization'))civilization.fields.push(field('civilization','文明概况'));}
   for(const record of c.records)if(!['world','inhabitants','relation'].includes(record.id)&&!record.fields.some(f=>f.id==='civilization_id'))record.fields.push(field('civilization_id','所属文明档案ID','只引用current中已有inhabitants档案ID；跨文明或公共成果留空，不按体系或名称猜归属'));
-  c.version='1.4.6';return c;
+  const region=c.records.find(r=>r.id==='region');
+  for(const f of world.fields)if(!['reset','time_state'].includes(f.id)&&!region.fields.some(x=>x.id===f.id))region.fields.push({...f});
+  c.version='1.4.7';return c;
 }
 export function taishiSection(record) {
   const id=record.specific?.recordId;
@@ -75,18 +78,20 @@ export function taishiSection(record) {
   return record.type==='research'?'development':'other';
 }
 // Initial setting imports may fill gaps, never overwrite later saved facts.
-export function protectTaishiBaseline(batch) {
+export function protectTaishiBaseline(batch,placeholderWorldId='') {
   batch.changes=batch.changes.filter(c=>{
     if(!c.before)return true;
     const conflicts=[];
-    for(const [k,v] of Object.entries(c.patch))if(c.before.fields[k]){
+    const placeholder='玩家指定主世界，具体设定待导入';
+    const pendingValue=value=>c.id===placeholderWorldId&&value===placeholder;
+    for(const [k,v] of Object.entries(c.patch))if(c.before.fields[k]&&!pendingValue(c.before.fields[k])){
       if(c.before.fields[k]!==v)conflicts.push(k);
       delete c.patch[k];
     }
     let newSpecific=false;
     if(c.specific){
       for(const [k,v]of Object.entries(c.specific.fields)){
-        const old=c.before.specific?.fields[k];
+        const previous=c.before.specific?.fields[k],old=pendingValue(previous)?'':previous;
         if(old&&k==='source_profile'){if(old!==v)newSpecific=true;continue;}
         if(old){
           const setting=c.specific.recordId==='companion'&&PERSON_SETTING_FIELDS.includes(k);

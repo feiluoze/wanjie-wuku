@@ -6,7 +6,11 @@ export function fieldDiagnostic(raw,types,definition){
  for(const section of ['fields','details']){
   const values=raw?.[section];const entries=values&&typeof values==='object'&&!Array.isArray(values)?Object.entries(values):[];
   const ids=entries.map(([k])=>declared.has(k)?k:[...declared].find(([,label])=>label===k)?.[0]).filter(Boolean);
-  sections[section]={shape:Array.isArray(values)?'array':values===null?'null':typeof values,knownIds:[...new Set(ids)],unknownCount:entries.length-ids.length,nonTextCount:entries.filter(([,v])=>typeof v!=='string').length,overlongCount:entries.filter(([,v])=>typeof v==='string'&&v.length>4000).length};
+  const safeKey=k=>/^[a-zA-Z_][a-zA-Z0-9_.-]{0,79}$/.test(k)&&!/secret|token|password|key/i.test(k)?k:'[非标准字段名]';
+  const valueType=v=>v===null?'null':Array.isArray(v)?'array':typeof v;
+  sections[section]={shape:Array.isArray(values)?'array':values===null?'null':typeof values,knownIds:[...new Set(ids)],unknownCount:entries.length-ids.length,nonTextCount:entries.filter(([,v])=>typeof v!=='string').length,overlongCount:entries.filter(([,v])=>typeof v==='string'&&v.length>4000).length,
+   unknownFields:entries.filter(([k])=>!declared.has(k)&&![...declared.values()].includes(k)).slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)})),
+   nonTextFields:entries.filter(([,v])=>typeof v!=='string').slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)}))};
  }
  return {stage:'archive_validation',...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
 }

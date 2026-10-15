@@ -8,6 +8,23 @@ export function archiveInputRecord(r) {
 }
 export function inputCharacterBreakdown(payload) {return Object.fromEntries(Object.entries(payload).map(([key,value])=>[key,JSON.stringify(value)?.length||0]));}
 
+// Setup is an incremental import, not a request to rewrite the entire archive.
+// Keep every identity, but spend a fixed budget on details relevant to this piece.
+export function selectBuildArchiveInput(records,reference,{detailBudget=24000,worldId=null}={}){
+ const full=records.map(archiveInputRecord),key=s=>String(s||'').normalize('NFKC').replace(/\s/g,'').toLowerCase();
+ const entries=reference?.payload?.books?.flatMap(b=>b.entries)||[],query=key(entries.map(e=>e.title+'\n'+e.content).join('\n'));
+ const identities=full.map(r=>{
+  const f=r.specific?.fields||{},scope=f.world_id&&f.world_id!==worldId?{world_id:f.world_id}:!f.world_id&&f.world?{world:f.world}:{};
+  return {id:r.id,name:r.name,type:r.type,status:r.status,...(r.previousNames.length?{previousNames:r.previousNames}:{}),identityOnly:true,...(r.specific?{specific:{recordId:r.specific.recordId,...(Object.keys(scope).length?{fields:scope}:{})}}:{})};
+ });
+ let remaining=Math.max(0,Math.min(detailBudget,80000-JSON.stringify(identities).length));
+ return full.map((r,i)=>{
+  if(![r.name,...r.previousNames].some(n=>key(n).length>=2&&query.includes(key(n))))return identities[i];
+  const cost=JSON.stringify(r).length-JSON.stringify(identities[i]).length;
+  if(cost>remaining)return identities[i];remaining-=Math.max(0,cost);return r;
+ });
+}
+
 // Large narrative updates carry full relevant records and a complete identity
 // index for the rest. Never mutate saved facts or trim individual field values.
 export function selectArchiveInput(records,query,{compact=false,focusIds=null}={}){

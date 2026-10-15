@@ -29,11 +29,14 @@ export function assertTaishiClaims(power,raw,before,specific){
 export function assertRelation(power,change){
  if(change.specific?.recordId!=='relation')return;
  const f=change.specific.fields,a=power.archives?.[f.subject_id],b=power.archives?.[f.target_id];
- assert(a&&b&&a.id!==b.id&&[a,b].every(r=>['companion','organization'].includes(r.specific?.recordId)),'关系两端须为已登记且不同的人物或组织');
- assert(['单向','双向'].includes(f.direction)&&f.state?.trim()&&f.cause?.trim()&&f.evidence?.trim(),'关系须包含方向、状态、变化原因和来源事件说明');
- if(f.event_id)assert(power.archives?.[f.event_id]?.specific?.recordId==='event','关系来源事件ID不存在');
- const w=f.world_id;assert(w&&power.archives[w]?.specific?.recordId==='world','关系须关联已有世界');
- for(const r of [a,b])if(r.specific.fields.world_id)assert(r.specific.fields.world_id===w,'关系两端不属于所选世界');
+ const check=(ok,code,message,fields=[])=>{if(!ok)throw Object.assign(Error(message),{relationDiagnostic:{stage:'relation_validation',recordId:'relation',code,fields}});};
+ check(a&&b&&a.id!==b.id,'relation_endpoints','关系两端须为已登记且不同的人物或组织',['subject_id','target_id']);
+ check([a,b].every(r=>['companion','organization'].includes(r.specific?.recordId)),'relation_endpoint_type','关系两端类别须为人物或组织',['subject_id','target_id']);
+ check(['单向','双向'].includes(f.direction),'relation_direction','关系方向只接受单向或双向',['direction']);
+ const missing=['state','cause','evidence'].filter(k=>!f[k]?.trim());check(!missing.length,'relation_required_fields','关系缺少必要说明：'+missing.join('、'),missing);
+ if(f.event_id)check(power.archives?.[f.event_id]?.specific?.recordId==='event','relation_event_missing','关系来源事件ID不存在',['event_id']);
+ const w=f.world_id;check(w&&power.archives[w]?.specific?.recordId==='world','relation_world_missing','关系须关联已有世界',['world_id']);
+ for(const r of [a,b])if(r.specific.fields.world_id)check(r.specific.fields.world_id===w,'relation_world_mismatch','关系两端不属于所选世界',['world_id']);
 }
 export function relationLinks(power,record){
  return Object.values(power.archives||{}).filter(r=>r.specific?.recordId==='relation'&&[r.specific.fields.subject_id,r.specific.fields.target_id].includes(record.id));

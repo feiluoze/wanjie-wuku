@@ -88,7 +88,7 @@ test('later batches supplement traits and original fragments without rolling bac
 test('real controller preview, confirmation, history and undo preserve exact source snapshots',async()=>{
  const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};
  f.app.model.request=async()=>JSON.stringify(raw({appearance:'银灰色眼睛',background:'随商队远行'}));
- await f.app.reviewArchives({setupReferences:true,referenceBatch:chunk()});
+ await f.store.transact(s=>s.powers[f.app.powerId].taishiWorldStructure={mode:'multi',worldId:'',worldName:''});await f.app.reviewArchives({setupReferences:true,referenceBatch:chunk()});
  const pending=f.app.pendingArchiveReview;assert.equal(pending.issues.length,0);assert.equal(Object.keys(f.store.read().powers[f.app.powerId].archives).length,0);
  await f.app.commitArchiveReview(pending,new Map([[0,null]]));
  const state=f.store.read(),power=state.powers[f.app.powerId],person=Object.values(power.archives)[0];assert.equal(JSON.parse(person.specific.fields.source_profile)[0].content,chunk().payload.books[0].entries[0].content);validateState(state);

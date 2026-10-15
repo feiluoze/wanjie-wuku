@@ -14,8 +14,8 @@ export function saveTaishiLayout(storage,scope,powerId,value){
 export function taishiLayout(power,chat=[],preference={}){
  const records=Object.values(power.archives||{}).filter(r=>archiveCurrent(r,chat));
  const worlds=records.filter(r=>r.specific?.recordId==='world'&&r.status!=='ended');
- const mode=Object.hasOwn(TAISHI_LAYOUTS,preference.mode)?preference.mode:worlds.length>1?'multi':'single';
- const world=worlds.find(w=>w.id===preference.worldId)||worlds[0]||null;
+ const mode=Object.hasOwn(TAISHI_LAYOUTS,preference.mode)?preference.mode:power.taishiWorldStructure?.mode||(worlds.length>1?'multi':'single');
+ const world=worlds.find(w=>w.id===(preference.worldId||power.taishiWorldStructure?.worldId))||worlds[0]||null;
  const civilizations=records.filter(r=>r.specific?.recordId==='inhabitants'&&r.status!=='ended'&&worldForRecord(power,r,chat)?.id===world?.id);
  const civilizationId=civilizations.some(c=>c.id===preference.civilizationId)?preference.civilizationId:'';
  return {records,worlds,mode,world,civilizations,civilizationId};

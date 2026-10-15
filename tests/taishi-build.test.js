@@ -12,9 +12,9 @@ const selection=[{name:'个人诸界',entryIds:['1']}];
 const packet=content=>packReferences(selection,new Map([['个人诸界',referenceEntries({entries:{1:{uid:1,comment:'成熟世界',content}}},'个人诸界')]]),{limit:REFERENCE_BUILD_LIMIT});
 async function setup(content='海蓝界是一个已成熟的海洋世界。'.repeat(4000)){
   const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';
-  f.app.ui.showTaishiBuild=d=>{f.screen=d;};f.app.ui.showArchiveReview=()=>{};
+  f.app.ui.showTaishiStructure=()=>{};f.app.ui.showTaishiBuild=d=>{f.screen=d;};f.app.ui.showArchiveReview=()=>{};
   f.content=content;f.ctx.loadWorldInfo=async()=>({entries:{1:{uid:1,comment:'成熟世界',content:f.content}}});
-  await f.store.transact(s=>{s.aiWorldbooks={mode:'manual',books:selection};s.powers[f.app.powerId].taishiBuildReferences={mode:'manual',books:selection};});f.calls=0;
+  await f.store.transact(s=>{s.powers[f.app.powerId].taishiWorldStructure={mode:'multi',worldId:'',worldName:''};s.aiWorldbooks={mode:'manual',books:selection};s.powers[f.app.powerId].taishiBuildReferences={mode:'manual',books:selection};});f.calls=0;
   f.app.model.request=async p=>{f.calls++;f.input=JSON.parse(p.user);const old=f.input.current.find(r=>r.name==='海蓝界');return JSON.stringify({changes:[{...(old?{archiveId:old.id}:{}),type:'environment',name:'海蓝界',status:'active',fields:{conditions:'已成熟的海洋世界'},recordId:'world',details:old?{overview:'群岛文明'}:{clock:'第一年'},settingRefs:refs(f.input),sourceIndex:-1}]});};
   return f;
 }
@@ -82,9 +82,9 @@ test('changed book, changed selection and stale capture block calls; explicit re
 
 test('partial or rejected candidates keep cursor; explicit skip is recorded, undoable and calls no model',async()=>{
   const f=await setup();await f.app.initializeTaishi();f.app.model.request=async prompt=>{f.calls++;const input=JSON.parse(prompt.user);return JSON.stringify({changes:[{type:'environment',name:'海蓝界',status:'active',fields:{conditions:'成熟'},recordId:'world',details:{clock:'第一年'},settingRefs:refs(input),sourceIndex:-1},{type:'invalid',name:'无效项',status:'active',fields:{},sourceIndex:-1}]});};
-  await f.app.runTaishiBuild();assert.equal(f.app.pendingArchiveReview.issues.length,1);await accept(f);assert(!f.store.read().powers[f.app.powerId].taishiBuild);
+  await f.app.runTaishiBuild();assert.equal(f.app.pendingArchiveReview.issues.length,1);await accept(f);assert.equal(f.store.read().powers[f.app.powerId].taishiBuild.next,0);f.app.clearReviewCheckpoint(f.app.contextSnapshot());
   await f.app.initializeTaishi();const before=clone(f.store.read().powers[f.app.powerId].archives);await f.app.skipTaishiBuild();let p=f.store.read().powers[f.app.powerId];assert.equal(f.calls,1);assert.deepEqual(p.taishiBuild.skipped,[0]);assert.equal(p.taishiBuild.next,1);assert.deepEqual(p.archives,before);
-  f.app.dismissTaishiBuild();await f.store.transact(s=>undoArchiveUpdate(s,p.id));assert(!f.store.read().powers[p.id].taishiBuild);assert.deepEqual(f.store.read().powers[p.id].archives,before);
+  f.app.dismissTaishiBuild();await f.store.transact(s=>undoArchiveUpdate(s,p.id));assert.equal(f.store.read().powers[p.id].taishiBuild.next,0);assert.deepEqual(f.store.read().powers[p.id].archives,before);
 });
 
 test('unselected proposals keep the same batch; retry reuses saved IDs and keeps known history',async()=>{
@@ -92,10 +92,9 @@ test('unselected proposals keep the same batch; retry reuses saved IDs and keeps
     const old=input.current.find(r=>r.name===name);return {...(old?{archiveId:old.id}:{}),type:'environment',name,status:'active',fields:{conditions:'成熟文明'},recordId:'world',details:{clock:old?'猜测的新时点':'第一年'},settingRefs:refs(input),sourceIndex:-1};
   })});};
   await f.app.initializeTaishi();await f.app.runTaishiBuild();let pending=f.app.pendingArchiveReview;
-  await f.app.commitArchiveReview(pending,new Map([[0,null]]));f.app.pendingArchiveReview=null;
-  assert(!f.store.read().powers[f.app.powerId].taishiBuild);const original=clone(Object.values(f.store.read().powers[f.app.powerId].archives)[0]);
-  await f.app.initializeTaishi();await f.app.runTaishiBuild();pending=f.app.pendingArchiveReview;assert(pending.issues.some(i=>i.kind==='设定冲突'));
-  await accept(f);const p=f.store.read().powers[f.app.powerId];assert.equal(p.taishiBuild.next,1);assert.equal(Object.keys(p.archives).length,2);assert.equal(p.archives[original.id].specific.fields.clock,'第一年');assert.deepEqual(p.archives[original.id].history,original.history);
+  const committed=await f.app.commitArchiveReview(pending,new Map([[0,null]]));pending=committed.remainingReview;assert(pending);assert.equal(pending.changes.length,1);assert.equal(pending.changes[0].name,'赤砂界');
+  assert.equal(f.store.read().powers[f.app.powerId].taishiBuild.next,0);const original=clone(Object.values(f.store.read().powers[f.app.powerId].archives)[0]);
+  f.app.pendingArchiveReview=pending;await accept(f);const p=f.store.read().powers[f.app.powerId];assert.equal(f.calls,1);assert.equal(p.taishiBuild.next,1);assert.equal(Object.keys(p.archives).length,2);assert.equal(p.archives[original.id].specific.fields.clock,'第一年');assert.deepEqual(p.archives[original.id].history,original.history);
 });
 
 test('invalid stored cursor is rejected; no-result batches can confirm progress',async()=>{
@@ -122,11 +121,11 @@ test('scoped picker selects exact entries, preserves global references and archi
  f.app.ui.showAIWorldbooks=d=>{f.selection=d;};
  f.ctx.getWorldInfoNames=()=>['个人诸界','漫漫长路'];
  f.ctx.loadWorldInfo=async name=>({entries:{1:{uid:1,comment:name+'世界',content:'世界已成熟。'},2:{uid:2,comment:'不采用词条',content:'不应发送的设定'}}});
- await f.app.initializeTaishi();await f.app.selectTaishiBuildReferences();
+ await f.app.initializeTaishi();await f.app.selectTaishiBuildReferences();await f.app.saveTaishiStructure({mode:'multi'});
  f.app.ui.readReferenceChoices=()=>new Map([['个人诸界',['1']]]);
  await f.app.saveAIWorldbooks();
  assert.deepEqual(f.store.read().powers[id].taishiBuild,before.powers[id].taishiBuild);
- await f.app.selectTaishiBuildReferences();
+ await f.app.selectTaishiBuildReferences();await f.app.saveTaishiStructure({mode:'multi'});
  f.app.ui.readReferenceChoices=()=>new Map([['个人诸界',['2']]]);
  await f.app.saveAIWorldbooks();
  const after=f.store.read();assert(!after.powers[id].taishiBuild);assert.deepEqual(after.aiWorldbooks,before.aiWorldbooks);
