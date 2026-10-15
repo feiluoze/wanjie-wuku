@@ -1,3 +1,4 @@
+import {isCivilizationRecord} from './taishi-civilization-kind.js';
 import {taishiLayout,readTaishiLayout,saveTaishiLayout} from './taishi-layout.js';
 import {worldForRecord} from './taishi-world.js';
 import {archiveCurrent} from './archives.js';
@@ -33,7 +34,7 @@ export function taishiFieldControl(power,record,field,esc,chat=[]){
  const kind=kinds[field.id];
  if(!kind)return `<label>${esc(field.label)}<textarea name="specific:${esc(field.id)}" maxlength="4000" rows="2">${esc(field.value)}</textarea></label>`;
  const world=worldForRecord(power,record,chat);
- const rows=Object.values(power.archives||{}).filter(r=>r.id!==record.id&&r.status!=='ended'&&archiveCurrent(r,chat)&&r.specific?.recordId===kind&&(!world||kind==='world'||worldForRecord(power,r,chat)?.id===world.id));
+ const rows=Object.values(power.archives||{}).filter(r=>r.id!==record.id&&r.status!=='ended'&&archiveCurrent(r,chat)&&r.specific?.recordId===kind&&(field.id!=='civilization_id'||isCivilizationRecord(r))&&(!world||kind==='world'||worldForRecord(power,r,chat)?.id===world.id));
  const missing=field.value&&!rows.some(r=>r.id===field.value);
  return `<label>${esc(field.label.replace('档案ID',''))}<select name="specific:${esc(field.id)}"><option value="">未指定</option>${missing?`<option value="${esc(field.value)}" selected>原关联（需核对）</option>`:''}${rows.map(r=>`<option value="${esc(r.id)}" ${r.id===field.value?'selected':''}>${esc(r.name)}</option>`).join('')}</select></label>`;
 }

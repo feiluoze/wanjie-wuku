@@ -306,7 +306,7 @@ export const archiveReviewMethods = {
     try{
       const unwrapped={...result.data,changes:result.data.changes.map(unwrapArchiveInput)};
       structured=options.setupReferences&&isTaishi(power)?prepareStructureImport(unwrapped,power):{data:unwrapped,converted:0};
-      prepared=isTaishi(power)?preparePersonSources(structured.data,options.setupReferences?(options.referenceBatch||result.referencePacket):null):{data:structured.data};
+      prepared=isTaishi(power)?preparePersonSources(structured.data,options.setupReferences?(options.referenceBatch||result.referencePacket):null,power):{data:structured.data};
       batch=normalizeArchiveBatch(prepared.data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state,{strictProtocol:!playerNote,chronological:layered});
     }catch(error){
       if(error.name==='AbortError')throw error;
@@ -396,7 +396,7 @@ export const archiveReviewMethods = {
     const repaired=applyArchiveRepairResponse(pending,result.data);
     if(!repaired.attempted.length){this.notice('AI未找到有依据的修复，原候选已保留。');return;}
     const structured=pending.setupReferences?prepareStructureImport(repaired.data,power):{data:repaired.data};
-    const prepared=isTaishi(power)?preparePersonSources(structured.data,reference):{data:structured.data};
+    const prepared=isTaishi(power)?preparePersonSources(structured.data,reference,power):{data:structured.data};
     const batch=normalizeArchiveBatch(prepared.data,power,pending.sources,snapshot.ctx.chat,pending.playerNote||'',snapshot.state,{chronological:Boolean(pending.layered)});
     if(isTaishi(power)){
       attachPersonSources(batch,prepared);protectPeopleIdentity(batch,power);
@@ -429,7 +429,7 @@ export const archiveReviewMethods = {
     const failed=new Set(pending.issues.filter(i=>i.diagnostic?.stage==='reference_validation'||/原文$/.test(i.kind)).flatMap(i=>Number.isSafeInteger(i.index)?[i.index]:pending.data.changes.flatMap((raw,index)=>raw.name===i.name?[index]:[])));
     const data={...pending.data,changes:pending.data.changes.map((raw,i)=>{const row=unwrapArchiveInput(raw);if(failed.has(i)){delete row.settingRefs;}return row;})};
     if(pending.taishiBuild){pending.skipSetupPeople??=!reference.payload.books.flatMap(b=>b.entries).every(e=>/^【人物】/.test(e.title));if(pending.skipSetupPeople)data.changes=data.changes.filter(r=>r.recordId!=='companion'&&!(r.recordId==='relation'&&[r.details?.subject_id,r.details?.target_id].some(id=>power.archives?.[id]?.specific?.recordId==='companion')));}
-    const structured=prepareStructureImport(data,power),prepared=preparePersonSources(structured.data,reference);
+    const structured=prepareStructureImport(data,power),prepared=preparePersonSources(structured.data,reference,power);
     const batch=normalizeArchiveBatch(prepared.data,power,pending.sources,snapshot.ctx.chat,pending.playerNote||'',snapshot.state,{chronological:Boolean(pending.layered)});
     attachPersonSources(batch,prepared);protectPeopleIdentity(batch,power,pending.taishiDraft);protectTaishiBaseline(batch,power.taishiWorldStructure?.worldId);finalizeBatchLinks(batch,prepared.data);
     Object.assign(pending,batch,{data:structured.data,referencePacket:reference,readOnly:!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!pending.guide&&batch.issues.length>0});
@@ -461,7 +461,7 @@ export const archiveReviewMethods = {
     const checked=trialChange?.pendingLinks?.length?{...trial,changes:[{...clone(trialChange),inputIndex:0}],issues:[]}:normalizeArchiveBatch({changes:[fixed]},power,pending.sources,snapshot.ctx.chat,pending.playerNote||'',snapshot.state);
     assert(checked.changes.length===1&&!checked.issues.length,checked.issues[0]?.reason||'字段仍未通过校验');
     if(pending.setupReferences){
-      const prepared=preparePersonSources({changes:[{...fixed,...(original.settingRefs?{settingRefs:original.settingRefs}:{})}]},await this.readReviewReferences(pending));
+      const prepared=preparePersonSources({changes:[{...fixed,...(original.settingRefs?{settingRefs:original.settingRefs}:{})}]},await this.readReviewReferences(pending),power);
       attachPersonSources(checked,prepared);
       protectTaishiBaseline(checked,power.taishiWorldStructure?.worldId);protectPeopleIdentity(checked,power,pending.taishiDraft);
     }
@@ -562,7 +562,7 @@ export const archiveReviewMethods = {
         const snapshot=this.contextSnapshot(),power=snapshot.state.powers[pending.powerId],accepted=new Set([...chosen.keys()].map(i=>pending.changes[i].inputIndex));
         const failed=new Set((pending.issues||[]).filter(i=>i.kind!=='设定冲突').flatMap(i=>Number.isInteger(i.index)?[i.index]:pending.data.changes.flatMap((r,j)=>r.name===i.name?[j]:[])));
         const rows=pending.data.changes.filter((r,i)=>!accepted.has(i)||failed.has(i));
-        const data={...pending.data,changes:rows},prepared=preparePersonSources(prepareStructureImport(data,power).data,pending.referencePacket);
+        const data={...pending.data,changes:rows},prepared=preparePersonSources(prepareStructureImport(data,power).data,pending.referencePacket,power);
         const batch=normalizeArchiveBatch(prepared.data,power,pending.sources,snapshot.ctx.chat,pending.playerNote||'',snapshot.state);
         attachPersonSources(batch,prepared);protectPeopleIdentity(batch,power,pending.taishiDraft);protectTaishiBaseline(batch,power.taishiWorldStructure?.worldId);finalizeBatchLinks(batch,prepared.data);
         const remainder={...pending,...batch,data,captured:{chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision},contextHash:hash(stable(snapshot.hashes)),readOnly:!batch.changes.length&&batch.issues.length>0,message:'已保存项不再重复提交；这里只保留本批未完成候选，可本地修正后继续保存。'};

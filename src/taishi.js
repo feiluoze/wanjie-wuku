@@ -23,7 +23,7 @@ export function taishiConfig(base = preset) {
   if(['1.0.0','1.1.0'].includes(c.version))c.version='1.2.0';
   const additions={
     world:[field('descent','降界状态','记录已实际展开的整界、局部天地或法则降临，以及锚点、范围和收放状态；构想不当作已展开'),field('connections','界域联通'),field('limits','世界边界与禁制'),field('overview','世界概况'),field('geography','区域与地理'),field('era','时代与社会'),field('factions','主要势力'),field('resources','资源与经济轮廓'),field('events','当前局势与事件'),field('abilities','能力体系'),field('combat_style','战斗方式'),field('crafts','能力与技艺'),field('ability_title','能力分区名称','玩家可自定显示名称，不改变能力事实'),field('source_profile','世界书原文片段','仅程序按所选引用复制，AI不得填写')],
-    inhabitants:[field('world','所属世界')],
+    inhabitants:[field('world','所属世界'),field('kind','资料类别','civilization表示原文明确的文明主体，population表示族群或居民资料；专题不能自行成为文明'),field('civilization_id','所属文明档案ID','族群仅引用真实文明主体；没有明确依据留空')],
     available:[field('world','所属世界')],
     growth:[field('world','反馈来路与所属世界')]
   };
@@ -64,7 +64,7 @@ export function taishiConfig(base = preset) {
   const economy=world?.fields.find(f=>f.id==='resources');
   if(economy)economy.description='按已知事实整理资源分布、主要产业、贸易关系、供需变化及明确价格（带单位和交易条件）；未知省略，不推算世界总库存，不修改玩家余额。可在同一文本中按小标题分段。';
   const civilization=c.records.find(r=>r.id==='inhabitants');
-  if(civilization){civilization.label='文明与族群';civilization.description='实际世界内部已明确的文明、族群或社会共同体；一个文明可有多种体系、跨多个地域。同一世界不同大陆不是独立世界，不按能力体系自动拆文明。';if(!civilization.fields.some(f=>f.id==='civilization'))civilization.fields.push(field('civilization','文明概况'));}
+  if(civilization){civilization.label='文明与族群';civilization.description='分别记录明确的文明主体与族群资料，kind必须区分civilization和population；一个文明可有多种族群、体系并跨多个地域。同一世界不同大陆不是独立世界，不按能力体系自动拆文明。';if(!civilization.fields.some(f=>f.id==='civilization'))civilization.fields.push(field('civilization','文明概况'));}
   for(const record of c.records)if(!['world','inhabitants','relation'].includes(record.id)&&!record.fields.some(f=>f.id==='civilization_id'))record.fields.push(field('civilization_id','所属文明档案ID','只引用current中已有inhabitants档案ID；跨文明或公共成果留空，不按体系或名称猜归属'));
   const region=c.records.find(r=>r.id==='region');
   for(const f of world.fields)if(!['reset','time_state'].includes(f.id)&&!region.fields.some(x=>x.id===f.id))region.fields.push({...f});
@@ -113,7 +113,7 @@ export function protectTaishiBaseline(batch,placeholderWorldId='') {
   return batch;
 }
 export const TAISHI_REVIEW = TAISHI_CONTINUITY_POLICY+PERSON_BUILD_INSTRUCTION+`这是独立太始天记录任务。先确认实际归属，再分类；其他金手指的领域、人物和成果不得搬入。正文自动整理只登记明确纳入太始天的世界及关联对象；外界相遇不自动注册世界或眷属。新对象需要玩家确认。每个已纳入的实际世界独立建档，既有成熟世界可直接记录当前成熟状态，不要求从荒地重走历史。世界名、世界数量、眷属和规则由玩家设定与正文决定，不套用固定示例。
-世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。区域region、独立组织organization和事件event按明确资料独立记录，不把概述扩写为虚构细节。世界能力体系使用abilities、战斗combat_style、日常技艺crafts；未知留空。关联世界使用已知完整名称，已有world档案存在时填写其world_id，不猜测ID。
+【文明与族群】只有原文明确的文明主体使用inhabitants且details.kind=civilization。树人、妖精、居民群、职业与族群概述不是独立文明；必要的族群档案使用inhabitants且details.kind=population，已有真实文明可用civilization_id关联。交易、交通、信仰及生活专题并入已有主体字段，不新建文明。单世界不等于单文明，也不能按种族、职业或能力体系自动拆文明。世界书有明确【文明】主体时优先采用原文主体，章节和三级标题不创造新对象。\n世界记录使用world，眷属使用companion，建设研究与跨界安排使用development；众生文明inhabitants、可调用成果available、永久反馈growth分开。旧对象沿用原archiveId、type和recordId。眷属的所在、职责、行动和进展分别填入details，不把意向写成完成。区域region、独立组织organization和事件event按明确资料独立记录，不把概述扩写为虚构细节。世界能力体系使用abilities、战斗combat_style、日常技艺crafts；未知留空。关联世界使用已知完整名称，已有world档案存在时填写其world_id，不猜测ID。
 各世界内历、主世界历时、局部倍率分开保留，变速不倒改历史；不用电脑时钟推进剧情。世界引擎已写入的变化只登记一次，不进行第二轮后台演化。世界资产可调用不等于已取出，知识或权能调用不自动消耗本体；实物仅按明确交付记现状。万象可用、本源同升与神通归身不得互相替代，永久归身只记已成立反馈。`+TAISHI_140_POLICY+`势力organization分别保留state当前状态、territory活动区域、internal内政、pillars权力支柱、diplomacy外交、leaders核心人物、actions重要行动；四类声誉仅在适用且明确时填写，未知不编造。人物organization_id与position分别记录所属组织和职位，region_id与location记录已确认所在区域，current_goal为当前目标。具体人物/势力关系使用relation，subject_id到target_id明确方向（单向/双向）、state、cause和evidence来源事件说明，已有事件另填event_id。只更新有实际变化的关系，不把友好数值当作完整关系，不自动反向、传播秘密或授予身份。玩家保护的关系和peopleSelection.joining身份不得覆盖；岗位与地点可按实际事件更新。
 【事件、历史与信息边界】
 事件event优先复用current中同一事件的archiveId；名称改写、进展、不同目击版本不自动生成第二个事件。独立发生的新事件才另建，不因同名强合并。overview写明确起因和已发生过程，participants写真实参与者，location写发生地点，result写实际结果及明确后续影响，limits保留未知或可能性。因果不明确就不补，趋势无明确数值依据用文字阶段。

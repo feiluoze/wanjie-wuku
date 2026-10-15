@@ -1,3 +1,4 @@
+import {classifyInhabitantInput} from './taishi-civilization-kind.js';
 import {assert,clone,hash} from './primitives.js';
 import {inferSettingRefs,resolveSettingRefs} from './setting-references.js';
 
@@ -5,11 +6,12 @@ export const PERSON_SETTING_FIELDS=Object.freeze(['profile','appearance','person
 export const PERSON_SOURCE_LIMIT=60000;
 // References identify exact input pieces. The model chooses references; only this
 // code copies source text. A quotation supplied by the model is never an original.
-export function preparePersonSources(data,referenceBatch){
+export function preparePersonSources(data,referenceBatch,power=null){
   const cleaned=clone(data),sources=new Map(),errors=new Map(),errorCodes=new Map(),originalChanges=clone(data.changes||[]);
   if(!Array.isArray(cleaned.changes))return {data:cleaned,sources,errors,errorCodes,originalChanges};
   cleaned.changes.forEach((raw,index)=>{
     if(!raw||typeof raw!=='object')return;
+    classifyInhabitantInput(raw,referenceBatch,power);
     let refs=raw.settingRefs;delete raw.settingRefs;
     const profile=['companion','world','region'].includes(raw.recordId);
     if(refs===undefined&&!referenceBatch)return;

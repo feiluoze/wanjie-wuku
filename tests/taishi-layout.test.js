@@ -13,7 +13,7 @@ const row=(id,kind,fields={},name=id)=>({id,name,type:'record',status:'active',f
 const sample=()=>({id:'p',active:true,archives:Object.fromEntries([
  row('w','world',{},'主世界'),row('other','world',{},'另一世界'),
  row('east','region',{world_id:'w'},'东方大陆'),row('west','region',{world_id:'w'},'西方大陆'),
- row('a','inhabitants',{world_id:'w',region_id:'east'},'青岚文明'),row('b','inhabitants',{world_id:'w',region_id:'west'},'白塔文明'),
+ row('a','inhabitants',{kind:'civilization',world_id:'w',region_id:'east'},'青岚文明'),row('b','inhabitants',{kind:'civilization',world_id:'w',region_id:'west'},'白塔文明'),
  row('org','organization',{world_id:'w',civilization_id:'a'}),row('person','companion',{world_id:'w',organization_id:'org'}),
  row('resource','available',{world_id:'w',region_id:'west'}),row('shared','available',{world_id:'w'}),row('foreign','event',{world_id:'other'}),row('unknown','event',{})
  ].map(r=>[r.id,r]))});

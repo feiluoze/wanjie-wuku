@@ -1,3 +1,4 @@
+import {isCivilizationRecord} from './taishi-civilization-kind.js';
 import {hash} from './primitives.js';
 import {archiveCurrent} from './archives.js';
 import {worldForRecord} from './taishi-world.js';
@@ -16,25 +17,42 @@ export function taishiLayout(power,chat=[],preference={}){
  const worlds=records.filter(r=>r.specific?.recordId==='world'&&r.status!=='ended');
  const mode=Object.hasOwn(TAISHI_LAYOUTS,preference.mode)?preference.mode:power.taishiWorldStructure?.mode||(worlds.length>1?'multi':'single');
  const world=worlds.find(w=>w.id===(preference.worldId||power.taishiWorldStructure?.worldId))||worlds[0]||null;
- const civilizations=records.filter(r=>r.specific?.recordId==='inhabitants'&&r.status!=='ended'&&worldForRecord(power,r,chat)?.id===world?.id);
+ const civilizations=records.filter(r=>isCivilizationRecord(r)&&r.status!=='ended'&&worldForRecord(power,r,chat)?.id===world?.id);
  const civilizationId=civilizations.some(c=>c.id===preference.civilizationId)?preference.civilizationId:'';
  return {records,worlds,mode,world,civilizations,civilizationId};
 }
 export function civilizationForRecord(power,record,chat=[]){
  const world=worldForRecord(power,record,chat);if(!world)return null;
- const list=Object.values(power.archives||{}).filter(r=>r.specific?.recordId==='inhabitants'&&r.status!=='ended'&&archiveCurrent(r,chat)&&worldForRecord(power,r,chat)?.id===world.id);
- if(record.specific?.recordId==='inhabitants')return list.find(r=>r.id===record.id)||null;
+ const valid=r=>r&&r.status!=='ended'&&archiveCurrent(r,chat)&&worldForRecord(power,r,chat)?.id===world.id;
+ const list=Object.values(power.archives||{}).filter(r=>isCivilizationRecord(r)&&valid(r));
+ if(isCivilizationRecord(record))return list.find(r=>r.id===record.id)||null;
  const f=record.specific?.fields||{};
- if(f.civilization_id)return list.find(r=>r.id===f.civilization_id)||null;
- for(const id of [f.organization_id,f.region_id]){
-  const parent=power.archives?.[id];
-  if(!parent||!archiveCurrent(parent,chat)||parent.status==='ended'||worldForRecord(power,parent,chat)?.id!==world.id)continue;
-  if(parent.specific?.fields.civilization_id)return list.find(r=>r.id===parent.specific.fields.civilization_id)||null;
- }
- const region=f.region_id||(record.specific?.recordId==='region'?record.id:power.archives?.[f.organization_id]?.specific?.fields.region_id);
- const matches=region?list.filter(c=>c.specific.fields.region_id===region):[];
+ const resolve=(r,seen=new Set())=>{
+  if(!valid(r)||seen.has(r.id)||seen.size>=32)return null;seen.add(r.id);
+  if(isCivilizationRecord(r))return list.find(c=>c.id===r.id)||null;
+  const v=r.specific?.fields||{};
+  if(v.civilization_id){const target=power.archives?.[v.civilization_id];if(!target)return null;return resolve(target,seen);}
+  for(const id of [v.organization_id,v.region_id]){const parent=power.archives?.[id];if(valid(parent)&&parent.specific?.fields.civilization_id){const c=resolve(parent,seen);if(c)return c;}}
+  return null;
+ };
+ if(f.civilization_id)return resolve(record); // Explicit invalid links never fall back.
+ const direct=resolve(record);if(direct)return direct;
+ // Late civilization imports regroup earlier records by explicit geography, without AI writes.
+ const regions=Object.values(power.archives||{}).filter(r=>r.specific?.recordId==='region'&&valid(r));
+ const tokens=v=>new Set(String(v||'').normalize('NFKC').split(/[·：:；;、,，/\n\s（）()]+/).filter(Boolean));
+ const regionIds=r=>{
+  const result=new Set(),seen=new Set();
+  const walk=x=>{if(!valid(x)||seen.has(x.id)||seen.size>=32)return;seen.add(x.id);
+   const v=x.specific?.fields||{};if(x.specific?.recordId==='region')result.add(x.id);
+   if(v.region_id){const parent=power.archives?.[v.region_id];if(valid(parent))walk(parent);}
+   else {const names=tokens(v.location||x.fields?.location);for(const candidate of regions)if(candidate.id!==x.id&&names.has(candidate.name))walk(candidate);}
+   if(v.organization_id)walk(power.archives?.[v.organization_id]);
+  };walk(r);return result;
+ };
+ const own=regionIds(record),matches=list.filter(c=>[...regionIds(c)].some(id=>own.has(id)));
  return matches.length===1?matches[0]:null;
 }
+
 export function taishiLayoutGroups(power,rows,layout,chat=[]){
  if(layout.mode==='multi'){
   const groups=layout.worlds.map(w=>({id:w.id,name:w.name,kind:'world',record:w,rows:rows.filter(r=>worldForRecord(power,r,chat)?.id===w.id)}));
