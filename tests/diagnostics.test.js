@@ -10,6 +10,34 @@ function raw(f,extra={}){return {name:'游燕步',type:'skill',status:'active',f
 function setup(){const f=fixture();f.ctx.chat[0].mes='你已掌握游燕步，可以轻身跃过沟渠。<WJWK-status>能力：拂风绵掌已掌握，可运转掌力。</WJWK-status>';f.state.historyAnchor=[];f.sources=archiveSources(f.ctx.chat,f.state,f.power,{rescan:true});return f;}
 test('v2 removes marked and bare planning, retains body, settlement and labeled status',()=>{const raw='不要作为事实的规划</konatan_planning~><think>猜测得到神器</think>伙伴已经抵达。<WJWK-option>将来计划</WJWK-option><WJWK-settle>已掌握掌法。</WJWK-settle><WJWK-status>重要能力：实体/灵体自由转换，各自掌握对应双职业全专精法术与战斗技巧</WJWK-status><UpdateVariable>变量补丁</UpdateVariable>';const text=archiveReadText(raw);assert.match(text,/伙伴已经抵达/);assert.match(text,/<WJWK-status>/);assert.match(text,/实体\/灵体自由转换/);assert.match(text,/已掌握掌法/);assert.doesNotMatch(text,/猜测|规划|将来计划|变量补丁/);assert.equal(readerReport(raw,text).statusBlocks,1);});
 test('unclosed thinking never becomes new evidence',()=>{assert.equal(archiveReadText('已发生的正文。<thinking>没有完成的推理与假设'),'已发生的正文。');});
+
+test('tag examples inside planning do not swallow actual prose or settlement',()=>{
+ for(const tag of ['think','thinking','analysis','reasoning','konatan_planning~','WJWK-think']){
+  const raw=`<${tag}>需要输出 \`<WJWK-option>\`、\`<think>\` 和 \`</reasoning>\`。</${tag}>你已掌握游燕步。<WJWK-settle>确认获得药材。</WJWK-settle><WJWK-option>尚未执行的计划</WJWK-option>`;
+  const body=archiveReadText(raw);
+  assert.match(body,/你已掌握游燕步/);assert.match(body,/确认获得药材/);assert.doesNotMatch(body,/需要输出|尚未执行/);
+ }
+});
+
+test('unmatched inner closing tag cannot expose private reasoning',()=>{
+ assert.equal(archiveReadText('真实正文。<thinking>设想</WJWK-option>仍在思考'),'真实正文。');
+ assert.equal(archiveReadText('<think>外层<think>内层</think>仍在外层</think>真实正文。'),'真实正文。');
+});
+
+test('archive source collection retains AI floors containing planning tag examples',()=>{
+ const f=fixture();f.ctx.chat=[{is_user:true,mes:'请求整理'},...['第一段事实。','第二段事实。'].map(mes=>({is_user:false,mes:`<konatan_planning~>请输出 \`<WJWK-option>\`。</konatan_planning~>${mes}<WJWK-option>候选计划</WJWK-option>`}))];
+ const sources=archiveSources(f.ctx.chat,f.state,f.power,{rescan:true});
+ assert.deepEqual(sources.map(s=>s.index),[1,2]);assert.deepEqual(sources.map(s=>s.content),['第一段事实。','第二段事实。']);
+});
+
+test('empty review reports not executed in runtime log and popup without calling AI',async()=>{
+ const f=fixture();f.ctx.chat=[{is_user:true,mes:'请求整理'},{is_user:false,mes:'<thinking>未闭合的推理'}];
+ f.app.settings.mode='st';f.app.runtimeLog=new RuntimeLog({storage:storage(),scope:()=> 'test|chat'});
+ const seen=[];f.app.ui.setAIActivity=s=>seen.push(s);let calls=0;f.app.model.request=async()=>{calls++;throw Error('must not call AI');};
+ const result=await f.app.reviewArchives({rescan:true});
+ assert.equal(result.skipped,true);assert.equal(calls,0);assert.equal(f.app.runtimeLog.list()[0].status,'未执行');
+ assert.match(seen.at(-1).phase,/未执行.*未调用AI/);assert.equal(f.app.pendingArchiveReview,null);
+});
 test('status quote passes literal validation and source checks detect edits',()=>{const f=setup();const batch=normalizeArchiveBatch({changes:[raw(f,{name:'拂风绵掌',quote:'能力：拂风绵掌已掌握，可运转掌力。'})]},f.power,f.sources,f.ctx.chat);assert.equal(batch.issues.length,0);const [record]=applyArchiveChanges(f.power,batch.changes,f.sources,new Map([[0,null]]),f.ctx.chat);assert.equal(record.source.anchor.format,ARCHIVE_READ_FORMAT);assert.equal(archiveCurrent(record,f.ctx.chat),true);f.ctx.chat[0].mes=f.ctx.chat[0].mes.replace('掌力','气息');assert.equal(archiveCurrent(record,f.ctx.chat),true);});
 test('legacy settlement anchor retains original reader and validates alongside v2',()=>{const f=setup(),text=archiveText(f.ctx.chat[0].mes),anchor={index:0,swipeId:0,length:text.length,textHash:hash(text),format:ARCHIVE_TEXT_FORMAT};saveArchive(f.power,{name:'旧掌法',type:'skill',status:'active',fields:{level:'已掌握'}},{type:'story',note:'旧版整理',anchor,quote:'你已掌握游燕步',ruleQuote:f.power.rules.slice(0,20)});assert.equal(archiveEvidenceText(f.ctx.chat[0].mes,anchor),text);assert.equal(archiveCurrent(Object.values(f.power.archives)[0],f.ctx.chat),true);validateState(f.state);});
 test('conflicting valid proposals quarantine entire object instead of choosing first',()=>{const f=setup(),batch=normalizeArchiveBatch({changes:[raw(f),raw(f,{fields:{level:'精通'}})]},f.power,f.sources,f.ctx.chat);assert.equal(batch.changes.length,0);assert.equal(batch.issues.length,2);assert.equal(batch.blockedFloors.length,1);});

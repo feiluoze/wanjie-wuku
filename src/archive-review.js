@@ -290,7 +290,10 @@ export const archiveReviewMethods = {
     if(options.automatic&&!playerNote)sources=sources.slice(0,1); // Existing scheduler drains one confirmed floor at a time.
     if (options.supplement) assert(playerNote.length >= 6, '请用一句话说明已有情况或计划（至少6字）');
     this.runtimeLog?.step(this.logTask,'读取范围',{automatic:Boolean(options.automatic),rescan:Boolean(options.rescan||options.initial),range:power.archiveReadRange||{mode:'recent',recent:24},totalFloors:snapshot.ctx.chat.length,sources:sources.map(s=>({floor:s.index+1,swipe:s.swipeId+1,offset:s.offset,...readerReport(snapshot.ctx.chat[s.index]?.mes??snapshot.ctx.chat[s.index]?.content??'',s.content)}))});
-    if (!sources.length && !playerNote) return this.notice(options.rescan || options.initial ? '当前聊天没有可核对的角色正文。' : '本轮没有未核对的新增正文；手动整理可重查近期内容。');
+    if (!sources.length && !playerNote) {
+      const message=options.rescan || options.initial ? '未执行：当前聊天没有可核对的角色正文，未调用AI。' : '未执行：本轮没有未核对的新增正文；手动整理可重查近期内容，未调用AI。';
+      this.notice(message);return {skipped:true,message};
+    }
     const terminalOrders=terminalReviewOrders(snapshot.state,power,snapshot.ctx.chat),creationItems=creationReviewItems(snapshot.state,power,snapshot.ctx.chat);
     // Existing settlement jobs retain their single-model contract. Advanced
     // specialists only handle ordinary archive review, never reward settlement.

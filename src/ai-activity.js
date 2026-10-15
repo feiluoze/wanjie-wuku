@@ -31,7 +31,7 @@ export class AIActivity {
     try {
       const result = await work();
       task.status = task.problem ? 'error' : task.warning ? 'partial' : 'success';
-      task.phase = task.problem || task.warning || outcome();
+      task.phase = task.problem || task.warning || outcome(result);
       return result;
     } catch (error) {
       task.status = error?.name === 'AbortError' || /取消|窗口已关闭/.test(error?.message) ? 'cancelled' : 'error';
@@ -60,10 +60,11 @@ export function installAIActivity(prototype) {
       if(this.aiActivity.current)return original.apply(this,args);
       return this.aiActivity.run(label, async () => {
         const ticket=this.runtimeLog?.begin(label,{powerId:power?.id,automatic:Boolean(args[0]?.automatic)}),previous=this.logTask;this.logTask=ticket;
-        try{const result=await original.apply(this,args);this.runtimeLog?.finish(ticket,this.pendingArchiveReview?'待确认':'成功');return result;}
+        try{const result=await original.apply(this,args);this.runtimeLog?.finish(ticket,name==='reviewArchives'&&result?.skipped?'未执行':this.pendingArchiveReview?'待确认':'成功');return result;}
         catch(error){this.runtimeLog?.finish(ticket,error?.name==='AbortError'?'已取消':'失败',error?.message||String(error));throw error;}
         finally{if(this.logTask===ticket)this.logTask=previous;}
-      }, () => {
+      }, result => {
+        if(name==='reviewArchives'&&result?.skipped)return result.message;
         if (name === 'reviewArchives') return this.pendingArchiveReview ? '整理完成，等待确认' : args[0]?.autoSave ? '本批处理完成，请查看成果' : '本次检查完成';
         if (['draftCreation', 'draftTerminal', 'generate', 'reviewManagement', 'sync', 'sceneActions'].includes(name)) return '整理完成，请查看结果';
         return '本次处理完成';
