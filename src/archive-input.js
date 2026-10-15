@@ -27,7 +27,7 @@ export function selectBuildArchiveInput(records,reference,{detailBudget=24000,wo
 
 // Large narrative updates carry full relevant records and a complete identity
 // index for the rest. Never mutate saved facts or trim individual field values.
-export function selectArchiveInput(records,query,{compact=false,focusIds=null}={}){
+export function selectArchiveInput(records,query,{compact=false,focusIds=null,detailBudget=24000}={}){
  const full=records.map(archiveInputRecord);
  if(!focusIds&&(!compact||JSON.stringify(full).length<=24000))return full;
  const key=s=>String(s||'').normalize('NFKC').replace(/\s/g,'').toLowerCase(),text=key(query);
@@ -37,5 +37,11 @@ export function selectArchiveInput(records,query,{compact=false,focusIds=null}={
   for(const id of [f.world_id,f.region_id,f.organization_id,f.civilization_id,f.subject_id,f.target_id,f.event_id])if(id)selected.add(id);
   if(!f.world_id&&f.world)for(const w of full)if(w.specific?.recordId==='world'&&key(w.name)===key(f.world))selected.add(w.id);
  }
- return full.map(r=>selected.has(r.id)?r:{id:r.id,name:r.name,type:r.type,status:r.status,previousNames:r.previousNames,identityOnly:true,...(r.module?{module:r.module}:{}),...(r.ownerPowerId?{ownerPowerId:r.ownerPowerId}:{}),...(r.specific?{specific:{adapterId:r.specific.adapterId,recordId:r.specific.recordId,fields:Object.fromEntries(Object.entries(r.specific.fields).filter(([k])=>['world_id','world'].includes(k)))}}:{})});
+ const identities=full.map(r=>({id:r.id,name:r.name,type:r.type,status:r.status,...(r.previousNames.length?{previousNames:r.previousNames}:{}),identityOnly:true,...(r.module?{module:r.module}:{}),...(r.specific?{specific:{recordId:r.specific.recordId,fields:Object.fromEntries(Object.entries(r.specific.fields).filter(([k])=>['world_id','world'].includes(k)))}}:{})}));
+ let remaining=Math.max(0,Math.min(detailBudget,80000-JSON.stringify(identities).length));
+ return full.map((r,i)=>{
+  if(!selected.has(r.id))return identities[i];
+  const cost=Math.max(0,JSON.stringify(r).length-JSON.stringify(identities[i]).length);
+  if(cost>remaining)return identities[i];remaining-=cost;return r;
+ });
 }

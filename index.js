@@ -203,11 +203,11 @@ export class WukuApp {
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
     const contextHash = hash(stable(snapshot.hashes));
-    let referenceReport;const logId=this.logTask;
+    let referenceReport,requestStage='preflight';const logId=this.logTask;
     this.runtimeLog?.step(logId,'准备请求',{task,profile:connection.profileName,mode:connection.settings.mode,model:connection.settings.model||'酒馆当前连接',revision:captured.revision});
     try {
       this.aiActivity?.phase('准备附加世界书');
-      assert(!referenceBatch||prompt.setupReferences||prompt.archiveRepair,'分批参考仅供太始天底稿任务');
+      assert(!referenceBatch||prompt.setupReferences||prompt.archiveRepair||prompt.personReferences&&task==='creation','所选世界书参考只能用于底稿、眷属录入或候选修复任务');
       const reference=referenceBatch||(snapshot.state.aiWorldbooks?await readReferencePacket(snapshot.state.aiWorldbooks,{ctx:snapshot.ctx,signal:controller.signal}):{payload:{books:[]},summary:[],characters:0,fingerprint:""});
       if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat)))===contextHash,'准备世界书期间剧情已变化，请重试');
@@ -236,7 +236,9 @@ export class WukuApp {
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
         try{return parseJSON(reply);}catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',{...error.jsonDiagnostic,task:role});throw error;}
       };
+      requestStage='transport';
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
+      requestStage='response';
       if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
       const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
@@ -245,8 +247,8 @@ export class WukuApp {
       if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); this.store.assertCapture(captured);
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
-      return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences?{referencePacket:reference}:{}) };
-    } catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
+      return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences||prompt.personReferences?{referencePacket:reference}:{}) };
+    } catch(error){error.requestStage ||= requestStage;if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
     let names = []; try { names = await worldInfoNames(); } catch { /* JSON import is always available. */ }
@@ -524,6 +526,14 @@ export class WukuApp {
     if (story === 'now' && !this.store.read().roleWrites?.some(w => w.status === 'pending')) await this.unfoldStory(operation.id);
     else if (!this.store.read().roleWrites?.some(w => w.status === 'pending')) this.notice(`${this.ui.notice?.message || ''} 已保存行动，下一轮正常正文会承接本次选择。`);
   }
+  prepareAssetGoal(id){
+    const s=this.ensureStable(),power=s.state.powers[this.powerId];
+    assert(power?.active&&!isMmlc(power)&&!isTaishi(power),'请先选择已启用的武库金手指');
+    const asset=power.assets[id];assert(asset&&!asset.removed&&amount(asset.quantity)>0n,'该能力或物资已不可用');
+    this.ui.goal=`基于已持有的「${asset.name}」，拟定符合当前金手指规则的使用或改进方案。${asset.permanent?'保留永久成果，不将它作为消耗品。':'投入以当前确认的库存与规则为准。'}先列出投入、实际效果与限制，确认后再执行。`;
+    this.ui.tab='operations';this.plans=[];this.selected=null;this.ui.closeDialog();this.refresh();
+    this.ui.root?.querySelector('[data-goal]')?.focus();this.notice('已带入当前能力或物资，尚未调用模型或扣付。');
+  }
   async sync(auto = false) {
     if (auto && (this.busy || this.mainBusy || this.committing)) return;
     await this.prepareResources();
@@ -635,6 +645,7 @@ export class WukuApp {
       case 'taishi-build-restart': return this.restartTaishiBuild();
       case 'taishi-build-dismiss': return this.dismissTaishiBuild();
       case 'taishi-create-world': return this.openTaishiDraft('world');
+      case 'taishi-import-companions': return this.openAIWorldbooks({taishiPowerId:this.powerId,companionImport:true});
       case 'taishi-add-companion': return this.openTaishiDraft('companion');
       case 'taishi-draft-submit': return this.submitTaishiDraft(data.values || {});
       case 'taishi-draft-dismiss': return this.dismissTaishiDraft();
@@ -827,6 +838,7 @@ export class WukuApp {
         this.ui.closeDialog();this.refresh();return this.notice(name==='save-api-profile'?'API方案已保存并启用，所有聊天共用。':'当前连接已保存，所有聊天共用。');
       }
       case 'generate': return this.generate();
+      case 'asset-goal': return this.prepareAssetGoal(data.id);
       case 'execute': return this.execute({ story: 'now' });
       case 'execute-later': return this.execute({ story: 'later' });
       case 'unfold-story': return this.unfoldStory(data.id);

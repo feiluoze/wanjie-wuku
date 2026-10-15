@@ -24,12 +24,12 @@ export async function readReferencePacket(config,{ctx=getContext(),read=name=>lo
 export const aiWorldbookMethods={
  captureReferenceChoices(){const d=this.referenceDraft;if(!d)return;const choices=this.ui.readReferenceChoices();for(const book of d.config.books)if(choices.has(book.name))book.entryIds=choices.get(book.name);},
  assertReferenceDraft(d){assert(d&&this.referenceDraft===d,'世界书选择窗口已失效');this.ensureStable();this.store.assertCapture(d.captured);},
- async openAIWorldbooks({taishiPowerId=''}={}){
+ async openAIWorldbooks({taishiPowerId='',companionImport=false}={}){
   const s=this.ensureStable();assert(!this.busy&&!this.mainBusy,'请等待当前AI操作完成');
-  if(taishiPowerId&&!s.state.powers[taishiPowerId]?.taishiWorldStructure)return this.openTaishiStructure('references');
+  if(taishiPowerId&&!companionImport&&!s.state.powers[taishiPowerId]?.taishiWorldStructure)return this.openTaishiStructure('references');
   if(taishiPowerId)assert(!this.pendingArchiveReview&&!this.committing&&isTaishi(s.state.powers[taishiPowerId])&&s.state.powers[taishiPowerId].active,'请先处理当前任务或待确认结果');
-  const config=taishiPowerId?s.state.powers[taishiPowerId].taishiBuildReferences:s.state.aiWorldbooks;
-  const d={taishiPowerId,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},config:clone(config||{mode:'manual',books:[]}),loaded:new Map(),names:[],error:'',loading:false};this.referenceDraft=d;
+  const config=companionImport?null:taishiPowerId?s.state.powers[taishiPowerId].taishiBuildReferences:s.state.aiWorldbooks;
+  const d={taishiPowerId,companionImport,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},config:clone(config||{mode:'manual',books:[]}),loaded:new Map(),names:[],error:'',loading:false};this.referenceDraft=d;
   try{d.names=await worldInfoNames(s.ctx);this.assertReferenceDraft(d);await this.refreshReferenceDraft(d);}catch(e){if(this.referenceDraft===d){d.error=e.message;this.ui.showAIWorldbooks(d,this.referenceLast);}}
  },
  async refreshReferenceDraft(d){
@@ -45,7 +45,7 @@ export const aiWorldbookMethods={
     const rows=referenceEntries(await loadBook(book.name),book.name);this.assertReferenceDraft(d);d.loaded.set(book.name,rows);
     // Explicitly selected books start with enabled entries; existing saved empty selections stay empty.
     }
-    if(d.newBooks?.has(book.name))book.entryIds=d.loaded.get(book.name).filter(e=>e.enabled).map(e=>e.id);
+    if(d.newBooks?.has(book.name))book.entryIds=d.companionImport?[]:d.loaded.get(book.name).filter(e=>e.enabled).map(e=>e.id);
    }d.newBooks=new Set();d.preview=null;d.error='';
   }catch(e){if(this.referenceDraft===d)d.error=e.message;}
   finally{if(this.referenceDraft===d){d.loading=false;this.ui.showAIWorldbooks(d,this.referenceLast);}}
@@ -55,6 +55,12 @@ export const aiWorldbookMethods={
  async referencePacketAction(save=false){
   const d=this.referenceDraft;this.assertReferenceDraft(d);assert(!d.loading,'请等待读取完成');this.captureReferenceChoices();const config=clone(d.config);d.loading=true;d.error='';this.ui.showAIWorldbooks(d,this.referenceLast);
   try{const packet=await readReferencePacket(config,{limit:REFERENCE_BUILD_LIMIT});this.assertReferenceDraft(d);d.preview=packet;
+   if(save&&d.companionImport){
+    assert(packet.characters>0,'请选择需要录入的眷属人物词条');this.ensureStable({model:true});
+    assert(this.powerId===d.taishiPowerId,'人物录入目标已变化，请重新打开');
+    this.referenceDraft=null;this.ui.closeDialog();
+    return this.reviewArchives({supplement:true,taishiDraft:{kind:'companion',joining:'direct'},referenceBatch:packet,values:{playerNote:'玩家从专用眷属入口明确选择这些人物设定，确认保存后作为眷属加入。只提取所选世界书中有姓名、独立人设的人物，严格保留原设定，不创作补全，不把提及的亲属、统治者、组织或族群一并录入；已有普通人物复用原档案。'}});
+   }
    if(save){await this.store.transact(n=>{
     validateAIWorldbooks(config);
     if(d.taishiPowerId){

@@ -35,7 +35,8 @@ export class AIActivity {
       return result;
     } catch (error) {
       task.status = error?.name === 'AbortError' || /取消|窗口已关闭/.test(error?.message) ? 'cancelled' : 'error';
-      task.phase = task.status === 'cancelled' ? '本次任务已取消' : this.safe(error?.message);
+      const stage={preflight:'发送前检查未通过',transport:'接口请求失败',response:'返回内容未通过校验',save:'保存未完成'}[error?.requestStage];
+      task.phase = task.status === 'cancelled' ? '本次任务已取消' : this.safe((stage?stage+'：':'')+error?.message);
       throw error;
     } finally {
       if (this.current === task) { task.endedAt = this.now(); this.current = null; this.publish(task); }

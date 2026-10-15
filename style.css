@@ -542,3 +542,6 @@
 .wjwk .wjwk-report-supplement{margin-top:22px}
 .wjwk .wjwk-report-section dd,.wjwk .wjwk-report-supplement dd{margin:3px 0 14px;overflow-wrap:anywhere}
 @media(max-width:600px){.wjwk .wjwk-structure-options{grid-template-columns:1fr}.wjwk .wjwk-report-grid{grid-template-columns:1fr}.wjwk .wjwk-report-masthead{grid-template-columns:44px minmax(0,1fr);gap:12px;padding-bottom:18px}.wjwk .wjwk-report-monogram{width:44px;height:54px;font-size:24px}.wjwk .wjwk-report-masthead h3{font-size:23px}.wjwk .wjwk-report-section{padding:16px}.wjwk .wjwk-report-section h4{font-size:17px}}
+
+/* 武库 1.5：使用现有主题色，简明结算与分类资产。 */
+.wjwk-inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}.wjwk-inventory-group{margin-bottom:24px}.wjwk-settlement-stages{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.wjwk-wuku-settlements{margin:0 0 24px;padding:18px;border:1px solid var(--wk-line);border-radius:12px;background:var(--wk-card)}.wjwk-wuku-settlements article+article{margin-top:14px;padding-top:14px;border-top:1px solid var(--wk-line)}.wjwk-wuku-settlements p{margin:8px 0;overflow-wrap:anywhere}.wjwk-inventory-grid .wjwk-asset{margin:0;min-width:0}.wjwk-inventory-grid .wjwk-asset>div{gap:10px;overflow-wrap:anywhere}

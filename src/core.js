@@ -23,7 +23,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.4.9';
+export const VERSION = '1.5.0';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -335,11 +335,15 @@ export function applyOperation(state, operation, contextHash, anchor, { allowEve
   assert(!isMmlc(power), '漫漫长路只统计成果，不参与执行或结算');
   assert(operation.ruleVersion === power.ruleVersion, '词条正文已经变化，请重新生成方案');
   assert(!operation.event || allowEvent, '剧情核算不能从普通执行入口提交');
+  for(const c of list(operation.costs,24,'投入')){assert(['resource','asset'].includes(c.kind),'投入类别无效');key(c.id);positive(c.amount);}
   const affordable = canAfford(power, operation); assert(affordable.ok, affordable.reason);
   // Validate the entire effect list before changing a single balance.
-  for (const e of operation.effects) {
-    if (e.type === 'resource_credit') assert(power.resources[e.id]?.balance !== null && power.resources[e.id]?.balance !== undefined, '收益资源缺少原余额，不能猜测入账');
-    if (e.type === 'asset_update') assert(power.assets[e.id]&&!power.assets[e.id].removed, '待更新资产已经不存在或已移除');
+  for (const e of list(operation.effects,30,'效果')) {
+    assert(e&&['resource_credit','asset_grant','asset_update','field_set'].includes(e.type),'所得效果类别无效');
+    if (e.type === 'resource_credit') {key(e.id);positive(e.amount);assert(power.resources[e.id]?.balance !== null && power.resources[e.id]?.balance !== undefined, '收益资源缺少原余额，不能猜测入账');}
+    if (e.type === 'asset_update') {key(e.id);text(e.description,8000);assert(power.assets[e.id]&&!power.assets[e.id].removed, '待更新资产已经不存在或已移除');}
+    if(e.type==='asset_grant'){assert(text(e.name,200).trim()&&text(e.description,8000).trim(),'所得名称或效果为空');text(e.kind,100);positive(e.quantity);assert(typeof e.permanent==='boolean','所得永久属性无效');}
+    if(e.type==='field_set'){key(e.key);text(e.label,200);text(e.value,8000);}
   }
   const changes = [];
   for (const [k, total] of costTotals(operation)) {

@@ -42,9 +42,10 @@ export const reviewCheckpointMethods={
  },
  async readReviewReferences(pending){
   const s=this.ensureStable(),power=s.state.powers[pending.powerId];
-  const config=pending.taishiBuild?power.taishiBuildReferences:s.state.aiWorldbooks;
+  const personReference=pending.taishiDraft?.kind==='companion'&&pending.referencePacket;
+  const config=personReference?{mode:'manual',books:personReference.payload.books.map(b=>({name:b.name,entryIds:[...new Set(b.entries.map(e=>String(e.id)))]}))}:pending.taishiBuild?power.taishiBuildReferences:s.state.aiWorldbooks;
   if(!config)return {payload:{books:[]},fingerprint:''};
-  const reference=await readReferencePacket(config,{ctx:s.ctx,...(pending.taishiBuild?{limit:REFERENCE_BUILD_LIMIT}:{})});
+  const reference=await readReferencePacket(config,{ctx:s.ctx,...(pending.taishiBuild||personReference?{limit:REFERENCE_BUILD_LIMIT}:{})});
   if(!pending.taishiBuild)return reference;
   let plan=planTaishiBuild(reference,power.ruleVersion,power.taishiWorldStructure);
   if(plan.fingerprint!==pending.taishiBuild.fingerprint)plan=planTaishiBuild(reference,power.ruleVersion,power.taishiWorldStructure,{legacy:true});
@@ -53,7 +54,7 @@ export const reviewCheckpointMethods={
   return chunk;
  },
  async assertReviewReferences(pending){
-  if(!pending.restored&&!pending.setupReferences)return;
+  if(!pending.restored&&!pending.setupReferences&&!(pending.taishiDraft?.kind==='companion'&&pending.referencePacket))return;
   const s=this.ensureStable();this.store.assertCapture(pending.captured);
   if(hash(stable(s.hashes))!==pending.contextHash)throw Error('剧情已变化，请放弃旧候选后重新核对');
   const reference=await this.readReviewReferences(pending);

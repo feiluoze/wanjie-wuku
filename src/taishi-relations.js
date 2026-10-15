@@ -10,12 +10,12 @@ export function validateTaishiLocks(locks){
  assert(locks&&typeof locks==='object'&&!Array.isArray(locks)&&Object.keys(locks).length<=512,'玩家关系保护无效');
  for(const [id,v]of Object.entries(locks))assert(id&&id.length<=200&&!['__proto__','constructor','prototype'].includes(id)&&Array.isArray(v)&&v.length<=16&&new Set(v).size===v.length&&v.every(k=>['social','relationship',...RELATION_FIELDS].includes(k)),'玩家关系保护字段无效');
 }
-export function assertTaishiClaims(power,raw,before,specific){
+export function assertTaishiClaims(power,raw,before,specific,{playerJoining=false}={}){
  if(!before||before.specific?.adapterId!=='wuku.primordial_world')return;
  for(const k of power.taishiLocks?.[before.id]||[])assert(!Object.hasOwn(raw.details||{},k)||specific?.fields[k]===before.specific.fields[k],'玩家已保护此关系字段，请手动修改或解除保护：'+k);
  if(before.specific.recordId==='relation'&&power.taishiLocks?.[before.id]?.length){assert(raw.status===undefined||raw.status===before.status,'玩家已保护此关系，不能自动改变状态');for(const [k,v]of Object.entries(raw.fields||{}))assert(v===before.fields[k],'玩家已保护此关系，不能通过通用字段覆盖');}
  const joining=power.taishiPeople?.joining?.[before.id];
- if(joining&&before.specific.recordId==='companion'){
+ if(joining&&before.specific.recordId==='companion'&&!playerJoining){
   assert(!Object.hasOwn(raw.details||{},'relationship')||specific.fields.relationship===before.specific.fields.relationship,'眷属身份由玩家确认，请在人物身份入口修改');
   const prefix={direct:'玩家指定为太始天眷属',encounter:'玩家计划相遇；尚未缔约',npc:'玩家指定为普通人物；未缔约'}[joining];
   if(Object.hasOwn(raw.fields||{},'role')&&before.fields.role?.startsWith(prefix)&&!raw.fields.role.startsWith(prefix)){

@@ -19,12 +19,12 @@ export function protectTaishiDraft(batch,draft){
   batch.terminalResults=[];batch.creationResults=[];
   for(const c of batch.changes){
     c.source.note='AI 建档草案，经玩家预览确认后采用；不是正文已发生事件';
-    if(draft.kind==='companion'&&!c.before){
+    if(draft.kind==='companion'&&(!c.before||draft.joining==='direct')){
       const relationship={direct:'玩家确认采用后作为太始天眷属加入',encounter:'计划相遇；尚未相遇，未缔约',npc:'普通人物；未缔约'}[draft.joining];
       c.specific.fields.relationship=relationship;
       c.patch.role=(draft.joining==='direct'?'太始天眷属':draft.joining==='encounter'?'拟相遇人物（未缔约）':'普通人物（未缔约）')+'；'+(c.patch.role||'');
       if(draft.joining==='encounter')c.status='planned';
     }
   }
-  return protectTaishiBaseline(batch);
+  return protectTaishiBaseline(batch,'',{playerJoining:draft.kind==='companion'&&draft.joining==='direct'});
 }

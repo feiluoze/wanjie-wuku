@@ -78,19 +78,21 @@ export function taishiSection(record) {
   return record.type==='research'?'development':'other';
 }
 // Initial setting imports may fill gaps, never overwrite later saved facts.
-export function protectTaishiBaseline(batch,placeholderWorldId='') {
+export function protectTaishiBaseline(batch,placeholderWorldId='',{playerJoining=false}={}) {
   batch.changes=batch.changes.filter(c=>{
     if(!c.before)return true;
     const conflicts=[];
     const placeholder='玩家指定主世界，具体设定待导入';
     const pendingValue=value=>c.id===placeholderWorldId&&value===placeholder;
     for(const [k,v] of Object.entries(c.patch))if(c.before.fields[k]&&!pendingValue(c.before.fields[k])){
+      if(playerJoining&&c.specific?.recordId==='companion'&&k==='role')continue;
       if(c.before.fields[k]!==v)conflicts.push(k);
       delete c.patch[k];
     }
     let newSpecific=false;
     if(c.specific){
       for(const [k,v]of Object.entries(c.specific.fields)){
+        if(playerJoining&&c.specific.recordId==='companion'&&k==='relationship')continue;
         const previous=c.before.specific?.fields[k],old=pendingValue(previous)?'':previous;
         if(old&&k==='source_profile'){if(old!==v)newSpecific=true;continue;}
         if(old){

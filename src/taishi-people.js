@@ -47,6 +47,6 @@ export function filterPeopleBatch(batch,power){
 }
 export function retainDraftPeople(power,saved,joining){
   const c=peopleControls(power);
-  for(const r of saved.filter(taishiPerson)){if(!c.pinned.includes(r.id))c.pinned.push(r.id);if(!c.joining[r.id])c.joining[r.id]=joining;}
+  for(const r of saved.filter(taishiPerson)){if(!c.pinned.includes(r.id))c.pinned.push(r.id);if(joining==='direct'||!c.joining[r.id])c.joining[r.id]=joining;}
   validatePeopleControls(c);power.taishiPeople=c;
 }

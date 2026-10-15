@@ -2,7 +2,7 @@
 // input; only maintained instructions belong to system. No remote preset executes.
 import {ARCHIVE_PROTOCOL_POLICY} from './archive-protocol.js';
 
-export const ARCHIVE_PRESET_ID='wjwk.archive.1.3.9.scope2';
+export const ARCHIVE_PRESET_ID='wjwk.archive.1.5.0.scope3';
 const section=(id,body)=>`<${id}>\n${body}\n</${id}>`;
 const taskInstructions=Object.freeze({
  narrative:`只整理当前任务范围内已经成立的变化。先用rules与scopePolicy判断适用性，再逐项读取sources.settlements.facts；<WJWK-settle>是事实主依据，但一份回执可含多个词条，不等于全部属于当前词条。statusSnapshots（含MMLC-archive长期总档）用于核对现状；总档中的旧库存、旧能力和旧经历不是本轮新收益，不重复累加，首次遇到的明确现状可作为存量建档。content仅补充明确事实。无正式结算时允许使用明确叙事证据，不要求正文必须出现词条名称；机制联系仍需成立。opportunities、规划、思考、选项、context、规则示例不证明执行或到账。正文与结算描述同一对象的同一变化时合并为一条，不能重新执行规则或补算收益。`,
@@ -39,7 +39,7 @@ const procedure=`只输出最终JSON：
 4. 核对本层适用事实均已处理或已有同份记录；遗漏、冲突、归属不明或超限用uncertain。每层只报一次floorReviews，数量与候选一致。快照遗漏或未知不清空旧值，明确消耗、删除、更正才更新。`;
 
 const taskProcedures=Object.freeze({
- supplement:'只输出最终JSON，不输出思维过程。逐项读取playerNote，区分明确已成立、正在尝试和愿望；确认对象归属，匹配已有ID，映射合法字段。核对没有扩大玩家补充，没有把参考设定或安排当作新收益。没有sources时floorReviews为空。',
+ supplement:'只输出最终JSON，不输出思维过程。按顺序处理：先确认所属金手指，再区分规则说明、明确已成立、正在尝试和愿望，再匹配已有对象ID，最后只填写本次变化字段。系统本体和规则介绍不是新增成果；工具与借用设施不转移所有权。能力、物资与任务进度按已有声明分类，不重复复制到其他成果。identityOnly是身份目录，缺少旧详情不等于旧值为空。核对没有扩大玩家补充，没有把参考设定或安排当作新收益。没有sources时floorReviews为空。',
  worldbook:'只输出最终JSON，不输出思维过程。先清点attachedWorldbooks本批所选词条片段，再识别其中实际描述的对象、归属和已有ID。按recordSchemas将设定分别映射到声明字段，人物的外貌、性格、经历、能力与限制、战斗或技艺、关系等分别保真，不压成职责摘要。每个适用对象复查遗漏；仅概述势力时保留概述，不强造组织详情。合并词条中的独立对象应引用实际包含该对象的本批词条ID和片段号，不把内部标题当作词条ID。world、region或companion按本次规则返回settingRefs；不填写程序保留的source_profile。核对未把原始设定写成新触发、奖励或已实施行动。没有sources时sourceIndex=-1、floorReviews为空。',
  draft:'只输出最终JSON，不输出思维过程。先确认taishiDraft.kind和joining，再将playerNote构想与已有档案对照，限定本次对象。根据已有设定补全本次允许的草案字段，保持世界和人物身份，未知原作不假称查证。核对相遇、普通NPC与直接加入的差别，不能擅自缔约。sourceIndex=-1，没有sources时floorReviews为空。',
  evolution:'只输出最终JSON，不输出思维过程。先确认目标世界原ID、已保存现状、允许的内部历时和筛选人物；再按明确目标与阻碍形成世界和人物的发展候选。沿用世界与人物身份，各自填写变动字段，不为丰富内容捏造历史共同经历。检查重大后果限制、契约边界、世界归属、时间倍率和资源发放；保留阻碍与风险，不绕写重大结果。sourceIndex=-1，没有sources时floorReviews为空。'

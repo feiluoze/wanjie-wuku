@@ -61,7 +61,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   const records=Object.values(power.archives||{}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat));
   const focus=isTaishi(power)&&!setupReferences&&!taishiDraft&&!(!taishiEvolution&&playerNote)?taishiFocus(power,records,[...sources.map(s=>s.content),...context.map(s=>s.content),playerNote].join('\n'),{worldId:taishiEvolution?.worldId,evolution:Boolean(taishiEvolution)}):null;
   const payload = { ownership:ownershipContext(state,power), task: '核对经营档案变化', rules: power.rules, fieldTypes: ARCHIVE_FIELDS, statuses: ARCHIVE_STATUS,
-    staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: selectArchiveInput(records,[...sources.map(s=>s.content),...context.map(s=>s.content)].join('\n'),{compact:!playerNote&&!setupReferences&&!taishiDraft&&!taishiEvolution,...(focus?{focusIds:focus.ids}:{})}), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
+    staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: selectArchiveInput(records,[playerNote,...sources.map(s=>s.content),...context.map(s=>s.content)].join('\n'),{compact:!setupReferences&&!taishiDraft&&!taishiEvolution,...(focus?{focusIds:focus.ids}:{})}), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
     terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
   if(isTaishi(power)&&power.taishiWorldStructure)payload.worldStructure=worldStructurePolicy(power);
   if(skipSetupPeople){payload.recordSchemas=payload.recordSchemas.filter(r=>r.id!=='companion');payload.personImport='玩家本次只整理世界设定；不创建或更新人物，不从地域正文中的人名建立人物档案，也不建立涉及人物的关系。人物文档之后单独整理。';}
@@ -71,7 +71,16 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   }
   if(focus)payload.taishiFocus=focus;
   if(isTaishi(power)){payload.peopleSelection=peoplePolicy(power);payload.protectedRelations=power.taishiLocks||{};payload.informationPolicy=TAISHI_KNOWLEDGE_POLICY;}
-  if(taishiDraft){assert(isTaishi(power),'只有太始天可以生成建档草案');taishiDraftInstruction(taishiDraft);payload.taishiDraft=taishiDraft;payload.task='生成待玩家确认的建档草案';}
+  if(taishiDraft){
+    assert(isTaishi(power),'只有太始天可以生成建档草案');taishiDraftInstruction(taishiDraft);payload.taishiDraft=taishiDraft;payload.task='生成待玩家确认的建档草案';
+    // Drafts need the identity directory for reuse, not every unrelated archived fact.
+    const reference=referenceBatch||{payload:{books:[{entries:[{title:'玩家构想',content:playerNote}]}]}};
+    const namesText=String(JSON.stringify(reference.payload)+'\n'+playerNote).normalize('NFKC').toLowerCase();
+    const draftRecords=records.filter(r=>r.specific?.recordId===taishiDraft.kind||r.specific?.recordId==='world'||[r.name,...(r.history||[]).map(h=>h.name)].some(n=>n?.length>=2&&namesText.includes(n.normalize('NFKC').toLowerCase())));
+    payload.current=selectBuildArchiveInput(draftRecords,reference,{worldId:power.taishiWorldStructure?.mode==='single'?power.taishiWorldStructure.worldId:null});
+    payload.recordSchemas=payload.recordSchemas.filter(r=>r.id===taishiDraft.kind);
+    payload.importPolicy='current保留完整身份目录；identityOnly仅省略与本次无关的旧详情，不代表旧字段为空。复用同名人物的archiveId，只提交本次明确的新字段，不清空或改写未提供的旧字段。';
+  }
   if(taishiEvolution){payload.taishiEvolution={...taishiEvolution,worldName:evolutionWorld(power,taishiEvolution).name};payload.task='世界自主发展候选';evolutionInstruction(power,taishiEvolution);}
   if(creationConfig(power)?.id==='wuku.precedent')payload.collectionPolicy='独立先例、援引与新事实分别保存。sources中每条明确先例逐条处理，不只保留最近几条，不将不同事件合成先例合集。重复援引引用已有先例，不重复新建；名称用具体事件与结果区分。旧通用合集不自动拆分删除，不能把它覆盖成单条。批次最多256项，超出需缩小读取范围分批整理。';
   if(['wuku.harvest','wuku.cost_reduction','wuku.all_rewards','wuku.exponential','wuku.mass_energy','wuku.story_points'].includes(creationConfig(power)?.id))payload.settlementPolicy='仅整理正文明确事实，不执行规则中的自动结算。每次独立事件使用稳定名称和已有archiveId；回执与正文描述同一事件只保存一次。原始收获、实际最终结果、已交付及剩余待兑现分别记录；补交更新原权益，不重建整份奖励。原始成本和实际付出分别保存，不以节省额入账。余额快照不是收入，不自动修改插件资源账本；负余额依正文保留。规则倍率、公式、每日额度不是本轮已发生事实，不按电脑时间发放。永久成长、临时强化、货币与节点分别核对；同份源量的当前承载不能重复当库存。缺少实际结果或规则自相矛盾时留空并在message说明，禁止自行选择更大倍率或推算余额。旧通用档案保留，不自动拆分或删除。';
@@ -82,6 +91,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   payload.moduleKind=isTaishi(power)?'taishi':isMmlc(power)?'mmlc':'wuku';
   payload.limits={changes:creationConfig(power)?.id==='wuku.precedent'?256:64,fieldCharacters:4000,terminalResults:24,creationResults:24};
   if(payload.taskMode!=='narrative')payload.readingPolicy={supplement:'只整理playerNote明确补充，不把sources或参考资料扩成新收益。',worldbook:'只提取本批所选世界书片段的原始设定；不是本轮结算，不自行续写。',draft:'仅按taishiDraft范围补全待确认草案，不冒充正文事实。',evolution:'仅按taishiEvolution范围和内部历时生成待确认发展候选，不冒充正文事实。'}[payload.taskMode];
+  if(taishiDraft?.kind==='companion'&&referenceBatch)payload.readingPolicy='只录入本次所选世界书中有独立人设的人物，严格保留原设定，不创作补全，不把提及的亲属、统治者或组织一并登记。复用已有普通人物，确认保存后才采用玩家选择的眷属身份；不生成契约或共同经历。';
   payload.scopePolicy=archiveScopePolicy(payload);
   payload.responseContract=archiveResponseContract(payload);
   const preset=archivePreset(payload,{
@@ -92,10 +102,14 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
     creation:creationItems.length&&!playerNote?CREATION_RESULTS_PROMPT:''
   });
   payload.preset={id:preset.id,mode:preset.mode,groups:preset.groups};
-  const body=JSON.stringify(payload);assert(body.length<=120000,setupReferences?`本批建档请求${body.length}字符超过120000：身份与相关详情${JSON.stringify(payload.current).length}，规则${JSON.stringify(payload.rules).length}，字段定义${JSON.stringify(payload.recordSchemas).length}。尚未调用AI，已有档案保留。`:'本批规则与正文超过120000字符，请减少参考前文或缩小手动读取范围');
-  return {databasePromptTrial:true,setupReferences,system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
+  const body=JSON.stringify(payload);
+  if(body.length>120000){
+    const sizes=inputCharacterBreakdown(payload),e=new Error(`发送前检查：本次请求 ${body.length} 字符，超过 120000。规则 ${sizes.rules}，正文 ${sizes.sources}，档案目录与详情 ${sizes.current}，字段定义 ${sizes.recordSchemas}。${sizes.rules>60000?'当前词条规则过长，请检查接入的规则范围。':playerNote?'请缩小本次补充涉及的对象范围，分次补充。':'请使用手动分批整理或缩小读取范围。'}尚未调用模型，已保存档案不受影响。`);
+    e.requestStage='preflight';e.inputCharacters=sizes;throw e;
+  }
+  return {databasePromptTrial:true,setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
-export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '') {
+export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '',{playerJoining=false}={}) {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');
   const seen = new Map();
   return data.changes.map((raw,inputIndex) => {
@@ -140,7 +154,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     }
     if(!before&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});
-    assertTaishiClaims(power,{...raw,fields:patch},before,specific);
+    assertTaishiClaims(power,{...raw,fields:patch},before,specific,{playerJoining});
     if(!manual&&!recovery)assertSnapshotPatch(before,patch,raw.details,quote,source.content);
     if(isTaishi(power)){assert(!Object.hasOwn(raw.details||{},'time_state'),'时间记录由时间面板登记，AI不得修改');const linked={id:before?.id,specific,specificPatch:clone(raw.details||{})};resolveTaishiLinks(power,linked);assertRelation(power,linked);if(specific?.recordId==='manifestation')assert(specific.fields.world_id&&['整界','局部','法则','收回'].includes(specific.fields.mode),'降界须关联已有世界并选择有效模式');}
     const identity = before?.id || `${type}:${specific?.recordId||''}:${nameKey(name)}`;
@@ -153,7 +167,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     return {inputIndex,...(raw.ownerPowerId?{ownerPowerId:text(raw.ownerPowerId,200)}:{}),...(specific?{specific,specificPatch:clone(raw.details||{})}:{}), ...(recovery ? { recovery: true } : {}), ...(module ? { module } : {}), type, name: before?.name || name, status, patch, id: before?.id || null, before: clone(before || null), source: manual ? { ...archiveSource(chat, '玩家确认AI整理的口述补充'), quote, ruleQuote } : { type: 'story', note: '玩家确认正文档案变化', ...(recovery?{contextReset:true}:{}), anchor: { index: source.index, swipeId: source.swipeId, length: source.length, textHash: source.textHash, ...(source.format ? { format: source.format } : {}) }, quote, ruleQuote } };
   }).filter(Boolean);
 }
-export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',state={}, {strictProtocol=false,chronological=false}={}){
+export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',state={}, {strictProtocol=false,chronological=false,playerJoining=false}={}){
  assert(data&&typeof data==='object'&&!Array.isArray(data),'AI整理返回无效');
  assert(Array.isArray(data.changes),'候选列表格式无效：changes必须为数组');
  assert(data.changes.length<=MAX_RETURNED_CHANGES,'候选变化超过本地安全处理上限'+MAX_RETURNED_CHANGES+'，请保留原始结果后分段核对');
@@ -173,7 +187,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  const type=Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
  const prepared=prepareArchiveFields({...unwrapped,type:type||unwrapped.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition);
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
- let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote)[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
+ let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
  if(linked.pendingLink&&c)c.pendingLinks=[linked.pendingLink];
  if(linked.unresolved)reject('成果',index,raw,Object.assign(Error('组织关联未确定；有效人物字段可单独保存，原关联值保留待本地核对'),{fieldCandidate:clone(raw)}));
  if(prepared.held.length){const error=Object.assign(Error('部分字段待核对：'+prepared.held.map(h=>h.key+'（'+h.code+'）').join('、')+'；有效字段可单独保存'),{fieldCandidate:clone(raw)});reject('成果',index,raw,error);}
@@ -191,7 +205,7 @@ export function archiveChangeTarget(change, power, target, chat) {
   assert(!before?.specific||!change.specific||before.specific.adapterId===change.specific.adapterId&&before.specific.recordId===change.specific.recordId,'所选对象属于另一种专用统计分类');
   return { ...change, id: before?.id || null, name: before?.name || change.name, before: clone(before || null) };
 }
-export function applyArchiveChanges(power, changes, sources, chosen, chat, { blockedFloors = new Set() } = {}) {
+export function applyArchiveChanges(power, changes, sources, chosen, chat, { blockedFloors = new Set(),playerJoining=false } = {}) {
   const used = new Map(), saved = [],savedByInput=new Map();
   const ordered=isTaishi(power)?orderLinkedSelection(changes,chosen):chosen;
   for (const [i, target] of ordered) {
@@ -203,7 +217,7 @@ export function applyArchiveChanges(power, changes, sources, chosen, chat, { blo
     used.set(identity,{chronological:c.chronological,floor:c.source.anchor?.index,id:c.id});
     // All records were captured at preview time. A reassigned target must also
     // come from that captured state (the controller checks the state revision).
-    assertTaishiClaims(power,{fields:c.patch,details:c.specificPatch,status:c.status},c.before,c.specific);
+    assertTaishiClaims(power,{fields:c.patch,details:c.specificPatch,status:c.status},c.before,c.specific,{playerJoining});
     if(isTaishi(power))assertRelation(power,c);
     const fields = c.recovery ? { ...c.patch } : { ...c.before?.fields, ...c.patch };
     if (!c.recovery && c.before && (!isMmlc(power) || mmlcModule(c.before) === c.module) && stable({ fields, status: c.status,specific:c.specific,owner:c.ownerPowerId||c.before.ownerPowerId }) === stable({ fields: c.before.fields, status: c.before.status,specific:c.before.specific,owner:c.before.ownerPowerId })) continue;
@@ -306,8 +320,11 @@ export const archiveReviewMethods = {
     try{
       const unwrapped={...result.data,changes:result.data.changes.map(unwrapArchiveInput)};
       structured=options.setupReferences&&isTaishi(power)?prepareStructureImport(unwrapped,power):{data:unwrapped,converted:0};
-      prepared=isTaishi(power)?preparePersonSources(structured.data,options.setupReferences?(options.referenceBatch||result.referencePacket):null,power):{data:structured.data};
-      batch=normalizeArchiveBatch(prepared.data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state,{strictProtocol:!playerNote,chronological:layered});
+      if(options.taishiDraft?.kind==='companion'&&options.taishiDraft.joining==='direct')for(const raw of structured.data.changes){
+        if(raw?.recordId==='companion'&&raw.details&&typeof raw.details==='object'&&!Array.isArray(raw.details))raw.details={...raw.details,relationship:'玩家确认采用后作为太始天眷属加入'};
+      }
+      prepared=isTaishi(power)?preparePersonSources(structured.data,options.setupReferences||options.taishiDraft?.kind==='companion'&&options.referenceBatch?(options.referenceBatch||result.referencePacket):null,power):{data:structured.data};
+      batch=normalizeArchiveBatch(prepared.data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state,{strictProtocol:!playerNote,chronological:layered,playerJoining:options.taishiDraft?.kind==='companion'&&options.taishiDraft.joining==='direct'});
     }catch(error){
       if(error.name==='AbortError')throw error;
       return retainRejected({kind:'候选结构',name:'返回结果',reason:'本地结构校验未完成，原始候选已保留：'+error.message,diagnostic:{stage:'batch_validation',code:'batch_structure_invalid',exception:error.name,count:result.data.changes.length}});
@@ -545,7 +562,7 @@ export const archiveReviewMethods = {
           else p.taishiBuild=clone(pending.taishiBuild);
         }
         const before = { ...p.archives };
-        const saved = applyArchiveChanges(p, pending.changes, pending.sources, chosen, getContext().chat, {blockedFloors});
+        const saved = applyArchiveChanges(p, pending.changes, pending.sources, chosen, getContext().chat, {blockedFloors,playerJoining:pending.taishiDraft?.kind==='companion'&&pending.taishiDraft.joining==='direct'});
         if(pending.taishiScheduleEvent)this.recordTaishiSchedule(p,pending.taishiScheduleEvent,getContext().chat);
         if(pending.taishiTimeEvent)recordStoryTime(p,getContext().chat,pending.taishiTimeEvent);
         if(pending.taishiDraft?.kind==='companion')retainDraftPeople(p,saved,pending.taishiDraft.joining);
@@ -571,7 +588,7 @@ export const archiveReviewMethods = {
       }else this.clearReviewCheckpoint(pending.captured);
       this.runtimeLog?.step(pending.logId,'保存结果',{...counts,verified:result?.save?.verified!==false});
       return result;
-    } catch(error){this.runtimeLog?.step(pending.logId,'保存失败',{error:error.message});this.runtimeLog?.patch(pending.logId,{status:'保存失败'});throw error;} finally { this.committing = false; this.refresh(); }
+    } catch(error){error.requestStage='save';this.runtimeLog?.step(pending.logId,'保存失败',{error:error.message});this.runtimeLog?.patch(pending.logId,{status:'保存失败'});throw error;} finally { this.committing = false; this.refresh(); }
   },
 };
 

@@ -19,12 +19,21 @@ export function taishiLayout(power,chat=[],preference={}){
  const world=worlds.find(w=>w.id===(preference.worldId||power.taishiWorldStructure?.worldId))||worlds[0]||null;
  const civilizations=records.filter(r=>isCivilizationRecord(r)&&r.status!=='ended'&&worldForRecord(power,r,chat)?.id===world?.id);
  const civilizationId=civilizations.some(c=>c.id===preference.civilizationId)?preference.civilizationId:'';
- return {records,worlds,mode,world,civilizations,civilizationId};
+ const resolveCivilization=createCivilizationResolver(power,chat,records,worlds);
+ return {records,worlds,mode,world,civilizations,civilizationId,resolveCivilization};
 }
-export function civilizationForRecord(power,record,chat=[]){
- const world=worldForRecord(power,record,chat);if(!world)return null;
- const valid=r=>r&&r.status!=='ended'&&archiveCurrent(r,chat)&&worldForRecord(power,r,chat)?.id===world.id;
- const list=Object.values(power.archives||{}).filter(r=>isCivilizationRecord(r)&&valid(r));
+// One render owns this index. Never retain a cache across edits or chat switches.
+function createCivilizationResolver(power,chat,records=Object.values(power.archives||{}).filter(r=>archiveCurrent(r,chat)),worlds=records.filter(r=>r.specific?.recordId==='world'&&r.status!=='ended')){
+ const worldById=new Map(worlds.map(r=>[r.id,r])),names=new Map(),worldMemo=new Map(),resultMemo=new Map(),regionMemo=new Map();
+ for(const w of worlds)for(const name of new Set([w.name,...(w.history||[]).map(h=>h.name)])){const k=String(name).normalize('NFKC').trim();if(!names.has(k))names.set(k,[]);names.get(k).push(w);}
+ const worldOf=r=>{if(!r)return null;if(worldMemo.has(r.id))return worldMemo.get(r.id);const f=r.specific?.fields||{},matches=names.get(String(f.world||'').normalize('NFKC').trim())||[];const w=r.specific?.recordId==='world'?worldById.get(r.id):f.world_id?worldById.get(f.world_id):matches.length===1?matches[0]:null;worldMemo.set(r.id,w||null);return w||null;};
+ const civs=records.filter(r=>isCivilizationRecord(r)&&r.status!=='ended'),regions=records.filter(r=>r.specific?.recordId==='region'&&r.status!=='ended');
+ return record=>{
+ if(resultMemo.has(record.id))return resultMemo.get(record.id);
+ const world=worldOf(record);if(!world)return null;
+ const valid=r=>r&&r.status!=='ended'&&worldOf(r)?.id===world.id;
+ const list=civs.filter(valid);
+ const compute=()=>{
  if(isCivilizationRecord(record))return list.find(r=>r.id===record.id)||null;
  const f=record.specific?.fields||{};
  const resolve=(r,seen=new Set())=>{
@@ -38,19 +47,25 @@ export function civilizationForRecord(power,record,chat=[]){
  if(f.civilization_id)return resolve(record); // Explicit invalid links never fall back.
  const direct=resolve(record);if(direct)return direct;
  // Late civilization imports regroup earlier records by explicit geography, without AI writes.
- const regions=Object.values(power.archives||{}).filter(r=>r.specific?.recordId==='region'&&valid(r));
+ const scopedRegions=regions.filter(valid);
  const tokens=v=>new Set(String(v||'').normalize('NFKC').split(/[·：:；;、,，/\n\s（）()]+/).filter(Boolean));
  const regionIds=r=>{
+  if(regionMemo.has(r.id))return regionMemo.get(r.id);
   const result=new Set(),seen=new Set();
   const walk=x=>{if(!valid(x)||seen.has(x.id)||seen.size>=32)return;seen.add(x.id);
    const v=x.specific?.fields||{};if(x.specific?.recordId==='region')result.add(x.id);
    if(v.region_id){const parent=power.archives?.[v.region_id];if(valid(parent))walk(parent);}
-   else {const names=tokens(v.location||x.fields?.location);for(const candidate of regions)if(candidate.id!==x.id&&names.has(candidate.name))walk(candidate);}
+   else {const names=tokens(v.location||x.fields?.location);for(const candidate of scopedRegions)if(candidate.id!==x.id&&names.has(candidate.name))walk(candidate);}
    if(v.organization_id)walk(power.archives?.[v.organization_id]);
-  };walk(r);return result;
+  };walk(r);regionMemo.set(r.id,result);return result;
  };
  const own=regionIds(record),matches=list.filter(c=>[...regionIds(c)].some(id=>own.has(id)));
  return matches.length===1?matches[0]:null;
+ };const result=compute();resultMemo.set(record.id,result);return result;
+ };
+}
+export function civilizationForRecord(power,record,chat=[]){
+ return createCivilizationResolver(power,chat)(record);
 }
 
 export function taishiLayoutGroups(power,rows,layout,chat=[]){
@@ -61,8 +76,9 @@ export function taishiLayoutGroups(power,rows,layout,chat=[]){
   return groups.filter(g=>g.rows.length);
  }
  const scoped=layout.world?rows.filter(r=>r.id!==layout.world.id&&worldForRecord(power,r,chat)?.id===layout.world.id):[];
- const groups=layout.civilizations.filter(c=>!layout.civilizationId||c.id===layout.civilizationId).map(c=>({id:c.id,name:c.name,kind:'civilization',record:c,rows:scoped.filter(r=>civilizationForRecord(power,r,chat)?.id===c.id)}));
- const common=scoped.filter(r=>!civilizationForRecord(power,r,chat));
+ const resolve=layout.resolveCivilization||createCivilizationResolver(power,chat);
+ const groups=layout.civilizations.filter(c=>!layout.civilizationId||c.id===layout.civilizationId).map(c=>({id:c.id,name:c.name,kind:'civilization',record:c,rows:scoped.filter(r=>resolve(r)?.id===c.id)}));
+ const common=scoped.filter(r=>!resolve(r));
  if(common.length)groups.push({id:'common',name:'世界公共',kind:'common',rows:common});
  const unknown=rows.filter(r=>r.specific?.recordId!=='world'&&!worldForRecord(power,r,chat));
  if(unknown.length)groups.push({id:'unassigned',name:'待明确归属',kind:'unassigned',rows:unknown});
