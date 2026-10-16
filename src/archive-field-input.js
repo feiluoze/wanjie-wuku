@@ -35,7 +35,7 @@ export function unwrapArchiveInput(input){
  return raw;
 }
 export function prepareArchiveFields(input,types,definition){
- const raw=unwrapArchiveInput(input),fields={},details={},held=[];
+ const raw=unwrapArchiveInput(input),fields={},details={},held=[];if(object(raw.details))raw.details={...raw.details};
  const general=Object.entries(types[raw?.type]||{}),specific=(definition?.fields||[]).map(f=>[f.id,f.label]);
  const resolve=(key,entries)=>entries.find(([id])=>id===key)?.[0]||entries.find(([,label])=>label===key)?.[0];
  const valueText=value=>{
@@ -58,9 +58,24 @@ export function prepareArchiveFields(input,types,definition){
   }
   target[id]=text;
  };
+ // Exact declared general fields accidentally placed at top level are moved, never inferred.
+ for(const [id]of general)if(Object.hasOwn(raw,id)){add('fields',id,raw[id]);delete raw[id];}
+ const extraLabels={progress:'进度',triggerMechanism:'触发依据',consumed:'消耗记录',remaining:'剩余记录'};
+ const extras=[];
+ if(!definition&&!raw.recordId&&object(raw.details))for(const [key,value]of Object.entries(raw.details)){
+  if(!Object.hasOwn(extraLabels,key)||typeof value!=='string'||value.length>4000)continue;
+  if(key==='progress'){
+   const numbers=s=>String(s).match(/\d+(?:\.\d+)?%/g)||[];
+   const left=numbers(raw.fields?.limits),right=numbers(value);
+   if(left.length&&right.length&&JSON.stringify(left)!==JSON.stringify(right))throw Object.assign(Error('重复字段内容冲突：进度与通用字段不一致；请按原文核对'),{fieldConflicts:[{section:'fields',id:'limits',key:'fields:limits',label:'进度',left:raw.fields.limits,right:value}]});
+  }
+  extras.push(extraLabels[key]+'：'+value);delete raw.details[key];
+ }
  for(const section of ['fields','details']){
   if(raw[section]!==undefined&&!object(raw[section]))return {raw,held:[]};
   for(const [key,value]of Object.entries(raw[section]||{}))add(section,key,value);
  }
+ if(extras.length){const target=Object.hasOwn(types[raw.type]||{},'description')?'description':null;const combined=[fields[target],...extras].filter(Boolean).join('\n');if(target&&combined.length<=4000)fields[target]=combined;else for(const value of extras)held.push({section:'details',key:'补充记录',value,code:'overlong_field'});}
+ if(!definition&&!raw.recordId&&object(raw.details)&&!Object.keys(raw.details).length)delete raw.details;
  return {raw:{...raw,fields,...(definition?{details}:raw.details!==undefined?{details:raw.details}:{})},held};
 }

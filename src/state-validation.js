@@ -4,7 +4,7 @@ import { assert, text, stable } from './primitives.js';
 const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
 const identifier=s=>typeof s==='string'&&/^[a-z][a-z0-9_-]{0,63}$/.test(s)&&!['constructor','prototype','__proto__'].includes(s);
 export const ARCHIVE_TEXT_FORMAT = 'settlement-v1';
-export const ARCHIVE_READ_FORMAT = 'archive-read-v2';
+export const ARCHIVE_READ_FORMAT = 'archive-read-v3';
 export const CREATION_PROGRESS=Object.freeze({working:'进行中',completed:'已完成',blocked:'受阻',failed:'失败'});
 export const TERMINAL_PROGRESS = Object.freeze({ working: '进行中', completed: '已完成', blocked: '受阻', failed: '失败' });
 export const TERMINAL_KINDS = Object.freeze({deploy:'种群部署',assign:'弟子分工',transfer:'物资分配',fleet:'舰队安排'});
@@ -21,7 +21,7 @@ export function validateSpecific(s){
 
 export function validateCreationProgress(o){
  const rows=o.resultHistory||[];assert(Array.isArray(rows)&&rows.length<=128,'拟定进展历史无效');if(o.progress)assert(o.status==='delivered'&&rows.length&&stable(rows.at(-1))===stable(o.progress),'拟定进展缺少历史');assert(!rows.length||o.progress,'拟定历史缺少现状');
- for(const p of rows){assert(p&&Object.keys(p).every(k=>['status','summary','quote','anchor','at','archiveIds'].includes(k))&&Object.hasOwn(CREATION_PROGRESS,p.status)&&typeof p.summary==='string'&&p.summary.trim()&&p.summary.length<=1000&&typeof p.quote==='string'&&p.quote.length<=4000,'拟定进展内容无效');const a=p.anchor;assert(a&&Object.keys(a).every(k=>['index','swipeId','length','textHash','format'].includes(k))&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>=0&&/^[a-f0-9]{16}$/.test(a.textHash)&&(!a.format||a.format===ARCHIVE_TEXT_FORMAT||a.format===ARCHIVE_READ_FORMAT)&&Number.isSafeInteger(p.at)&&p.at>0,'拟定进展来源无效');assert(Array.isArray(p.archiveIds)&&p.archiveIds.length<=8&&new Set(p.archiveIds).size===p.archiveIds.length&&p.archiveIds.every(id=>typeof id==='string'&&id.length<=200)&&(p.status!=='completed'||p.archiveIds.length),'拟定关联成果无效');}
+ for(const p of rows){assert(p&&Object.keys(p).every(k=>['status','summary','quote','anchor','at','archiveIds'].includes(k))&&Object.hasOwn(CREATION_PROGRESS,p.status)&&typeof p.summary==='string'&&p.summary.trim()&&p.summary.length<=1000&&typeof p.quote==='string'&&p.quote.length<=4000,'拟定进展内容无效');const a=p.anchor;assert(a&&Object.keys(a).every(k=>['index','swipeId','length','textHash','format'].includes(k))&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>=0&&/^[a-f0-9]{16}$/.test(a.textHash)&&(!a.format||a.format===ARCHIVE_TEXT_FORMAT||[ARCHIVE_READ_FORMAT,'archive-read-v2'].includes(a.format))&&Number.isSafeInteger(p.at)&&p.at>0,'拟定进展来源无效');assert(Array.isArray(p.archiveIds)&&p.archiveIds.length<=8&&new Set(p.archiveIds).size===p.archiveIds.length&&p.archiveIds.every(id=>typeof id==='string'&&id.length<=200)&&(p.status!=='completed'||p.archiveIds.length),'拟定关联成果无效');}
 }
 
 export function validateTerminalProgress(order) {
@@ -30,7 +30,7 @@ export function validateTerminalProgress(order) {
   assert(!history.length||order.progress,'安排结果历史缺少现状');
   for(const p of history){
     assert(p&&typeof p==='object'&&Object.keys(p).every(k=>['status','summary','quote','anchor','at'].includes(k))&&Object.hasOwn(TERMINAL_PROGRESS,p.status)&&text(p.summary,1000).trim()&&typeof p.quote==='string'&&p.quote.length<=4000,'安排结果内容无效');
-    const a=p.anchor;assert(a&&Object.keys(a).every(k=>['index','swipeId','length','textHash','format'].includes(k))&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>=0&&/^[a-f0-9]{16}$/.test(a.textHash)&&(!a.format||a.format===ARCHIVE_TEXT_FORMAT||a.format===ARCHIVE_READ_FORMAT),'安排结果来源无效');
+    const a=p.anchor;assert(a&&Object.keys(a).every(k=>['index','swipeId','length','textHash','format'].includes(k))&&Number.isSafeInteger(a.index)&&a.index>=0&&Number.isSafeInteger(a.swipeId)&&a.swipeId>=0&&Number.isSafeInteger(a.length)&&a.length>=0&&/^[a-f0-9]{16}$/.test(a.textHash)&&(!a.format||a.format===ARCHIVE_TEXT_FORMAT||[ARCHIVE_READ_FORMAT,'archive-read-v2'].includes(a.format)),'安排结果来源无效');
     assert(Number.isSafeInteger(p.at)&&p.at>0,'安排结果对象或时间无效');
   }
 }

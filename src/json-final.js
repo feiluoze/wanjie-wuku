@@ -4,7 +4,7 @@ export function parseFinalJSON(value) {
   let quoted=false,escaped=false,clean='';
   for(let i=0;i<value.length;i++){
    const c=value[i];
-   if(quoted){clean+=c;if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')quoted=false;continue;}
+   if(quoted){clean+=!escaped&&c.charCodeAt(0)<32?JSON.stringify(c).slice(1,-1):c;if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"')quoted=false;continue;}
    if(c==='"'){quoted=true;clean+=c;continue;}
    if(c===','){let j=i+1;while(/\s/.test(value[j]||'')&&j<value.length)j++;if(value[j]==='}'||value[j]===']')continue;}
    clean+=c;

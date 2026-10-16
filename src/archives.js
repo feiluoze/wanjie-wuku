@@ -87,7 +87,7 @@ export function archiveJourney(record, chat) {
   return { entries:entries.reverse(), first:snapshots[0], rechecks, current:archiveCurrent(record,chat) };
 }
 export function archiveEvidenceText(value, anchor = {}) {
-  return anchor.format === ARCHIVE_READ_FORMAT ? archiveReadText(value) : anchor.format === ARCHIVE_TEXT_FORMAT ? archiveText(value) : storyText(value);
+  return anchor.format === 'archive-read-v2' ? archiveReadText(value,{legacy:true}) : anchor.format === ARCHIVE_READ_FORMAT ? archiveReadText(value) : anchor.format === ARCHIVE_TEXT_FORMAT ? archiveText(value) : storyText(value);
 }
 // BaiBai hidden originals remain dialogue; ordinary system messages do not.
 export const isArchiveDialogue = message => Boolean(message && !message.is_user && (!message.is_system || message.extra?.bbs_hidden === true));

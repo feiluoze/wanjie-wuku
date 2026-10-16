@@ -17,12 +17,18 @@ export function parseModelResponse(data, status = 200) {
     format = 'responses';
     content = data.output.filter(p => p.type === 'message' && p.role === 'assistant').map(p => textParts(p.content)).join('');
   }
+  let inlineReasoning=0;content=content.trim();
+  while(/^<think\b/i.test(content)){
+   const block=content.match(/^<think\b[^>]*>[\s\S]*?<\/think\s*>/i);
+   if(!block){inlineReasoning+=content.length;content='';break;}
+   inlineReasoning+=block[0].length;content=content.slice(block[0].length).trim();
+  }
   const diagnostic = {httpStatus: status, format, finish, choices: Array.isArray(data?.choices) ? data.choices.length : 0,
     contentType: typeof message?.content === 'string' ? 'string' : Array.isArray(message?.content) ? 'parts' : 'missing',
-    textCharacters: content.length, reasoningPresent: Boolean(message?.reasoning_content || message?.reasoning || message?.thinking),
+    textCharacters: content.length, reasoningPresent: Boolean(inlineReasoning || message?.reasoning_content || message?.reasoning || message?.thinking),
     toolsPresent: Boolean(message?.tool_calls?.length || message?.function_call), refusalPresent: Boolean(message?.refusal), providerError: Boolean(data?.error)};
   const usage=data?.usage;
-  diagnostic.reasoningCharacters=typeof message?.reasoning_content==='string'?message.reasoning_content.length:0;
+  diagnostic.reasoningCharacters=inlineReasoning+(typeof message?.reasoning_content==='string'?message.reasoning_content.length:0);
   if(usage)diagnostic.usage=Object.fromEntries([['promptTokens',usage.prompt_tokens],['completionTokens',usage.completion_tokens],['reasoningTokens',usage.completion_tokens_details?.reasoning_tokens]].filter(([,v])=>Number.isFinite(v)&&v>=0));
   if(data?.error){const e=data.error;diagnostic.providerMessage=String(typeof e==='string'?e:e.message||'').replace(/Bearer\s+[^\s"']+/gi,'Bearer [已隐藏]').replace(/sk-[\w-]+/g,'[已隐藏]').slice(0,400);diagnostic.providerCode=String(e.type||e.code||'').slice(0,80);}
   if (data?.error) return {diagnostic, error:'接口在成功响应中返回错误对象；本次未提交，请查看运行日志中的响应诊断'};

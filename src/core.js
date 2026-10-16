@@ -72,8 +72,8 @@ export function archiveText(value) {
   return withoutMvuDisplay(value).replace(variableBlocks(), '').replace(/<WJWK-(think|option|status)\b[^>]*>[\s\S]*?<\/WJWK-\1>/gi, '').trim();
 }
 // Versioned reader: body/settlement and explicitly marked status snapshots; no planning.
-export function archiveReadText(value){
- const clean=withoutThoughts(value),body=archiveText(clean),snapshots=statusSnapshots(withoutMvuDisplay(clean).replace(variableBlocks(),''));
+export function archiveReadText(value,options){
+ const clean=withoutThoughts(value,options),body=archiveText(clean),snapshots=statusSnapshots(withoutMvuDisplay(clean).replace(variableBlocks(),''),options);
  return [body,...snapshots.map(s=>'<WJWK-status>\n'+s+'\n</WJWK-status>')].filter(Boolean).join('\n\n').trim();
 }
 export function chatHashes(chat = []) {
@@ -246,7 +246,7 @@ export function narrativeMessages(chat, start = 0, tail = null) {
 }
 export function parseJSON(raw) {
   assert(typeof raw === 'string' && raw.length <= 500000, '模型返回为空或过长');
-  const clean = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  const clean = raw.trim().replace(/^(?:<think\b[^>]*>[\s\S]*?<\/think\s*>\s*)+/i,'').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   const failure=(message,error,source,incomplete=false)=>{const e=new Error(message),match=String(error?.message||'').match(/position\s+(\d+)/i),offset=match?Number(match[1]):(()=>{const stack=[];let q=false,escape=false;for(let i=0;i<source.length;i++){const c=source[i];if(q){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')q=false;continue;}if(c==='"')q=true;else if(c==='{'||c==='[')stack.push(c);else if(c==='}'||c===']'){if(stack.pop()!==(c==='}'?'{':'['))return i;}}return null;})();e.jsonDiagnostic={stage:'json_parse',kind:incomplete?'incomplete':'syntax',characters:source.length,offset,...(offset!==null?{line:source.slice(0,offset).split('\n').length,column:offset-(source.lastIndexOf('\n',offset-1)+1)+1}:{}),unterminatedString:incomplete&&quoted};return e;};
   try { return parseFinalJSON(clean); } catch { /* Locate a complete JSON object without evaluating code. */ }
   const start = clean.indexOf('{');
@@ -455,7 +455,7 @@ export function validateState(data) {
     validateTaishiLocks(p.taishiLocks);
     validateArchiveBatch(p.archiveBatch);
     p.archiveReviewed ||= [];
-    for (const a of list(p.archiveReviewed, 100000, '档案核对进度')) assert(Number.isSafeInteger(a.index) && a.index >= 0 && Number.isSafeInteger(a.swipeId) && a.swipeId >= 0 && Number.isSafeInteger(a.length) && a.length >= 0 && /^[a-f0-9]{16}$/.test(a.textHash) && (a.format === undefined || a.format === ARCHIVE_TEXT_FORMAT || a.format === ARCHIVE_READ_FORMAT), '档案核对进度无效');
+    for (const a of list(p.archiveReviewed, 100000, '档案核对进度')) assert(Number.isSafeInteger(a.index) && a.index >= 0 && Number.isSafeInteger(a.swipeId) && a.swipeId >= 0 && Number.isSafeInteger(a.length) && a.length >= 0 && /^[a-f0-9]{16}$/.test(a.textHash) && (a.format === undefined || a.format === ARCHIVE_TEXT_FORMAT || [ARCHIVE_READ_FORMAT,'archive-read-v2'].includes(a.format)), '档案核对进度无效');
     if (p.archiveAuto !== undefined) p.archiveAuto = normalizeArchiveAuto(p.archiveAuto);
     if (p.autoArchiveStart !== undefined) assert(Number.isSafeInteger(p.autoArchiveStart) && p.autoArchiveStart >= 0, '自动更新起点无效');
     if (p.archiveReadRange !== undefined) p.archiveReadRange = normalizeArchiveRange(p.archiveReadRange);
@@ -488,7 +488,7 @@ export function validateState(data) {
         assert(['manual', 'story'].includes(row.source?.type) && text(row.source.note, 600).trim(), '经营档案缺少人工核对来源');
         assert(row.source.contextReset===undefined||typeof row.source.contextReset==='boolean','档案重核标记无效');
         if (row.source.type === 'story') { text(row.source.quote || '', 4000); text(row.source.ruleQuote || '', 1200); }
-        for (const a of [row.source.anchor, ...list(row.source.anchors || [], 1000, '档案来源')].filter(Boolean)) assert(Number.isSafeInteger(a.index) && a.index >= 0 && Number.isSafeInteger(a.swipeId) && a.swipeId >= 0 && (a.length === undefined || Number.isSafeInteger(a.length) && a.length >= 0) && /^[a-f0-9]{16}$/.test(a.textHash) && (a.format === undefined || a.format === ARCHIVE_TEXT_FORMAT || a.format === ARCHIVE_READ_FORMAT), '经营档案剧情位置无效');
+        for (const a of [row.source.anchor, ...list(row.source.anchors || [], 1000, '档案来源')].filter(Boolean)) assert(Number.isSafeInteger(a.index) && a.index >= 0 && Number.isSafeInteger(a.swipeId) && a.swipeId >= 0 && (a.length === undefined || Number.isSafeInteger(a.length) && a.length >= 0) && /^[a-f0-9]{16}$/.test(a.textHash) && (a.format === undefined || a.format === ARCHIVE_TEXT_FORMAT || [ARCHIVE_READ_FORMAT,'archive-read-v2'].includes(a.format)), '经营档案剧情位置无效');
         assert(row === r || row.history === undefined, '档案历史不可嵌套');
       }
     }

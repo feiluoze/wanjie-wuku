@@ -113,7 +113,7 @@ export class ModelConnection {
   }
   async request(prompt, { signal, connection, onResponse = () => {} } = {}) {
     let diagnosticSettings,customParameters={};
-    const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
+    const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_completion_tokens??customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',requestedReasoningSplit:customParameters.reasoning_split??thinkingOptions(diagnosticSettings).reasoning_split??null,requestedReasoningEffort:customParameters.reasoning_effort??thinkingOptions(diagnosticSettings).reasoning_effort??null,customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
     const settings = clone(connection?.settings || this.settings());diagnosticSettings=settings;
     assert(settings.mode !== 'off', '异步模型已关闭；可在连接设置中自行启用');
     const seconds = requestTimeoutSeconds(settings, connection?.task);
@@ -156,6 +156,7 @@ export class ModelConnection {
           throw new Error('接口响应不是完整 JSON，可能返回了流式数据或被网关截断；本次未提交，不会自动重试');
         }
         const parsed = parseModelResponse(data,response.status ?? 200); report(parsed.diagnostic);
+        if(parsed.diagnostic.finish==='length'){const limit=customParameters.max_completion_tokens??customParameters.max_tokens??settings.maxTokens??GENERATION_DEFAULTS.maxTokens;const error=new Error('输出达到接口输出限制（请求上限 '+limit+' tokens）；本次未提交。请在AI连接与方案→高级设置与自动核算→输出上限中提高额度，或缩小本批整理范围');error.requestStage='response';throw error;}
         if(parsed.error){const error=new Error(parsed.error);error.requestStage='response';throw error;} return parsed.content;
       }
       throw new Error('接口路径不匹配');
