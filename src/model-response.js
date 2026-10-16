@@ -24,7 +24,9 @@ export function parseModelResponse(data, status = 200) {
   const usage=data?.usage;
   diagnostic.reasoningCharacters=typeof message?.reasoning_content==='string'?message.reasoning_content.length:0;
   if(usage)diagnostic.usage=Object.fromEntries([['promptTokens',usage.prompt_tokens],['completionTokens',usage.completion_tokens],['reasoningTokens',usage.completion_tokens_details?.reasoning_tokens]].filter(([,v])=>Number.isFinite(v)&&v>=0));
+  if(data?.error){const e=data.error;diagnostic.providerMessage=String(typeof e==='string'?e:e.message||'').replace(/Bearer\s+[^\s"']+/gi,'Bearer [已隐藏]').replace(/sk-[\w-]+/g,'[已隐藏]').slice(0,400);diagnostic.providerCode=String(e.type||e.code||'').slice(0,80);}
   if (data?.error) return {diagnostic, error:'接口在成功响应中返回错误对象；本次未提交，请查看运行日志中的响应诊断'};
+  if(diagnostic.toolsPresent||finish==='tool_calls')return {diagnostic,error:'接口返回了工具调用，当前整理任务只接受JSON正文；本次未提交。请检查中转的工具注入设置，未执行工具或自动重试'};
   if (content.trim()) return {content, diagnostic};
   const detail = finish === 'length' ? '生成达到接口输出限制，但未返回最终正文' : finish === 'content_filter' || diagnostic.refusalPresent ? '接口拒绝生成或触发内容过滤' : diagnostic.toolsPresent ? '接口只返回工具调用，没有最终正文' : diagnostic.reasoningPresent ? '接口只返回思考内容，没有最终正文' : format === 'unknown' ? '接口返回格式不在已支持的正文结构中' : '接口返回空正文';
   return {diagnostic, error: detail+'；本次未提交，不会自动重试。可手动改用其他模型或酒馆当前连接'};

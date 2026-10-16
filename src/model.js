@@ -145,7 +145,7 @@ export class ModelConnection {
     try {
       const urls = endpoints(settings.baseUrl);
       for (let i = 0; i < urls.length; i++) {
-        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, ...thinkingOptions(settings), ...customParameters, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
+        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, ...(settings.model==='deepseek-v4.1-flash-free'?{tool_choice:'none'}:{}), ...thinkingOptions(settings), ...customParameters, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
         if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }

@@ -34,6 +34,6 @@ try{
  assert.equal(JSON.parse(calls[1].body.custom_include_headers).Authorization,'Bearer fake-generation-key');
  assert.equal(JSON.parse(calls[2].body.custom_include_body).thinking.type,'disabled');assert.equal(calls[2].body.model,'deepseek-flash');assert.equal(JSON.parse(calls[2].body.custom_include_body).extra_body.vendor.flag,true);assert.equal(JSON.parse(calls[2].body.custom_include_body).top_p,0.8);
  assert.equal(calls[1].body.model,'test-chat-model');assert.equal(external,0);assert.deepEqual(errors,[]);
- const evidence={version:'1.5.2',sameOriginRequests:3,discoveryAndGenerationPassed:true,keysAndModelsIndependent:true,customNestedParametersPassed:true,noBrowserCrossOriginRequests:true,errors,paidCalls:0,realHostAcceptance:false};
+ const evidence={version:'1.5.3',sameOriginRequests:3,discoveryAndGenerationPassed:true,keysAndModelsIndependent:true,customNestedParametersPassed:true,noBrowserCrossOriginRequests:true,errors,paidCalls:0,realHostAcceptance:false};
  await mkdir(process.env.WJWK_SCREENSHOTS,{recursive:true});await writeFile(resolve(process.env.WJWK_SCREENSHOTS,'evidence.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));
 }finally{await browser?.close();server.close();}

@@ -121,6 +121,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const typeAlias=Object.entries(ARCHIVE_TYPES).find(([,label])=>label===raw.type)?.[0];
     const recordAliases=creationConfig(power)?.records.filter(r=>r.label===raw.recordId)||[];
     raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
+    if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
     let type = raw.type; const name = text(raw.name, 200).trim();
     assert(Object.hasOwn(ARCHIVE_TYPES, type) && name, '档案类型或名称无效');
     const before = raw.archiveId ? power.archives?.[raw.archiveId] : (isTaishi(power)&&raw.recordId==='relation'?findRelation(power,raw.details):null)||findArchiveObject(power,name,raw.module,isTaishi(power)?raw.recordId:undefined);
@@ -185,7 +186,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  // Explicit recordId/details still pass normalizeSpecific; never guess a category.
  const unwrapped=unwrapArchiveInput(raw),config=creationConfig(power);
  const definition=config?.records.find(r=>r.id===unwrapped.recordId||r.label===unwrapped.recordId);
- const type=Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
+ const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
  const prepared=prepareArchiveFields({...unwrapped,type:type||unwrapped.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition);
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
  let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}

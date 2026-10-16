@@ -47,7 +47,7 @@ export class WukuApp {
     this.settings.catalog = withBuiltinCatalog(this.settings.catalog);
     this.model = new ModelConnection({ context: getContext, settings: () => this.settings, getKey: () => this.apiKey });
     this.chatHooks = []; this.destroyed = false;
-    this.runtimeLog=new RuntimeLog({scope:()=>{try{return scope(getContext()).key;}catch{return getContext()?.userHandle?'user:'+hash(getContext().userHandle):'';}},secret:()=>accountSecrets(),version:VERSION});
+    this.runtimeLog=new RuntimeLog({scope:()=>{try{return scope(getContext()).key;}catch{return getContext()?.userHandle?'user:'+hash(getContext().userHandle):'';}},secret:()=>[this.apiKey,...(this.requestSecrets||[]),...accountSecrets()],version:VERSION});
     this.store.onPersistence = report => {
       if (scope(getContext()).key !== report.chatKey) return;
       const ticket = this.runtimeLog.begin('档案保存诊断');
@@ -216,6 +216,9 @@ export class WukuApp {
       const actualPrompt=attachReferences(prompt,reference);
       referenceReport={books:reference.summary,characters:reference.characters,fingerprint:reference.fingerprint,at:Date.now(),status:'发送中'};this.referenceLast=referenceReport;
       this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,inputCharacters:prompt.inputCharacters||{},references:reference.summary});
+      let input;try{input=JSON.parse(prompt.user);}catch{}
+      const carried=input?.selectedRules||[input?.selectedRule||{id:input?.ownership?.currentPower?.id||snapshot.state.powers[this.powerId]?.id,name:input?.ownership?.currentPower?.name||snapshot.state.powers[this.powerId]?.name,fullText:input?.rules}];
+      this.runtimeLog?.step(logId,'携带规则',{rules:carried.filter(p=>typeof p?.fullText==='string').map(p=>({id:p.id,name:p.name,characters:p.fullText.length})),references:reference.summary,referenceCharacters:reference.characters,scope:'插件主动携带的规则与所选参考；不代表酒馆主正文的全部世界书'});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
       const send=async(p,plan)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial||taishiWorkflow));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
@@ -249,7 +252,7 @@ export class WukuApp {
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
       return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences||prompt.personReferences?{referencePacket:reference}:{}) };
-    } catch(error){error.requestStage ||= requestStage;if(error.jsonDiagnostic&&rawResponse!==undefined)this.runtimeLog?.failureResponse(logId,rawResponse);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
+    } catch(error){if(['查询期间剧情发生变化，本次旧结果已丢弃','准备世界书期间剧情已变化，请重试'].includes(error.message)){error.name='ContextChangedError';error.requestStage='context';}error.requestStage ||= requestStage;if(error.jsonDiagnostic&&rawResponse!==undefined)this.runtimeLog?.failureResponse(logId,rawResponse);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
     let names = []; try { names = await worldInfoNames(); } catch { /* JSON import is always available. */ }
@@ -536,14 +539,14 @@ export class WukuApp {
     this.ui.root?.querySelector('[data-goal]')?.focus();this.notice('已带入当前能力或物资，尚未调用模型或扣付。');
   }
   async sync(auto = false) {
-    if (auto && (this.busy || this.mainBusy || this.committing)) return;
+    if (auto && (this.busy || this.mainBusy || this.committing)) return {skipped:true,reason:'busy',message:'当前任务尚未结束，本次自动核对跳过，未调用AI'};
     await this.prepareResources();
     await this.pullRoleBalances();
     const snapshot = this.roleSnapshot(this.ensureStable({ model: true })); const powers = Object.values(snapshot.state.powers).filter(p => p.active && powerSpace(p)==='wuku');
-    if (!powers.length && auto) return;
+    if (!powers.length && auto) return {skipped:true,reason:'no_active_power',message:'没有启用的武库词条，本次未调用AI'};
     assert(powers.length, '请先接入词条'); assert(this.bridgeAvailable(), '主叙事同步接口不可用');
     const narrative = unsettledNarrative(snapshot.ctx.chat, snapshot.state, narrativeMessages(snapshot.ctx.chat, snapshot.state.syncCursor, snapshot.state.syncTail));
-    if (!narrative.some(m => !m.is_user)) { if (!auto) this.notice('没有尚未核算的新增模型叙事。'); return; }
+    if (!narrative.some(m => !m.is_user)) { const result={skipped:true,reason:'no_new_narrative',message:'没有尚未核对的新增正文，本次未调用AI'};if (!auto) this.notice(result.message); return result; }
     const boundResources = Object.keys(snapshot.state.roleLink?.bindings || {});
     const { data, captured, contextHash } = await this.query(reconcilePrompt({ powers, state: snapshot.state, narrative, names: this.names(snapshot.ctx), boundResources }), snapshot);
     assert(Array.isArray(data.events) && data.events.length <= 40, '核算返回的事件数量或格式无效');
@@ -551,8 +554,9 @@ export class WukuApp {
     const evidenceText = narrative.filter(m => !m.is_user).map(m => m.content).join('\n');
     const events = data.events.map(raw => { const p = snapshot.state.powers[key(raw.powerId)]; assert(p?.active && powerSpace(p)==='wuku', '核算指向未接入词条或仅统计模块'); const op = normalizeOperation(raw, p, snapshot.state, contextHash, { event: true, evidenceText }); assert(![...op.costs.filter(c => c.kind === 'resource'), ...op.effects.filter(e => e.type === 'resource_credit')].some(e => boundResources.includes(bindingKey(p.id, e.id))), '核算尝试再次增减已绑定 MVU 的余额，已阻止重复结算'); return op; });
     const seen = new Set(); for (const event of events) { const signature = stable([event.powerId, [...event.evidence].sort()]); assert(!seen.has(signature), '同一词条的同一剧情证据被重复结算，请重新核算'); seen.add(signature); }
-    this.pendingSync = { events, captured, contextHash, hashes: snapshot.hashes, cursor: snapshot.ctx.chat.length, message: String(data.message || ''), roleCapture: snapshot.roleView?.capture };
-    if (auto) await this.applySync(); else this.ui.showSync(events, snapshot.state, data.message);
+    this.pendingSync = { events, captured, contextHash, logId:this.logTask, hashes: snapshot.hashes, cursor: snapshot.ctx.chat.length, message: String(data.message || ''), roleCapture: snapshot.roleView?.capture };
+    if (auto) return await this.applySync();
+    this.ui.showSync(events, snapshot.state, data.message);return {pending:true,changed:events.length};
   }
   async applySync() {
     const pending = this.pendingSync; assert(pending, '核算预览已经失效'); this.ensureStable();
@@ -563,7 +567,10 @@ export class WukuApp {
       next.syncCursor = pending.cursor; next.historyAnchor = [...pending.hashes];
       delete next.syncTail;
     }, { captured: pending.captured, facts: pending.events.length > 0 });
-    this.pendingSync = null; this.ui.closeDialog(); this.refresh(); this.notice(`新增剧情核算完成：${pending.events.length} 项事件。${result.save?.note || ''}`);
+    this.runtimeLog?.step(pending.logId,'保存结果',{events:pending.events.length,verified:result.save?.verified===true});
+    this.runtimeLog?.finish(pending.logId,pending.events.length?'已保存':'未更新');
+    this.aiActivity?.confirmed(pending.logId,pending.events.length?'已确认并保存账本':'本批无新增变化，已确认核对进度');
+    this.pendingSync = null; this.ui.closeDialog(); this.refresh(); this.notice(`新增剧情核算完成：${pending.events.length} 项事件。${result.save?.note || ''}`);return {saved:true,changed:pending.events.length};
   }
   scheduleSync() {
     if (this.destroyed) return;
@@ -766,6 +773,7 @@ export class WukuApp {
         }, { captured: this.balancesCapture });
         this.ui.closeDialog(); this.refresh(); return this.notice(this.store.lastSave?.note || '余额已核对，当前账本没有变化');
       }
+      case 'adopt-balance-candidate': {const field=data.form?.elements.namedItem(data.input);assert(field&&!field.readOnly,'此余额不可直接修改');field.value=normAmount(data.value);return this.notice('已填入候选，确认并保存后才生效；不会再次扣款');}
       case 'save-baseline': {
         assert(!this.busy && !this.mainBusy, '请等待正在进行的生成结束'); const pId = this.baselinePowerId, v = data.values;
         assert(this.baselineCapture && pId === this.powerId, '起始事实表单已失效，请重新打开'); this.store.assertCapture(this.baselineCapture);
