@@ -21,6 +21,9 @@ export function parseModelResponse(data, status = 200) {
     contentType: typeof message?.content === 'string' ? 'string' : Array.isArray(message?.content) ? 'parts' : 'missing',
     textCharacters: content.length, reasoningPresent: Boolean(message?.reasoning_content || message?.reasoning || message?.thinking),
     toolsPresent: Boolean(message?.tool_calls?.length || message?.function_call), refusalPresent: Boolean(message?.refusal), providerError: Boolean(data?.error)};
+  const usage=data?.usage;
+  diagnostic.reasoningCharacters=typeof message?.reasoning_content==='string'?message.reasoning_content.length:0;
+  if(usage)diagnostic.usage=Object.fromEntries([['promptTokens',usage.prompt_tokens],['completionTokens',usage.completion_tokens],['reasoningTokens',usage.completion_tokens_details?.reasoning_tokens]].filter(([,v])=>Number.isFinite(v)&&v>=0));
   if (data?.error) return {diagnostic, error:'接口在成功响应中返回错误对象；本次未提交，请查看运行日志中的响应诊断'};
   if (content.trim()) return {content, diagnostic};
   const detail = finish === 'length' ? '生成达到接口输出限制，但未返回最终正文' : finish === 'content_filter' || diagnostic.refusalPresent ? '接口拒绝生成或触发内容过滤' : diagnostic.toolsPresent ? '接口只返回工具调用，没有最终正文' : diagnostic.reasoningPresent ? '接口只返回思考内容，没有最终正文' : format === 'unknown' ? '接口返回格式不在已支持的正文结构中' : '接口返回空正文';

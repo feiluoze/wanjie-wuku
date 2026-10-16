@@ -9,7 +9,9 @@ export function independentFetch(fetchImpl,url,options,requestHeaders){
  const discovery=options.method==='GET',suffix=discovery?'/models':'/chat/completions';
  if(!url.endsWith(suffix))throw new Error('独立接口路径无效');
  const generation=discovery?{}:JSON.parse(options.body);
- const body={...generation,chat_completion_source:'custom',custom_url:url.slice(0,-suffix.length),
+ // Forward all generation options via the host merge hook, including vendor-specific nested fields.
+ const {model,messages,stream,...vendor}=generation;
+ const body={...generation,...(Object.keys(vendor).length?{custom_include_body:JSON.stringify(vendor)}:{}),chat_completion_source:'custom',custom_url:url.slice(0,-suffix.length),
   // JSON is valid YAML. Explicit empty authorization prevents use of a saved host key.
   custom_include_headers:JSON.stringify({Authorization:options.headers?.Authorization||''})};
  return fetchImpl(discovery?'/api/backends/chat-completions/status':'/api/backends/chat-completions/generate',{

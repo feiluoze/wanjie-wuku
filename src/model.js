@@ -1,6 +1,8 @@
 import {transportFailure} from './api-fallback.js';
 import {backendRequestHeaders,independentFetch} from './model-transport.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
+import {customRequestParameters} from './model-parameters.js';
+import {thinkingOptions} from './model-thinking.js';
 import { parseModelResponse } from './model-response.js';
 import { ASYNC_MARKER, assert, clone, publicPower } from './core.js';
 
@@ -110,8 +112,9 @@ export class ModelConnection {
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }
   async request(prompt, { signal, connection, onResponse = () => {} } = {}) {
-    const report = value => { try { onResponse(value); } catch { /* Diagnostics never change a request outcome. */ } };
-    const settings = clone(connection?.settings || this.settings());
+    let diagnosticSettings,customParameters={};
+    const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
+    const settings = clone(connection?.settings || this.settings());diagnosticSettings=settings;
     assert(settings.mode !== 'off', '异步模型已关闭；可在连接设置中自行启用');
     const seconds = requestTimeoutSeconds(settings, connection?.task);
     if (settings.mode === 'st') {
@@ -132,6 +135,7 @@ export class ModelConnection {
     }
     assert(settings.mode === 'custom', '连接方式无效');
     assert(String(settings.model || '').trim(), '请填写独立连接使用的模型名');
+    try{customParameters=customRequestParameters(settings.customParameters);}catch(error){error.requestStage='preflight';throw error;}
     const backendHeaders=backendRequestHeaders(this.context);
     const controller = new AbortController(), abort = () => controller.abort();
     if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
@@ -141,7 +145,7 @@ export class ModelConnection {
     try {
       const urls = endpoints(settings.baseUrl);
       for (let i = 0; i < urls.length; i++) {
-        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
+        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, ...thinkingOptions(settings), ...customParameters, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
         if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }
@@ -152,7 +156,7 @@ export class ModelConnection {
           throw new Error('接口响应不是完整 JSON，可能返回了流式数据或被网关截断；本次未提交，不会自动重试');
         }
         const parsed = parseModelResponse(data,response.status ?? 200); report(parsed.diagnostic);
-        assert(!parsed.error,parsed.error); return parsed.content;
+        if(parsed.error){const error=new Error(parsed.error);error.requestStage='response';throw error;} return parsed.content;
       }
       throw new Error('接口路径不匹配');
     } catch (error) {

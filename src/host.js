@@ -307,7 +307,7 @@ export function installInjection({ context = getContext, store, onStatus = () =>
   const cleanup = [];
   const memoryMessages=new WeakSet();
   const observe = (kind, read) => { try { onRequest({ kind, read }); } catch { /* Diagnostics must never block generation. */ } };
-  const injection = () => { try { const c = context(); const state = store.read(); return buildInjection(state, { user: c.name1, character: c.name2, chat: injectionChat?injectionChat():c.chat }) + extraInjection(state); } catch { return ''; } };
+  const injection = (ruleQuery='') => { try { const c = context(); const state = store.read(); return buildInjection(state, { user: c.name1, character: c.name2, ruleQuery, chat: injectionChat?injectionChat():c.chat }) + extraInjection(state); } catch { return ''; } };
   const listen = (event, handler) => { if (!source?.on || !event) return false; source.on(event, handler); cleanup.push(() => source.removeListener?.(event, handler)); return true; };
   const chat = listen(types.CHAT_COMPLETION_PROMPT_READY, data => {
     if (data?.dryRun || !Array.isArray(data?.chat) || data.chat.some(m => (typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.filter(p => p.type === 'text').map(p => p.text).join('\n') : '').includes(ASYNC_MARKER))) return;
@@ -315,7 +315,9 @@ export function installInjection({ context = getContext, store, onStatus = () =>
       if (typeof message.content === 'string') message.content = stripVariableReceipts(message.content);
       else if (Array.isArray(message.content)) for (const part of message.content) if (part.type === 'text' && typeof part.text === 'string') part.text = stripVariableReceipts(part.text);
     }
-    const value = injection();
+    const latestUser=data.chat.findLast(m=>m.role==='user');
+    const ruleQuery=typeof latestUser?.content==='string'?latestUser.content:Array.isArray(latestUser?.content)?latestUser.content.filter(p=>p.type==='text').map(p=>p.text).join('\n'):'';
+    const value = injection(ruleQuery);
     // ST keeps a reference to this array after the event; assigning data.chat
     // would leave its actual request unchanged. Mutate the supplied array.
     for (let i = data.chat.length - 1; i >= 0; i--) if (data.chat[i].role==='system' && (String(data.chat[i].content || '').startsWith(`[${STATE_MARKER}]`)||memoryMessages.has(data.chat[i]))) data.chat.splice(i, 1);

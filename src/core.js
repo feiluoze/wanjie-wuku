@@ -24,7 +24,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.5.1';
+export const VERSION = '1.5.2';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -250,7 +250,7 @@ export function parseJSON(raw) {
   const failure=(message,error,source,incomplete=false)=>{const e=new Error(message),match=String(error?.message||'').match(/position\s+(\d+)/i),offset=match?Number(match[1]):(()=>{const stack=[];let q=false,escape=false;for(let i=0;i<source.length;i++){const c=source[i];if(q){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')q=false;continue;}if(c==='"')q=true;else if(c==='{'||c==='[')stack.push(c);else if(c==='}'||c===']'){if(stack.pop()!==(c==='}'?'{':'['))return i;}}return null;})();e.jsonDiagnostic={stage:'json_parse',kind:incomplete?'incomplete':'syntax',characters:source.length,offset,...(offset!==null?{line:source.slice(0,offset).split('\n').length,column:offset-(source.lastIndexOf('\n',offset-1)+1)+1}:{}),unterminatedString:incomplete&&quoted};return e;};
   try { return parseFinalJSON(clean); } catch { /* Locate a complete JSON object without evaluating code. */ }
   const start = clean.indexOf('{');
-  assert(start >= 0, '模型没有返回 JSON 对象');
+  if(start<0){const error=new Error('模型没有返回 JSON 对象');error.jsonDiagnostic={stage:'json_parse',kind:'missing_object',characters:clean.length};throw error;}
   let quoted = false, escaped = false, depth = 0;
   for (let i = start; i < clean.length; i++) {
     const c = clean[i];

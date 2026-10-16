@@ -7,13 +7,13 @@ import { archiveSource, saveArchive } from '../src/archives.js';
 import { memoryPlan } from '../src/archive-memory.js';
 import { WorkbenchUI } from '../src/ui.js';
 import { fixture } from './mvu-fixture.js';
-import {MMLC_GAMEPLAY} from '../src/mmlc-rulebook.js';
+import {MMLC_CORE_RULES} from '../src/mmlc-rulebook.js';
 function setup(){const p=createPower(MMLC_ENTRY),state=emptyState();state.powers[p.id]=p;return {p,state};}
 test('full gameplay rules inject without turning statistics into a currency ledger, including mixed powers',()=>{
- const {p,state}=setup();strict.equal(p.id,MMLC_ID);strict.deepEqual(p.resources,{});strict.ok(buildInjection(state).includes(MMLC_GAMEPLAY));
+ const {p,state}=setup();strict.equal(p.id,MMLC_ID);strict.deepEqual(p.resources,{});strict.ok(buildInjection(state).includes(MMLC_CORE_RULES));
  const other=createPower({id:'test',entryId:'1',book:'test',name:'深蓝',content:'按原文推演已有能力'});state.powers[other.id]=other;
  state.transactions.push({powerId:p.id,label:'漫漫长路统计记录',changes:[]});
- const injected=buildInjection(state);strict.match(injected,/深蓝/);strict.ok(injected.includes(MMLC_GAMEPLAY));strict.doesNotMatch(injected,/mmlc-statistics-v1/);strict.ok(!injected.includes(MMLC_ENTRY.content));
+ const injected=buildInjection(state);strict.match(injected,/深蓝/);strict.ok(injected.includes(MMLC_CORE_RULES));strict.doesNotMatch(injected,/mmlc-statistics-v1/);strict.ok(!injected.includes(MMLC_ENTRY.content));
 });
 test('statistics cannot become executable operations or story settlement',()=>{
  const {p,state}=setup();strict.throws(()=>normalizeOperation({},p,state,''),/只统计/);

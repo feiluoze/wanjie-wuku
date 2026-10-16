@@ -16,13 +16,13 @@ try{
   await page.goto(`http://127.0.0.1:${server.address().port}/tests/preview.html`);
   await page.evaluate(async()=>{const a=wanjie_wuku_general_instance;await a.action('add-mmlc',{});a.settings.mode='st';a.ui.setOpen(true);window.mockCalls=0;});
   const ruleInjection=await page.evaluate(async()=>{
-   const c=SillyTavern.getContext(),{MMLC_GAMEPLAY,MMLC_BODY_RULES_MARKER}=await import('/src/mmlc-rulebook.js');
+   const c=SillyTavern.getContext(),{MMLC_CORE_RULES,MMLC_BODY_RULES_MARKER}=await import('/src/mmlc-rulebook.js');
    const request={chat:[{role:'user',content:'继续修行'}]};
    await c.eventSource.emit(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,request);
    await c.eventSource.emit(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,request);
-   const packet=request.chat.map(m=>m.content).join('\n'),expected=MMLC_GAMEPLAY.replaceAll('{{user}}',c.name1).replaceAll('{{char}}',c.name2);
+   const packet=request.chat.map(m=>m.content).join('\n'),expected=MMLC_CORE_RULES.replaceAll('{{user}}',c.name1).replaceAll('{{char}}',c.name2);
    const plain={prompt:'继续故事'};await c.eventSource.emit(c.eventTypes.GENERATE_AFTER_COMBINE_PROMPTS,plain);
-   return {allRules:packet.includes(expected),once:packet.split(`[${MMLC_BODY_RULES_MARKER}]`).length-1,plainAllRules:plain.prompt.includes(expected)};
+   return {allRules:packet.includes(expected)&&!packet.includes("完整21篇自动发送")&&packet.length<12000,once:packet.split(`[${MMLC_BODY_RULES_MARKER}]`).length-1,plainAllRules:plain.prompt.includes(expected)};
   });
   assert.deepEqual(ruleInjection,{allRules:true,once:1,plainAllRules:true});
   await page.locator('.wjwk-design-actions [data-action="mmlc-initial"]').click();

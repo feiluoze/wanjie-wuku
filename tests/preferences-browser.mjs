@@ -28,15 +28,21 @@ try{
   assert.equal(await page.locator('#wjwk-root').getAttribute('data-theme'),theme);
  }
  await page.locator('[data-action="settings"]').click();
+ const paramsA=JSON.stringify({thinking:{type:'disabled'},top_p:0.9}),paramsB=JSON.stringify({reasoning_effort:'low'});
  const create=async(name,url,key,model)=>{
   await page.locator('[data-action="new-api-profile"]').click();
   await page.locator('[name="profileName"]').fill(name);await page.locator('[name="baseUrl"]').fill(url);
   await page.locator('[name="apiKey"]').fill(key);await page.locator('[name="model"]').fill(model);
+  await page.locator('details').filter({has:page.locator('select[name="thinkingMode"]')}).locator('summary').click();
+  await page.locator('[name="thinkingMode"]').selectOption(name==='深度推演'?'on':'off');
+  await page.locator('[data-custom-parameters] > summary').click();
+  await page.locator('[name="customParameters"]').fill(name==='深度推演'?paramsB:paramsA);
   await page.locator('[data-action="save-api-profile"]').click();await page.waitForFunction(()=>document.querySelector('.wjwk-modal').hidden);
  };
  await create('日常整理','https://a.example.test/v1','synthetic-key-a','model-a');
  await page.locator('[data-action="settings"]').click();
  await page.locator('[data-action="new-api-profile"]').click();
+ assert.equal(await page.locator('[name="customParameters"]').inputValue(),'','new profile clears old parameters');
  assert.equal(await page.evaluate(()=>{const a=wanjie_wuku_general_instance;return a.apiKey==='synthetic-key-a' && a.settings.model==='model-a';}),true,'new draft does not change running connection');
  await page.locator('[data-action="dialog-close"]').click();await page.locator('[data-action="settings"]').click();
  await create('深度推演','https://b.example.test/v1','synthetic-key-b','model-b');
@@ -45,6 +51,8 @@ try{
  await page.locator('[data-api-profile]').selectOption(a);
  await page.waitForFunction(()=>document.querySelector('[name="model"]').value==='model-a');
  assert.equal(await page.evaluate(()=>wanjie_wuku_general_instance.apiKey==='synthetic-key-a'),true);
+ assert.deepEqual(JSON.parse(await page.locator('[name="customParameters"]').inputValue()),JSON.parse(paramsA));
+ assert.equal(await page.locator('[name="thinkingMode"]').inputValue(),'off');
  assert.equal(await page.locator('[name="apiKey"]').inputValue(),'');
  assert.ok(!(await page.locator('.wjwk-modal').innerHTML()).includes('synthetic-key'));
  assert.equal(await page.evaluate(async()=>{const {getSettings,getConnectionProfiles}=await import('/src/host.js');return !JSON.stringify([getSettings(),getConnectionProfiles(),wanjie_wuku_general_instance.store.read()]).includes('synthetic-key');}),true);
@@ -55,6 +63,8 @@ try{
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.evaluate(()=>{const d=document.querySelector('.wjwk-dialog');return d.scrollWidth<=d.clientWidth+1;}),true);
  await page.screenshot({path:resolve(out,'api-profiles-mobile.png')});
+ await page.locator('[data-custom-parameters] > summary').click();await page.locator('[name="customParameters"]').scrollIntoViewIfNeeded();
+ await page.screenshot({path:resolve(out,'custom-parameters-mobile.png')});
  await page.locator('[data-action="dialog-close"]').click();
  await page.evaluate(async()=>{
   const {createPower,importBook}=await import('/src/core.js'),{saveArchive,archiveSource}=await import('/src/archives.js');
@@ -71,5 +81,5 @@ try{
  await page.locator('[data-legacy-management]>summary').click();await page.locator('[data-legacy-management]>summary').click();
  assert.equal(await page.getByText('已保留的旧内容',{exact:true}).count(),1);
  assert.deepEqual(errors,[]);
- console.log('PASS: theme button and reload; two named API schemes, independent keys, switching, delete shortcut, no credential in UI metadata/chat; new drafts do not alter running connection; lazy legacy records load without archive duplication; 390px dialog. Mock only.');
+ console.log('PASS: theme button and reload; two named API schemes, independent keys, switching, delete shortcut, no credential in UI metadata/chat; new drafts do not alter running connection; lazy legacy records load without archive duplication; 390px dialog; custom nested parameters save, reload, switch and clear. Mock only.');
 }finally{await browser?.close();server.close();}

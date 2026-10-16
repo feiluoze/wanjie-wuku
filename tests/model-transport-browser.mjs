@@ -24,14 +24,16 @@ try{
   const m=new ModelConnection({context:()=>({getRequestHeaders:()=>({'X-CSRF-Token':'test-local-csrf'})}),settings:()=>({mode:'custom',baseUrl:'https://provider.invalid/v1',model:'test-chat-model',timeoutSeconds:10}),getKey:()=> 'fake-generation-key'});
   const models=await m.listModels({baseUrl:'https://provider.invalid/v1',apiKey:'fake-draft-key'});
   const content=await m.request({system:'内部格式',user:'本次事实'});
+  m.settings=()=>({mode:'custom',baseUrl:'https://provider.invalid/v1',model:'deepseek-flash',timeoutSeconds:10,thinkingMode:'on',customParameters:JSON.stringify({thinking:{type:'disabled'},reasoning_effort:'low',top_p:0.8,extra_body:{vendor:{flag:true}}})});await m.request({system:'格式',user:'事实'});
   return {models,content,settingsUnchanged:JSON.stringify(ctx.extensionSettings)===before};
  });
- assert.deepEqual(result,{models:['test-chat-model'],content:'{"changes":[]}',settingsUnchanged:true});assert.equal(calls.length,2);
+ assert.deepEqual(result,{models:['test-chat-model'],content:'{"changes":[]}',settingsUnchanged:true});assert.equal(calls.length,3);
  assert.equal(calls[0].path,'/api/backends/chat-completions/status');assert.equal(calls[1].path,'/api/backends/chat-completions/generate');
  for(const call of calls){assert.equal(call.method,'POST');assert.equal(call.csrf,'test-local-csrf');assert.equal(call.body.custom_url,'https://provider.invalid/v1');}
  assert.equal(JSON.parse(calls[0].body.custom_include_headers).Authorization,'Bearer fake-draft-key');
  assert.equal(JSON.parse(calls[1].body.custom_include_headers).Authorization,'Bearer fake-generation-key');
+ assert.equal(JSON.parse(calls[2].body.custom_include_body).thinking.type,'disabled');assert.equal(calls[2].body.model,'deepseek-flash');assert.equal(JSON.parse(calls[2].body.custom_include_body).extra_body.vendor.flag,true);assert.equal(JSON.parse(calls[2].body.custom_include_body).top_p,0.8);
  assert.equal(calls[1].body.model,'test-chat-model');assert.equal(external,0);assert.deepEqual(errors,[]);
- const evidence={version:'1.5.1',sameOriginRequests:2,discoveryAndGenerationPassed:true,keysAndModelsIndependent:true,noBrowserCrossOriginRequests:true,errors,paidCalls:0,realHostAcceptance:false};
+ const evidence={version:'1.5.2',sameOriginRequests:3,discoveryAndGenerationPassed:true,keysAndModelsIndependent:true,customNestedParametersPassed:true,noBrowserCrossOriginRequests:true,errors,paidCalls:0,realHostAcceptance:false};
  await mkdir(process.env.WJWK_SCREENSHOTS,{recursive:true});await writeFile(resolve(process.env.WJWK_SCREENSHOTS,'evidence.json'),JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence));
 }finally{await browser?.close();server.close();}

@@ -1,3 +1,4 @@
+import {archiveContextWindow} from './archive-context.js';
 import {archiveRepairPrompt,applyArchiveRepairResponse} from './archive-repair.js';
 import {taishiFocus} from './taishi-continuity.js';
 import {inspectArchiveList,REVIEW_SEGMENT_SIZE,MAX_RETURNED_CHANGES} from './archive-result-list.js';
@@ -56,13 +57,13 @@ export function archiveSources(chat, state, power, { rescan = false, automatic =
 }
 export function archivePrompt(power, sources, chat, playerNote = '', { automatic = false, terminalOrders = [], creationItems = [], state = {}, setupReferences = false, referenceBatch = null, skipSetupPeople = false, taishiDraft = null, taishiEvolution = null } = {}) {
   const depth = automatic ? normalizeArchiveAuto(power.archiveAuto).context : 0, first = sources[0]?.index ?? 0;
-  const context = depth ? chat.slice(0,first).map((m,index)=>({index,content:archiveReadText(m.mes??m.content??''),is_user:m.is_user,is_system:m.is_system && m.extra?.bbs_hidden !== true})).filter(m=>!m.is_user&&!m.is_system&&m.content.trim()).slice(-depth).map(({index,content})=>({index,content})) : [];
+  const context = depth ? archiveContextWindow(chat,first,depth) : [];
 
   const records=Object.values(power.archives||{}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat));
   const focus=isTaishi(power)&&!setupReferences&&!taishiDraft&&!(!taishiEvolution&&playerNote)?taishiFocus(power,records,[...sources.map(s=>s.content),...context.map(s=>s.content),playerNote].join('\n'),{worldId:taishiEvolution?.worldId,evolution:Boolean(taishiEvolution)}):null;
   const payload = { ownership:ownershipContext(state,power), task: '核对经营档案变化', rules: power.rules, fieldTypes: ARCHIVE_FIELDS, statuses: ARCHIVE_STATUS,
     staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: selectArchiveInput(records,[playerNote,...sources.map(s=>s.content),...context.map(s=>s.content)].join('\n'),{compact:!setupReferences&&!taishiDraft&&!taishiEvolution,...(focus?{focusIds:focus.ids}:{})}), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
-    terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
+    terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, contextPolicy:'context仅辅助理解，合计最多6000字符、每条最多2000字符，可能为尾部节选；不能据此新增成果或将遗漏视为不存在。逐层核对以完整sources为准。', playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
   if(isTaishi(power)&&power.taishiWorldStructure)payload.worldStructure=worldStructurePolicy(power);
   if(skipSetupPeople){payload.recordSchemas=payload.recordSchemas.filter(r=>r.id!=='companion');payload.personImport='玩家本次只整理世界设定；不创建或更新人物，不从地域正文中的人名建立人物档案，也不建立涉及人物的关系。人物文档之后单独整理。';}
   if(setupReferences){

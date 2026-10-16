@@ -204,7 +204,7 @@ export class WukuApp {
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
     const contextHash = hash(stable(snapshot.hashes));
-    let referenceReport,requestStage='preflight';const logId=this.logTask;
+    let referenceReport,rawResponse,requestStage='preflight';const logId=this.logTask;
     this.runtimeLog?.step(logId,'准备请求',{task,profile:connection.profileName,mode:connection.settings.mode,model:connection.settings.model||'酒馆当前连接',revision:captured.revision});
     try {
       this.aiActivity?.phase('准备附加世界书');
@@ -235,11 +235,11 @@ export class WukuApp {
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         this.store.assertCapture(captured);
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
-        try{return parseJSON(reply);}catch(error){if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',{...error.jsonDiagnostic,task:role});throw error;}
+        try{return parseJSON(reply);}catch(error){error.requestStage='response';this.runtimeLog?.failureResponse(logId,reply,role);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',{...error.jsonDiagnostic,task:role});throw error;}
       };
       requestStage='transport';
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
-      requestStage='response';
+      requestStage='response';rawResponse=raw;
       if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
       const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
@@ -249,7 +249,7 @@ export class WukuApp {
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
       return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences||prompt.personReferences?{referencePacket:reference}:{}) };
-    } catch(error){error.requestStage ||= requestStage;if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
+    } catch(error){error.requestStage ||= requestStage;if(error.jsonDiagnostic&&rawResponse!==undefined)this.runtimeLog?.failureResponse(logId,rawResponse);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
     let names = []; try { names = await worldInfoNames(); } catch { /* JSON import is always available. */ }
