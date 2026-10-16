@@ -1,6 +1,26 @@
 // Input compatibility only. Never changes persisted schemas or guesses ownership.
 const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+// Translate an echoed storage envelope only when its adapter and category are declared.
+export function normalizeArchiveEnvelope(input,config){
+ if(!object(input)||!Object.hasOwn(input,'specific'))return input;
+ const spec=input.specific;
+ const fail=message=>{throw Error(message);};
+ if(!object(spec)||!object(spec.fields)||!config||spec.adapterId!==config.id||!config.records.some(r=>r.id===spec.recordId))return fail('专用统计存储结构与当前适配声明不符');
+ if(!Object.keys(spec).every(k=>['adapterId','recordId','fields','version','label','labels'].includes(k)))return fail('专用统计存储结构包含不允许的操作字段');
+ if(input.recordId!==undefined&&input.recordId!==spec.recordId)return fail('专用统计分类与存储结构冲突');
+ const raw={...input,recordId:spec.recordId};delete raw.specific;
+ if(raw.details!==undefined){
+  if(!object(raw.details))return fail('专用统计字段结构无效');
+  if(object(raw.details.fields)){
+   const d=raw.details;
+   if(!Object.keys(d).every(k=>['adapterId','recordId','fields','version','label','labels'].includes(k))||(d.adapterId!==undefined&&d.adapterId!==config.id)||(d.recordId!==undefined&&d.recordId!==spec.recordId))return fail('专用统计字段结构与存储结构冲突');
+   raw.details=d.fields;
+  }
+  for(const [key,value]of Object.entries(raw.details))if(Object.hasOwn(spec.fields,key)&&!same(spec.fields[key],value))return fail('重复字段内容冲突：'+key+'；请核对');
+ }
+ raw.details={...spec.fields,...raw.details};return raw;
+}
 export function unwrapArchiveInput(input){
  if(!object(input))return input;
  const raw={...input};let details=raw.details;
