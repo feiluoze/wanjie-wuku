@@ -15,7 +15,7 @@ const setup=()=>{const p=createPower(MMLC_ENTRY),s=emptyState();s.powers[p.id]=p
 test('new rule classification is in the dedicated preset and uses the existing eight schemas only',()=>{
  const {p}=setup(),prompt=archivePrompt(p,[],[]),input=JSON.parse(prompt.user);
  assert.match(prompt.system,/漫漫长路分类与字段映射/);assert.match(prompt.system,/纯图纸即使名称含玄黄舰也不新建fleet实舰/);assert.match(prompt.system,/编队总量是汇总口径/);assert.match(prompt.system,/旧存量不作为新收益累加/);
- assert.equal(input.recordSchemas.length,8);assert.equal(MMLC_CONFIG.records.reduce((n,r)=>n+r.fields.length,0),48);assert(prompt.system.length<14000,'classification must not send the full rulebook');
+ assert.equal(input.recordSchemas.length,8);assert.equal(MMLC_CONFIG.records.reduce((n,r)=>n+r.fields.length,0),51);assert(prompt.system.length<14000,'classification must not send the full rulebook');
  const ordinary=createPower({id:'ordinary-test',entryId:'ordinary-test',name:'普通能力',book:'测试',content:'只记录已有物品'});assert.doesNotMatch(archivePrompt(ordinary,[],[]).system,/漫漫长路分类与字段映射/);
 });
 

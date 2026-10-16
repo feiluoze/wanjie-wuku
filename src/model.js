@@ -1,4 +1,5 @@
 import {transportFailure} from './api-fallback.js';
+import {backendRequestHeaders,independentFetch} from './model-transport.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
 import { parseModelResponse } from './model-response.js';
 import { ASYNC_MARKER, assert, clone, publicPower } from './core.js';
@@ -82,22 +83,29 @@ export class ModelConnection {
   constructor({ context, settings, getKey, fetchImpl = globalThis.fetch }) { this.context = context; this.settings = settings; this.getKey = getKey; this.fetchImpl = fetchImpl; this.rawPending = false; }
   async listModels({ baseUrl, apiKey = this.getKey(), timeoutSeconds = 20 } = {}, { signal } = {}) {
     const urls = modelEndpoints(baseUrl), controller = new AbortController(), abort = () => controller.abort();
+    const backendHeaders=backendRequestHeaders(this.context);
     if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(abort, bounded(timeoutSeconds, 5, 30, 20) * 1000);
     const headers = { Accept: 'application/json' }; if (String(apiKey || '').trim()) headers.Authorization = `Bearer ${String(apiKey).trim()}`;
     try {
       for (let i = 0; i < urls.length; i++) {
-        const response = await this.fetchImpl(urls[i], { method: 'GET', headers, signal: controller.signal });
+        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'GET', headers, signal: controller.signal },backendHeaders);
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
+        if(backendHeaders&&!response.ok)throw new Error(`酒馆转发接口失败（HTTP ${response.status}）：${[404,405].includes(response.status)?'当前酒馆版本缺少独立API转发接口，请更新酒馆或沿用当前连接':[401,403].includes(response.status)?'请检查酒馆登录与会话状态':'请检查酒馆后端与网络连接'}；尚未获取模型列表`);
         const reasons = { 401: 'Key 无效或尚未填写', 403: '此 Key 没有读取模型列表的权限', 404: '此接口未提供 /models 列表', 405: '此接口不支持获取模型列表', 429: '接口正在限流，请稍后刷新' };
         assert(response.ok, `获取模型失败（HTTP ${response.status}）：${reasons[response.status] || '接口暂不可用'}；可以保留原模型或手动填写`);
         let data; try { data = await response.json(); } catch { throw new Error('模型列表不是有效 JSON；请核对 API 地址'); }
+        if(backendHeaders&&data?.error){
+          // Discovery is read-only; a bare URL may need /v1. Never replay generation here.
+          if(i+1<urls.length)continue;
+          throw new Error('酒馆已接收请求，但未能读取上游模型列表；请核对 API 地址、Key、模型权限及酒馆服务器网络。该接口也可能不支持模型列表，可手填模型名。');
+        }
         return normalizeModelList(data);
       }
       throw new Error('模型列表路径不匹配');
     } catch (error) {
       if (controller.signal.aborted) throw new Error(signal?.aborted ? '已取消获取模型列表' : '获取模型列表超时，可稍后刷新或手动填写');
-      if (error instanceof TypeError) throw new Error('无法读取模型列表，请核对地址、网络和接口跨域设置；也可手动填写模型名');
+      if (error instanceof TypeError) throw new Error(backendHeaders?'无法连接酒馆的模型列表转发接口，请检查酒馆服务与登录状态；也可手动填写模型名':'无法读取模型列表，请核对地址、网络和接口跨域设置；也可手动填写模型名');
       throw error;
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }
@@ -124,6 +132,7 @@ export class ModelConnection {
     }
     assert(settings.mode === 'custom', '连接方式无效');
     assert(String(settings.model || '').trim(), '请填写独立连接使用的模型名');
+    const backendHeaders=backendRequestHeaders(this.context);
     const controller = new AbortController(), abort = () => controller.abort();
     if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(abort, seconds * 1000);
@@ -132,7 +141,7 @@ export class ModelConnection {
     try {
       const urls = endpoints(settings.baseUrl);
       for (let i = 0; i < urls.length; i++) {
-        const response = await this.fetchImpl(urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) });
+        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
         if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }
@@ -148,7 +157,7 @@ export class ModelConnection {
       throw new Error('接口路径不匹配');
     } catch (error) {
       if (controller.signal.aborted) {if(signal?.aborted)throw new DOMException('查询已取消，本次没有改变账目','AbortError');throw transportFailure('timeout','查询超时，本次没有改变账目');}
-      if (error instanceof TypeError) throw transportFailure('network','无法连接模型接口，请核对地址、网络及浏览器跨域许可');
+      if (error instanceof TypeError) throw transportFailure('network',backendHeaders?'无法连接酒馆的独立API转发接口，请检查酒馆服务与网络；未自动改走浏览器直连':'无法连接模型接口，请核对地址、网络及浏览器跨域许可');
       throw error;
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }

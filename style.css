@@ -544,4 +544,39 @@
 @media(max-width:600px){.wjwk .wjwk-structure-options{grid-template-columns:1fr}.wjwk .wjwk-report-grid{grid-template-columns:1fr}.wjwk .wjwk-report-masthead{grid-template-columns:44px minmax(0,1fr);gap:12px;padding-bottom:18px}.wjwk .wjwk-report-monogram{width:44px;height:54px;font-size:24px}.wjwk .wjwk-report-masthead h3{font-size:23px}.wjwk .wjwk-report-section{padding:16px}.wjwk .wjwk-report-section h4{font-size:17px}}
 
 /* 武库 1.5：使用现有主题色，简明结算与分类资产。 */
+.wjwk .wjwk-mmlc-masthead{padding:0 0 18px;margin:0 0 22px;border-bottom:1px solid var(--wk-line)}
+.wjwk .wjwk-mmlc-masthead>header{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.wjwk .wjwk-mmlc-masthead h1{font:28px/1.4 SimSun,serif;margin:5px 0 14px;color:var(--wk-text)}
+.wjwk .wjwk-mmlc-masthead small{font-size:11px;color:var(--wk-muted)}
+.wjwk .wjwk-mmlc-masthead>header details{font-size:12px;max-width:45%}
+.wjwk .wjwk-mmlc-status{display:grid;grid-template-columns:minmax(0,1fr) minmax(230px,1fr);gap:18px;align-items:center}
+.wjwk .wjwk-mmlc-status .wjwk-auto-controls{margin:0;padding:0;border:0}
+.wjwk .wjwk-design-actions.wjwk-mmlc-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 0;padding:0;border:0}
+.wjwk .wjwk-mmlc-actions>button{width:auto;min-height:40px;padding:10px 16px;font-size:13px;display:inline-flex;align-items:center;gap:8px}
+.wjwk .wjwk-mmlc-actions>button:before,.wjwk .wjwk-mmlc-actions>button:after{display:none}
+.wjwk .wjwk-mmlc-actions>[data-action="mmlc-rulebook"]{background:transparent!important;border-color:transparent;box-shadow:none}
+.wjwk .wjwk-mmlc-brief-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:0 0 24px}
+.wjwk .wjwk-mmlc-brief-panel{min-width:0;padding:18px 0;border-top:2px solid var(--wk-line)}
+.wjwk .wjwk-mmlc-brief-panel[data-mmlc-brief="knowledge"]{border-color:var(--wk-gold,var(--wk-cyan))}
+.wjwk .wjwk-mmlc-brief-panel[data-mmlc-brief="ongoing"]{border-color:var(--wk-cyan)}
+.wjwk .wjwk-mmlc-brief-panel h2{font-size:20px;margin:0 0 14px}
+.wjwk .wjwk-mmlc-brief-panel .wjwk-mmlc-records{grid-template-columns:minmax(0,1fr)}
+.wjwk .wjwk-mmlc-brief-record{min-width:0;border:0;border-bottom:1px solid var(--wk-line);border-radius:0;background:transparent;padding:12px 0}
+.wjwk .wjwk-mmlc-brief-record header{display:flex;gap:12px;justify-content:space-between;align-items:baseline}
+.wjwk .wjwk-mmlc-brief-record header strong{overflow-wrap:anywhere;font-size:17px}
+.wjwk .wjwk-mmlc-brief-record header span{flex-shrink:0;color:var(--wk-muted);font-size:12px}
+.wjwk .wjwk-mmlc-brief-record dl{margin:14px 0;display:grid;gap:12px}
+.wjwk .wjwk-mmlc-brief-record dt{font-size:11px;letter-spacing:.06em;color:var(--wk-muted)}
+.wjwk .wjwk-mmlc-brief-record dd{margin:4px 0 0;font-size:14px;line-height:1.8;white-space:pre-line;overflow-wrap:anywhere}
+.wjwk .wjwk-mmlc-brief-record footer{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:12px}
+.wjwk .wjwk-mmlc-chain>div{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.wjwk .wjwk-mmlc-chain small{flex-basis:100%;color:var(--wk-muted)}
+.wjwk .wjwk-mmlc-directory{border-top:1px solid var(--wk-line);padding:16px 0;margin:12px 0}
+.wjwk .wjwk-mmlc-directory .wjwk-mmlc-grid{margin-top:16px}
+.wjwk .wjwk-mmlc-commissions p{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
+.wjwk .wjwk-mmlc-commissions small,.wjwk .wjwk-mmlc-kicker{color:var(--wk-muted)}
+.wjwk .wjwk-mmlc-initial-list p{padding:12px 0;border-bottom:1px solid var(--wk-line)}
+.wjwk .wjwk-mmlc-initial-list span{display:block;margin-top:6px;font-size:13px;line-height:1.8;color:var(--wk-muted);overflow-wrap:anywhere}
+@media(max-width:700px){.wjwk .wjwk-mmlc-brief-grid{grid-template-columns:minmax(0,1fr);gap:12px}.wjwk .wjwk-mmlc-brief-record footer .wjwk-link{min-height:36px}.wjwk .wjwk-mmlc-brief-panel{padding-top:14px}}
+@media(max-width:700px){.wjwk .wjwk-mmlc-status{grid-template-columns:minmax(0,1fr);gap:14px}.wjwk .wjwk-mmlc-masthead h1{font-size:25px}.wjwk .wjwk-mmlc-status .wjwk-auto-controls{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px 12px}.wjwk .wjwk-mmlc-status .wjwk-auto-controls>small{flex-basis:100%}.wjwk .wjwk-design-actions.wjwk-mmlc-actions{gap:6px}.wjwk .wjwk-mmlc-actions>button{padding:9px 11px;min-height:38px;font-size:12px}}
 .wjwk-inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px}.wjwk-inventory-group{margin-bottom:24px}.wjwk-settlement-stages{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.wjwk-wuku-settlements{margin:0 0 24px;padding:18px;border:1px solid var(--wk-line);border-radius:12px;background:var(--wk-card)}.wjwk-wuku-settlements article+article{margin-top:14px;padding-top:14px;border-top:1px solid var(--wk-line)}.wjwk-wuku-settlements p{margin:8px 0;overflow-wrap:anywhere}.wjwk-inventory-grid .wjwk-asset{margin:0;min-width:0}.wjwk-inventory-grid .wjwk-asset>div{gap:10px;overflow-wrap:anywhere}

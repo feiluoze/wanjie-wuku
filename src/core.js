@@ -19,11 +19,12 @@ import { validateAdapterBinding } from './adapters.js';
 // Original implementation. No third-party code or artwork is embedded.
 import { normalizeArchiveRange, normalizeArchiveAuto } from './archive-scope.js';
 import { isMmlc, MMLC_ID, MMLC_MODULES } from './mmlc.js';
+import {mmlcBodyRules} from './mmlc-rulebook.js';
 import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.5.0';
+export const VERSION = '1.5.1';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -386,8 +387,10 @@ export function publicPower(power, chat = null) {
 }
 export function buildInjection(state, names = {}) {
   const powers = Object.values(state.powers).filter(p => !isMmlc(p) && (!isTaishi(p) || p.active)), enabled = powers.filter(p => p.active);
-  if (!powers.length) return '';
-  return `[${STATE_MARKER}]\n这是万界武库插件已保存的当前事实，适用人物：${names.user || '{{user}}'}。版本：${state.revision}。\n已完成操作无需再次扣付、领取或重新裁定。按所得完整规格描写其实际效力。过去面板与本记录冲突时，以本记录及其后真正新增的事实为准。插件接入暂停不回收永久所得。\n本轮新发生的金手指收益可在原有 WJWK 回执中展示，作为待核对的新事件；不要把已经记账的操作再次当成新收益。\n周期 pending 仅表示待正文处理；recorded 是玩家核对正文已结算。模拟 available 为候选，selected 为玩家选择且尚未到账，received 为玩家核对正文已到账。waiting 条件未满足，不可兑现。只承接已启用词条的有效选择，严格按原规则和现实条件处理；登记不授予额外次数或收益，不因插件选择而默认已发奖。\n当前档案：\n${JSON.stringify(powers.map(p => publicPower(p, names.chat)))}\n近期已完成记录：\n${JSON.stringify(state.transactions.filter(t => t.type !== 'workflow' && t.powerId !== MMLC_ID && (!state.powers[t.powerId] || !isTaishi(state.powers[t.powerId]) || state.powers[t.powerId].active)).slice(-8).map(t => ({ label: t.label, powerId: t.powerId, changes: t.changes, atMessage: t.atMessage })))}\n当前接入的完整规则（保留原词条能力与边界）：\n${enabled.map(p => `【${p.name}】\n${p.rules.replaceAll('{{user}}', names.user || '{{user}}').replaceAll('{{char}}', names.character || '{{char}}')}`).join('\n\n')}\n[/${STATE_MARKER}]`;
+  const mmlcRules=mmlcBodyRules(state,names);
+  // Keep the existing envelope so repeated host assembly replaces this packet.
+  if (!powers.length) return mmlcRules?`[${STATE_MARKER}]\n${mmlcRules}\n[/${STATE_MARKER}]`:'';
+  return `[${STATE_MARKER}]\n这是万界武库插件已保存的当前事实，适用人物：${names.user || '{{user}}'}。版本：${state.revision}。\n已完成操作无需再次扣付、领取或重新裁定。按所得完整规格描写其实际效力。过去面板与本记录冲突时，以本记录及其后真正新增的事实为准。插件接入暂停不回收永久所得。\n本轮新发生的金手指收益可在原有 WJWK 回执中展示，作为待核对的新事件；不要把已经记账的操作再次当成新收益。\n周期 pending 仅表示待正文处理；recorded 是玩家核对正文已结算。模拟 available 为候选，selected 为玩家选择且尚未到账，received 为玩家核对正文已到账。waiting 条件未满足，不可兑现。只承接已启用词条的有效选择，严格按原规则和现实条件处理；登记不授予额外次数或收益，不因插件选择而默认已发奖。\n当前档案：\n${JSON.stringify(powers.map(p => publicPower(p, names.chat)))}\n近期已完成记录：\n${JSON.stringify(state.transactions.filter(t => t.type !== 'workflow' && t.powerId !== MMLC_ID && (!state.powers[t.powerId] || !isTaishi(state.powers[t.powerId]) || state.powers[t.powerId].active)).slice(-8).map(t => ({ label: t.label, powerId: t.powerId, changes: t.changes, atMessage: t.atMessage })))}\n当前接入的完整规则（保留原词条能力与边界）：\n${enabled.map(p => `【${p.name}】\n${p.rules.replaceAll('{{user}}', names.user || '{{user}}').replaceAll('{{char}}', names.character || '{{char}}')}`).join('\n\n')}\n${mmlcRules}\n[/${STATE_MARKER}]`;
 }
 export function validateState(data) {
   validateAIWorldbooks(data?.aiWorldbooks);

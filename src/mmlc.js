@@ -4,7 +4,7 @@ export const isMmlc = power => power?.id === MMLC_ID;
 export const MMLC_MODULES = Object.freeze([
  { id: 'land', title: '随身福地', hint: '福地环境、道场设施与洞天', pattern: /福地|道场|洞天|反应堆|道妙塔|灵田|地脉/ },
  { id: 'sect', title: '宗门', hint: '弟子、传承、组织与部署', pattern: /宗门|弟子|内门|外门|门人|道统|传承|掌门/ },
- { id: 'arts', title: '功法', hint: '功法、法式与已验证的本领', pattern: /功法|法式|参真经|剑诀|剑法|遁法/ },
+ { id: 'arts', title: '万法图谱', hint: '共同原理、已验证的方法与具体用途', pattern: /功法|法式|参真经|剑诀|剑法|遁法/ },
  { id: 'body', title: '本体修行', hint: '境界、肉身与神魂变化', pattern: /境界|修为|筑基|金丹|元婴|肉身|神魂|本体/ },
  { id: 'items', title: '法器丹药', hint: '法器、剑器、丹药与造物', pattern: /法器|剑器|本命剑|丹药|玉佩|储物|灵材/ },
  { id: 'spirits', title: '器灵伙伴', hint: '器灵、伙伴与分身', pattern: /器灵|伙伴|分身/ },
@@ -45,4 +45,4 @@ export const MMLC_CLASSIFICATION_PROMPT = `【漫漫长路分类与字段映射�
 6. body本体修行：realm写明确当前境界，breakthrough写实际突破及证成依据，progress写个人修行和已验证专精。福地、舰船和法器的能力不等于个人境界；内宇宙、金性等证成仅按明确事实记录，不从规则初授设定推导。
 7. spirits器灵伙伴：form记录形态与载体，abilities写已有能力，duties写职责及明确授权，condition写当前状况、重要经历和身份承继。换形、维修、换舰仍沿用原个体，不生成第二个人，不自行授予控制权限。
 8. sect宗门：members写已确认门人与规模，inheritance写实际已授传承，duties写组织分工，location写驻地，condition写现状。普通同行者不自动成为门人，传承方法和被授传承的组织关系各按自身对象归档。
-有关联时用links写明确关联的已有档案完整名称，不为连接关系制造新对象。fields只写必要摘要，细节放details；未知项省略。最终只返回既有JSON合同，不输出分类解释长文或思维过程。`;
+有关联时用links写明确关联的已有档案完整名称，不为连接关系制造新对象。arts的principle写已证共同原理，derivatives收纳同源法式，不为每个近似用途新立技能。projects的discovery写关键发现，usable写现已可用的法式、图纸或工艺；课题仍在working也能有已经成立的部分所得，但没有实际完成证据就省略。明确交付的独立方法、实物与设施按各自性质保存，并用links连接课题及相关已有对象，形成研究、设计、制造和反哺修行的脉络；链接不表示工程已完成。同一件本命器改造、同一位器灵换形复用archiveId，保留历史与原有未变能力。fields只写必要摘要，细节放details；未知项省略。最终只返回既有JSON合同，不输出分类解释长文或思维过程。`;

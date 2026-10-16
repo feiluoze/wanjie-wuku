@@ -80,9 +80,14 @@ export const MMLC_CONFIG = {
     },
     {
       "id": "arts",
-      "label": "功法",
+      "label": "万法图谱",
       "description": "记录已理解的原理、通用结构及已掌握法式；同一原理的应用优先合入衍生法式。",
       "fields": [
+        {
+          "id": "principle",
+          "label": "共同原理",
+          "description": "本人与道基实际解析并理解的共同规律；同源用途优先并入既有原理，不从宝物名号或样本推断理解全部本源。"
+        },
         {
           "id": "mastery",
           "label": "掌握与验证程度",
@@ -268,6 +273,16 @@ export const MMLC_CONFIG = {
       "label": "研究工程",
       "description": "记录研究、图纸、工艺及工程进展，完成设计不等于完成制造。",
       "fields": [
+        {
+          "id": "discovery",
+          "label": "已经发现",
+          "description": "本课题已得到并验证的关键发现，不复述研究计划或私有思维过程。"
+        },
+        {
+          "id": "usable",
+          "label": "已经可用的所得",
+          "description": "即使课题未全部完成，已成立的法式、图纸、工艺或改良仍明确保留；仅描述实际用途，不把设计当作实物或自行补出成果。"
+        },
         {
           "id": "goal",
           "label": "研究与建设目标",

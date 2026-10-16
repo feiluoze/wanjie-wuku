@@ -1,0 +1,70 @@
+import {createServer} from 'node:http';
+import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {resolve,relative,isAbsolute,extname} from 'node:path';
+import {createRequire} from 'node:module';
+import assert from 'node:assert/strict';
+const {chromium}=createRequire(process.env.WJWK_NODE_MODULES+'/package.json')('playwright');
+const out=process.env.WJWK_SCREENSHOTS;await mkdir(out,{recursive:true});
+const server=createServer(async(req,res)=>{try{const p=resolve('.','.'+decodeURIComponent(new URL(req.url,'http://local').pathname)),rel=relative(process.cwd(),p);if(rel.startsWith('..')||isAbsolute(rel))throw Error('path');res.setHeader('Content-Type',{'.js':'text/javascript','.html':'text/html','.css':'text/css'}[extname(p)]||'application/octet-stream');res.end(await readFile(p));}catch{res.writeHead(404);res.end();}});
+await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
+try{
+ browser=await chromium.launch({headless:true,executablePath:process.env.WJWK_BROWSER_EXECUTABLE});
+ const checks=[],errors=[];let external=0;
+ for(const width of [1440,390,320]){
+  const page=await browser.newPage({viewport:{width,height:980}});page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():(external++,route.abort()));
+  await page.goto(`http://127.0.0.1:${server.address().port}/tests/preview.html`);
+  await page.evaluate(async()=>{const a=wanjie_wuku_general_instance;await a.action('add-mmlc',{});a.settings.mode='st';a.ui.setOpen(true);window.mockCalls=0;});
+  const ruleInjection=await page.evaluate(async()=>{
+   const c=SillyTavern.getContext(),{MMLC_GAMEPLAY,MMLC_BODY_RULES_MARKER}=await import('/src/mmlc-rulebook.js');
+   const request={chat:[{role:'user',content:'继续修行'}]};
+   await c.eventSource.emit(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,request);
+   await c.eventSource.emit(c.eventTypes.CHAT_COMPLETION_PROMPT_READY,request);
+   const packet=request.chat.map(m=>m.content).join('\n'),expected=MMLC_GAMEPLAY.replaceAll('{{user}}',c.name1).replaceAll('{{char}}',c.name2);
+   const plain={prompt:'继续故事'};await c.eventSource.emit(c.eventTypes.GENERATE_AFTER_COMBINE_PROMPTS,plain);
+   return {allRules:packet.includes(expected),once:packet.split(`[${MMLC_BODY_RULES_MARKER}]`).length-1,plainAllRules:plain.prompt.includes(expected)};
+  });
+  assert.deepEqual(ruleInjection,{allRules:true,once:1,plainAllRules:true});
+  await page.locator('.wjwk-design-actions [data-action="mmlc-initial"]').click();
+  assert.equal(await page.locator('[data-mmlc-initial] .wjwk-mmlc-initial-list strong').count(),9);
+  await page.locator('[data-mmlc-initial] input[name="confirm"]').check();
+  await page.locator('[data-action="mmlc-initial-save"]').click();
+  await page.waitForFunction(()=>Object.keys(wanjie_wuku_general_instance.store.read().powers.builtin_mmlc_statistics.archives).length===9);
+  assert.equal(await page.evaluate(()=>mockCalls),0);assert.equal(await page.locator('[data-action="mmlc-initial"]').count(),0);
+  await page.evaluate(async()=>{
+   const a=wanjie_wuku_general_instance,{MMLC_CONFIG}=await import('/src/mmlc-config.js'),{saveArchive,archiveSource}=await import('/src/archives.js');
+   await a.store.transact(n=>{const p=n.powers.builtin_mmlc_statistics;
+    const add=(name,module,fields,status='active')=>{const d=MMLC_CONFIG.records.find(x=>x.id===module);return saveArchive(p,{name,type:'record',module,status,fields:{description:name+'的明确事实'},specific:{adapterId:MMLC_CONFIG.id,version:MMLC_CONFIG.version,recordId:module,label:d.label,labels:Object.fromEntries(d.fields.map(f=>[f.id,f.label])),fields}},archiveSource(SillyTavern.getContext().chat,'浏览器固定测试事实'));};
+    const method=add('电磁传导','arts',{principle:'电流可沿已知材料稳定传导',mastery:'已验证',derivatives:'定向雷法；电磁精炼',effect:'可精细控制导电路径'});
+    window.projectId=add('精炼工艺研究','projects',{discovery:'已验证分段温控能减少杂质',usable:'可用的温控工艺图纸',needs:'验证新材料的热稳定性',stage:'试制中',links:method.name},'working').id;
+    add('精炼阵眼','items',{quantity:'两件',condition:'完好',links:'精炼工艺研究'});
+   });a.refresh();
+   a.model.request=async prompt=>{mockCalls++;window.lastInput=JSON.parse(prompt.user);return JSON.stringify({draft:{title:'精炼改良方案',content:'基于已验证的电磁传导与温控工艺，先验证新材料，再改良现有阵眼；保留两件已有阵眼，不宣称已制成新物。',conditions:'实际结果等待正文确认',ruleQuote:lastInput.rules.slice(0,20)}});};
+  });
+  for(const kind of ['cultivation','knowledge','ongoing','deliveries'])assert(await page.locator(`[data-mmlc-brief="${kind}"]`).isVisible());
+  assert.equal(await page.locator('.wjwk-mmlc-directory').getAttribute('open'),null);
+  const before=await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read()));
+  await page.locator('[data-mmlc-brief="ongoing"] [data-action="mmlc-continue"]').first().click();
+  assert.match(await page.locator('textarea[name="goal"]').inputValue(),/精炼工艺研究/);
+  assert.equal(await page.evaluate(()=>mockCalls),0);assert.equal(await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read())),before);
+  await page.locator('textarea[name="goal"]').fill('提高新材料的精炼纯度');
+  await page.locator('[data-action="creation-draft"]').click();await page.locator('[data-action="creation-adopt"]').waitFor();
+  const input=await page.evaluate(()=>({focused:lastInput.focusArchiveId,first:lastInput.current[0].id,knowledge:lastInput.current.some(x=>x.name==='电磁传导'),operation:lastInput.operation.id}));
+  assert.equal(input.focused,input.first);assert.equal(input.knowledge,true);assert.equal(input.operation,'projects');
+  assert.equal(await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read())),before);
+  await page.locator('[data-action="dialog-close"]').click();
+  await page.locator('.wjwk-mmlc-nav [data-section="projects"]').click();
+  const project=page.locator('[data-mmlc-record]').filter({hasText:'精炼工艺研究'}).first();
+  assert.match(await project.innerText(),/现在能做什么/);assert.match(await project.innerText(),/仍待解决/);
+  await project.locator('.wjwk-mmlc-chain summary').click();assert.match(await project.innerText(),/电磁传导/);assert.match(await project.innerText(),/精炼阵眼/);
+  await page.locator('.wjwk-mmlc-back [data-action="mmlc-section"]').click();
+  const dims=await page.locator('.wjwk-main').evaluate(n=>({width:n.clientWidth,scroll:n.scrollWidth}));assert(dims.scroll<=dims.width+2);
+  await page.locator('.wjwk-window').screenshot({path:resolve(out,`mmlc-brief-${width}.png`)});
+  await page.locator('.wjwk-mmlc-nav [data-section="arts"]').click();assert(await page.getByRole('heading',{name:'万法图谱',exact:true}).count()>0);
+  const method=page.locator('[data-mmlc-record]').filter({hasText:'电磁传导'}).first();assert.match(await method.innerText(),/共同原理/);assert.match(await method.innerText(),/定向雷法；电磁精炼/);
+  await page.locator('.wjwk-window').screenshot({path:resolve(out,`mmlc-knowledge-${width}.png`)});
+  checks.push({width,initialRecords:9,focusAndLinkedContext:true,partialResearchVisible:true,stateUnchangedByDraft:true,mockCalls:await page.evaluate(()=>mockCalls),noOverflow:true});await page.close();
+ }
+ assert.deepEqual(errors,[]);assert.equal(external,0);
+ const result={checks,errors,externalRequests:external,paidCalls:0,realHostAcceptance:false};await writeFile(resolve(out,'evidence.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
+}finally{await browser?.close();server.close();}
