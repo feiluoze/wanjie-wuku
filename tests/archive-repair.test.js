@@ -59,3 +59,20 @@ test('repair action is visible before technical details and states API cost',()=
  ui.showArchiveReview({...pending(),changes:[],floorReviews:[],terminalResults:[],creationResults:[],readOnly:true},{name:'测试',archives:{}},[]);
  assert(html.includes('data-action="repair-archive-ai"'));assert(html.includes('消耗 API'));assert(html.indexOf('repair-archive-ai')<html.indexOf('查看未通过的条目'));
 });
+
+test('ordinary repair ignores empty optional references, preserves originals and blocks real or malformed source changes',()=>{
+ const f=fixture(),p=pending();p.data.changes[0]={...p.data.changes[0],settingRefs:[{book:'原引用',id:'1'}]};
+ for(const refs of [[],null,undefined]){
+  const result=applyArchiveRepairResponse(p,{repairs:[{index:0,fields:{description:'真实资料；补充事实'},details:{},settingRefs:refs}]});
+  assert.deepEqual(result.data.changes[0].settingRefs,p.data.changes[0].settingRefs);assert.equal(result.attempted.length,1);
+ }
+ for(const refs of [[{book:'其他书',id:'2'}],{},'',false])assert.throws(()=>applyArchiveRepairResponse(p,{repairs:[{index:0,fields:{description:'真实资料'},details:{},settingRefs:refs}]}),/普通整理不能更换世界书来源/);
+ const payload=archiveRepairPrompt(p,f.power);assert.equal(JSON.parse(payload.user).setupReferences,false);assert(!payload.system.includes('"settingRefs"'));assert(payload.system.includes('必须省略 settingRefs'));
+ p.setupReferences=true;const prompt=archiveRepairPrompt(p,f.power,{payload:{books:[{name:'书',entries:[]}]}});assert.equal(JSON.parse(prompt.user).setupReferences,true);assert(prompt.system.includes('settingRefs:[{book,id,part}]'));
+});
+test('AI ordinary repair with empty reference placeholder revalidates successfully without writing archives',async()=>{
+ const f=fixture();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};let calls=0;
+ f.app.model.request=async()=>JSON.stringify(++calls===1?{changes:[row]}:{repairs:[{index:0,fields:{description:'真实资料；补充事实'},details:{},settingRefs:[]}]});
+ await f.app.reviewArchives({values:{playerNote:'玩家确认真实资料与补充事实'}});const old=JSON.stringify(f.store.read().powers[f.app.powerId].archives);
+ await f.app.repairArchiveWithAI();assert.equal(calls,2);assert.equal(f.app.pendingArchiveReview.issues.length,0);assert.equal(f.app.pendingArchiveReview.changes.length,1);assert(!Object.hasOwn(f.app.pendingArchiveReview.data.changes[0],'settingRefs'));assert.equal(JSON.stringify(f.store.read().powers[f.app.powerId].archives),old);
+});
