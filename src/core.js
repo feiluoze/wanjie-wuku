@@ -469,7 +469,7 @@ export function validateState(data) {
     if (p.autoArchiveReview !== undefined) assert(typeof p.autoArchiveReview === 'boolean', '自动整理设置无效');
     if (p.playerGuide) {
       assert(typeof p.playerGuide.ruleVersion === 'string' && /^[a-f0-9]{16}$/.test(p.playerGuide.ruleVersion) && text(p.playerGuide.summary, 400).trim(), '玩法说明无效');
-      const abilities = list(p.playerGuide.abilities, 6, '玩法方向'); assert(abilities.length, '玩法方向为空');
+      const abilities = list(p.playerGuide.abilities, 12, '玩法方向'); assert(abilities.length, '玩法方向为空');
       for (const a of abilities) assert(text(a.name, 80).trim() && text(a.description, 400).trim() && text(a.ruleQuote, 1200).length >= 6 && (p.playerGuide.ruleVersion !== p.ruleVersion || p.rules.includes(a.ruleQuote)), '玩法说明依据无效');
     }
     validateArchiveUndo(p.archiveUndo);

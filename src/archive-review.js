@@ -427,6 +427,7 @@ export const archiveReviewMethods = {
     await this.assertReviewReferences(pending);
     assert(this.pendingArchiveReview===pending&&hash(stable(pending.data))===originalHash,'修复期间候选已变化，原候选保留');
     const recovered=rawRepair?mergeRepairedResponse(pending,result.data,power):null;
+    const repairedGuide=recovered?.data.guide?normalizePlayerGuide(recovered.data.guide,power):pending.guide;
     const repaired=rawRepair?{data:recovered?.data||pending.data,attempted:recovered?[0]:[]}:applyArchiveRepairResponse(pending,result.data,power);
     if(!repaired.attempted.length){this.notice('AI未找到有依据的修复，原候选已保留。');return;}
     const structured=pending.setupReferences?prepareStructureImport(repaired.data,power):{data:repaired.data};
@@ -446,7 +447,7 @@ export const archiveReviewMethods = {
     batch.floorReviews=coverage.map(r=>batch.blockedFloors.includes(r.sourceIndex)?{...r,status:'uncertain'}:r);
     // Only publish after validation. Persisted archives and batch cursor are untouched.
     const noImprovement=batch.changes.length<=pending.changes.length&&batch.issues.length>=pending.issues.length;
-    Object.assign(pending,batch,{data:structured.data,readOnly:!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!pending.guide});
+    Object.assign(pending,batch,{data:structured.data,guide:repairedGuide,readOnly:!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!repairedGuide});
     this.saveReviewCheckpoint(pending);
     this.runtimeLog?.step(this.logTask,'AI修复待确认候选',{presetId:'wjwk.pending-repair.v1',attempted:repaired.attempted.length,remaining:batch.issues.length,accepted:batch.changes.length,noImprovement});
     this.runtimeLog?.step(this.logTask,'校验结果',{accepted:batch.changes.length,issues:batch.issues,blockedFloors:batch.blockedFloors});

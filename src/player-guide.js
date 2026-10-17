@@ -3,7 +3,7 @@ import { assert, text } from './primitives.js';
 export function normalizePlayerGuide(raw, power) {
   assert(raw && Object.keys(raw).every(k => ['summary', 'abilities'].includes(k)), '玩法说明格式无效');
   const summary = text(raw.summary, 400).trim();
-  assert(summary && Array.isArray(raw.abilities) && raw.abilities.length > 0 && raw.abilities.length <= 6, '玩法说明缺少能力方向');
+  assert(summary && Array.isArray(raw.abilities) && raw.abilities.length > 0 && raw.abilities.length <= 12, '玩法说明需包含1至12个能力方向');
   const abilities = raw.abilities.map(a => {
     assert(a && Object.keys(a).every(k => ['name', 'description', 'ruleQuote'].includes(k)), '能力说明包含多余操作');
     const name = text(a.name, 80).trim(), description = text(a.description, 400).trim(), ruleQuote = text(a.ruleQuote, 1200);
