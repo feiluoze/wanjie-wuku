@@ -28,9 +28,9 @@ test('tavern raw path carries message arrays without duplicating system prompt o
  let calls=0,received;const wire=databasePromptTrial(prompt),before=JSON.stringify(wire.messages),m=new ModelConnection({settings:()=>({mode:'st',timeoutSeconds:10}),context:()=>({generateRaw:async p=>{calls++;received=structuredClone(p);p.prompt[0].content+='host mutation';return '{"changes":[]}';}})});
  assert.equal(await m.request(wire),'{"changes":[]}');assert.equal(calls,1);assert.deepEqual(received.prompt,wire.messages);assert.equal(received.systemPrompt,'');assert.equal(JSON.stringify(wire.messages),before);
 });
-test('real archive query pipeline sends trial to all review stages; non-archive requests remain original',async()=>{
+test('archive stages use one protocol without the legacy table prompt; explicit legacy helper stays available',async()=>{
  const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);
  const calls=[];f.app.model.request=async(p,{connection})=>{calls.push({p,task:connection.task});return completeReview(p,connection.task==='taishiSummary'?{message:'无新变化'}:{changes:[]});};
- f.app.runtimeLog=new RuntimeLog({storage:f.storage});f.app.logTask=f.app.runtimeLog.begin('试验');await f.app.reviewArchives({rescan:true});assert.equal(calls.length,3);assert(calls.every(c=>c.p.messages?.length===8));assert(calls.every(c=>c.p.databasePromptTrial===DATABASE_PROMPT_TRIAL_ID));
+ f.app.runtimeLog=new RuntimeLog({storage:f.storage});f.app.logTask=f.app.runtimeLog.begin('试验');await f.app.reviewArchives({rescan:true});assert.equal(calls.length,3);assert(calls.every(c=>!c.p.messages));assert(calls.every(c=>!c.p.databasePromptTrial));
  f.app.pendingArchiveReview=null;f.app.clearReviewCheckpoint({chatKey:f.app.contextSnapshot().chatKey});calls.length=0;f.app.model.request=async p=>{calls.push({p});return '{}';};await f.app.query({system:'普通操作',user:'{}'},f.app.ensureStable());assert.equal(calls.length,1);assert.equal(calls[0].p.messages,undefined);
 });

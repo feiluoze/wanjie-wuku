@@ -46,7 +46,7 @@ test('existing review-only mode never silently becomes automatic save',async()=>
 });
 test('automatic parse failures do not advance sources or loop API calls and manual can retry',async()=>{
  const f=fixture();f.app.settings.mode='st';let calls=0;f.app.model.request=async()=>{calls++;return 'not JSON';};await f.app.togglePlayerAutoSave();f.app.schedulePlayerReview('normal');await wait();strict.equal(f.store.read().powers[f.power.id].archiveReviewed.length,0);f.app.schedulePlayerReview('normal');await wait();strict.equal(calls,1);
- f.app.ui.showArchiveReview=()=>{};f.app.model.request=async()=>{calls++;return response(f);};await f.app.action('review-archives',{});strict.equal(calls,2);strict.ok(f.app.pendingArchiveReview);
+ strict.ok(f.app.pendingArchiveReview.data.rawFailures.length);f.app.pendingArchiveReview=null;f.app.clearReviewCheckpoint();f.app.ui.showArchiveReview=()=>{};f.app.model.request=async()=>{calls++;return response(f);};await f.app.action('review-archives',{});strict.equal(calls,2);strict.ok(f.app.pendingArchiveReview);
 });
 test('queued task is discarded on chat switch; invalid automatic save setting rejects',async()=>{
  const f=fixture();f.app.settings.mode='st';await f.store.transact(n=>{n.powers[f.power.id].autoArchiveReview=true;});let calls=0;f.app.reviewArchives=async()=>calls++;

@@ -26,7 +26,7 @@ test('continuity distinguishes established archives from completed tasks and kee
  assert(focus.ids.includes(f.ids['潮汐调查']));assert(!focus.ids.includes(f.ids['暂停的工坊']));assert.equal(taskPhase(p.archives[f.ids['已建档旧事']]),'');
  assert.equal(developmentGroups(p,f.ctx.chat).completed.length,0);assert.equal(developmentGroups(p,f.ctx.chat).attention.length,1);
  const prompt=JSON.parse(archivePrompt(p,[{index:0,swipeId:0,content:'海蓝界出现新观测'}],f.ctx.chat,'',{state:f.store.read()}).user);
- assert(prompt.taishiFocus.unfinished.some(r=>r.id===f.ids['潮汐调查']));const foreign=prompt.current.find(r=>r.id===f.ids['暂停的工坊']);assert(foreign.identityOnly);assert(!foreign.specific.fields?.phase);
+ assert(prompt.taishiFocus.unfinished.some(r=>r.id===f.ids['潮汐调查']));const foreign=prompt.current.find(r=>r.archiveId===f.ids['暂停的工坊']);assert(foreign.identityOnly);assert(!foreign.details?.phase);
 });
 test('a task closure updates the same identity from explicit evidence without granting rewards',async()=>{
  const f=await setup(),id=f.ids['潮汐调查'];f.ctx.chat.push({is_user:false,swipe_id:0,mes:'海蓝界潮汐调查已完成，取得全部潮汐记录。'});const before=clone(f.store.read());

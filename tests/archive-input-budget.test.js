@@ -21,7 +21,7 @@ test('small archives and full construction or evolution inputs retain all facts'
 test('production prompt compacts large narrative context and a partial update retains omitted saved facts',()=>{
  const f=fixture();for(let i=0;i<50;i++)saveArchive(f.power,{name:'设施_'+i+'_甲',type:'facility',status:'active',fields:{purpose:'原有功能'+i+'字'.repeat(900),condition:'原有状态'}},archiveSource(f.ctx.chat,'玩家确认'));
  const target=Object.values(f.power.archives)[2],sources=[{index:0,swipeId:0,content:target.name+'已经修复。'}],prompt=JSON.parse(archivePrompt(f.power,sources,f.ctx.chat).user);
- assert(prompt.current.some(r=>r.identityOnly));assert(!prompt.current.find(r=>r.id===target.id).identityOnly);
+ assert(prompt.current.some(r=>r.identityOnly));assert(!prompt.current.find(r=>r.archiveId===target.id).identityOnly);
  const absent=Object.values(f.power.archives)[40],change=normalizeArchiveChanges({changes:[{archiveId:absent.id,name:absent.name,type:'facility',status:'active',fields:{condition:'已维修'},sourceIndex:-1}]},f.power,[],f.ctx.chat,'玩家确认该设施已维修');
  applyArchiveChanges(f.power,change,[],new Map([[0,absent.id]]),f.ctx.chat);assert.equal(f.power.archives[absent.id].fields.purpose,absent.fields.purpose);assert.equal(f.power.archives[absent.id].fields.condition,'已维修');assert.equal(Object.keys(f.power.archives).length,50);
 });

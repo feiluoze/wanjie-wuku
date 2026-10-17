@@ -14,7 +14,7 @@ test('large ordinary supplement runs query, previews, saves a partial patch and 
  assert(JSON.stringify(Object.values(power.archives).map(archiveInputRecord)).length>120000);
  f.app.model.request=async prompt=>{calls++;wire=JSON.parse(prompt.user);return JSON.stringify({changes:[{archiveId:target.id,name:target.name,type:'facility',status:'active',fields:{condition:'已修复'},sourceIndex:-1}]});};
  await f.app.reviewArchives({supplement:true,values:{playerNote:target.name+'已修复。'}});
- assert.equal(calls,1);assert(wire.current.length===350);assert(!wire.current.find(r=>r.id===target.id).identityOnly);assert(wire.current.some(r=>r.identityOnly));assert(JSON.stringify(wire).length<120000);
+ assert.equal(calls,1);assert(wire.current.length===350);assert(!wire.current.find(r=>r.archiveId===target.id).identityOnly);assert(wire.current.some(r=>r.identityOnly));assert(JSON.stringify(wire).length<120000);
  assert.deepEqual(f.store.read(),original);const pending=f.app.pendingArchiveReview;assert.equal(pending.issues.length,0,JSON.stringify(pending.issues));
  await f.app.commitArchiveReview(pending,new Map([[0,target.id]]));const p=f.store.read().powers[f.power.id];
  assert.equal(p.archives[target.id].fields.condition,'已修复');assert.equal(p.archives[target.id].fields.purpose,target.fields.purpose);assert.equal(Object.keys(p.archives).length,350);assert.deepEqual(p.resources,power.resources);assert.deepEqual(p.assets,power.assets);

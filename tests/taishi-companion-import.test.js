@@ -39,8 +39,8 @@ test('single person import on a large archive carries bounded relevant details a
  const before=JSON.stringify(power),referenceBatch={payload:{books:[{name:'人物书',entries:[{title:'【人物】云岚',content:'云岚是一位灵植师。'.repeat(700)}]}]}};
  const prompt=archivePrompt(power,[],f.ctx.chat,'从所选世界书录入云岚',{state,referenceBatch,taishiDraft:{kind:'companion',joining:'direct'}}),payload=JSON.parse(prompt.user);
  assert(prompt.user.length<120000);assert.equal(payload.current.length,400);
- assert(payload.current.find(r=>r.id==='large_399').specific.fields.profile);
- assert(payload.current.find(r=>r.id==='large_0').identityOnly);
+ assert(payload.current.find(r=>r.archiveId==='large_399').details.profile);
+ assert(payload.current.find(r=>r.archiveId==='large_0').identityOnly);
  assert.deepEqual(payload.recordSchemas.map(r=>r.id),['companion']);
  assert(!prompt.user.includes('不应重复发送'));assert.equal(JSON.stringify(power),before);
  assert.match(payload.readingPolicy,/不创作补全/);

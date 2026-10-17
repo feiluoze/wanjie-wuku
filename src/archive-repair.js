@@ -1,3 +1,4 @@
+import {archiveFieldRepairSchema} from './archive-contract.js';
 import {assert,clone,stable,ASYNC_MARKER} from './core.js';
 import {ARCHIVE_FIELDS} from './archives.js';
 import {creationConfig} from './creation-config.js';
@@ -16,13 +17,13 @@ export function repairableArchiveIssues(pending){
 export function archiveRepairPrompt(pending,power,referencePacket){
  const failed=repairableArchiveIssues(pending).map(i=>({index:i.index,error:i.reason,conflicts:i.conflicts||[],candidate:normalizeArchiveEnvelope(pending.data.changes[i.index],creationConfig(power))}));
  assert(failed.length,'没有可由AI修复的失败候选');
- const ids=new Set(failed.map(i=>i.candidate.recordId));
+ const ids=new Set(failed.map(i=>i.candidate.recordId)),failedText=JSON.stringify(failed);
  const payload={task:'仅修复失败候选',setupReferences:Boolean(pending.setupReferences),presetId:ARCHIVE_REPAIR_PRESET.id,failed,fieldTypes:ARCHIVE_FIELDS,declaredSchemas:(creationConfig(power)?.records||[]).filter(r=>ids.has(r.id)),worldStructure:power.taishiWorldStructure||null,
- existingIdentities:Object.values(power.archives||{}).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})),
+ existingIdentities:Object.values(power.archives||{}).filter(r=>failedText.includes(r.id)||r.name?.length>=2&&failedText.includes(r.name)).map(r=>({archiveId:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})),
  sources:pending.sources.filter(s=>failed.some(i=>i.candidate.sourceIndex===s.index)),playerNote:pending.playerNote||'',referencePacket:referencePacket?.payload||{books:[]}};
  const user=JSON.stringify(payload);assert(user.length<=120000,'待修复资料过长，请先保存有效项后再修复');
  const referenceContract=pending.setupReferences?'本次是世界书引用修复；每项 repairs 可额外填写 settingRefs:[{book,id,part}]，仅使用 referencePacket 中的真实引用。':'本次是普通正文修复；每项 repairs 只输出 index、fields、details，必须省略 settingRefs。';
- return {system:ASYNC_MARKER+'\n'+ARCHIVE_REPAIR_PRESET.system+'\n'+referenceContract,user,archiveRepair:true};
+ return {system:ASYNC_MARKER+'\n'+ARCHIVE_REPAIR_PRESET.system+'\n'+referenceContract,user,archiveSchema:archiveFieldRepairSchema(payload),archiveRepair:true};
 }
 export function applyArchiveRepairResponse(pending,data,power){
  assert(data&&Array.isArray(data.repairs)&&data.repairs.length<=16,'修复响应须包含repairs数组，最多16项');

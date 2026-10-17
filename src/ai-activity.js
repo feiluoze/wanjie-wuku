@@ -70,7 +70,7 @@ export function installAIActivity(prototype) {
       }, result => {
         if(result?.skipped)return result.message||'本次无需处理，未调用AI';
         if(name==='sync')return result?.pending?'核对完成，等待确认；尚未写入账本':result?.saved?(result.changed===0?'本批无新增变化，已确认核对进度':'已确认并保存账本'):'核对完成，请查看结果';
-        if (name === 'reviewArchives') return this.pendingArchiveReview ? '整理完成，等待确认' : args[0]?.autoSave ? '本批处理完成，请查看成果' : '本次检查完成';
+        if (name === 'reviewArchives') return this.pendingArchiveReview ? this.pendingArchiveReview.data?.rawFailures?.length?'原回复格式失败，已保留，等待修复':'整理完成，等待确认' : args[0]?.autoSave ? '本批处理完成，请查看成果' : '本次检查完成';
         if (['draftCreation', 'draftTerminal', 'generate', 'reviewManagement', 'sync', 'sceneActions'].includes(name)) return '整理完成，请查看结果';
         return '本次处理完成';
       });

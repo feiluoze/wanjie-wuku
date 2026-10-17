@@ -1,3 +1,5 @@
+import {responseRepairPrompt,mergeRepairedResponse} from './archive-response-repair.js';
+import {wireArchiveRecord,archiveResponseSchema} from './archive-contract.js';
 import {archiveContextWindow} from './archive-context.js';
 import {archiveRepairPrompt,applyArchiveRepairResponse} from './archive-repair.js';
 import {taishiFocus} from './taishi-continuity.js';
@@ -95,6 +97,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   if(taishiDraft?.kind==='companion'&&referenceBatch)payload.readingPolicy='只录入本次所选世界书中有独立人设的人物，严格保留原设定，不创作补全，不把提及的亲属、统治者或组织一并登记。复用已有普通人物，确认保存后才采用玩家选择的眷属身份；不生成契约或共同经历。';
   payload.scopePolicy=archiveScopePolicy(payload);
   payload.responseContract=archiveResponseContract(payload);
+  payload.current=payload.current.map(wireArchiveRecord);
   const preset=archivePreset(payload,{
     marker:ASYNC_MARKER,
     domain:isTaishi(power)?TAISHI_REVIEW+'\n'+TAISHI_KNOWLEDGE_POLICY:isMmlc(power)?MMLC_REVIEW+'\n'+MMLC_MODULE_PROMPT+'\n'+MMLC_CLASSIFICATION_PROMPT:'',
@@ -108,7 +111,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
     const sizes=inputCharacterBreakdown(payload),e=new Error(`发送前检查：本次请求 ${body.length} 字符，超过 120000。规则 ${sizes.rules}，正文 ${sizes.sources}，档案目录与详情 ${sizes.current}，字段定义 ${sizes.recordSchemas}。${sizes.rules>60000?'当前词条规则过长，请检查接入的规则范围。':playerNote?'请缩小本次补充涉及的对象范围，分次补充。':'请使用手动分批整理或缩小读取范围。'}尚未调用模型，已保存档案不受影响。`);
     e.requestStage='preflight';e.inputCharacters=sizes;throw e;
   }
-  return {archivePowerId:power.id,databasePromptTrial:true,setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
+  return {archivePowerId:power.id,databasePromptTrial:false,archiveSchema:archiveResponseSchema(payload),setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
 export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '',{playerJoining=false}={}) {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');
@@ -306,9 +309,16 @@ export const archiveReviewMethods = {
       const state=clone(workflowState);for(const role of ['taishiWorld','taishiPeople'])if(state.stages[role].status==='pending')state.stages[role].status='failed';
       this.saveReviewCheckpoint({captured:{chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision},contextHash:hash(stable(snapshot.hashes)),referenceFingerprint,powerId:power.id,sources,playerNote,data:{workflowState:state},changes:[],issues:[],terminalResults:[],creationResults:[],floorReviews:[],blockedFloors:sources.map(s=>s.index),readOnly:true,message:'任务中断，已保留成功阶段；请选择未完成阶段继续。',workflowOptions:{rescan:Boolean(options.rescan),initial:Boolean(options.initial),automatic:Boolean(options.automatic),...(options.manualBatch?{manualBatch:clone(options.manualBatch)}:{}),...(options.taishiEvolution?{taishiEvolution:clone(options.taishiEvolution),supplement:true,values:{playerNote},...(options.taishiScheduleEvent?{taishiScheduleEvent:clone(options.taishiScheduleEvent)}:{}),...(options.taishiTimeEvent?{taishiTimeEvent:clone(options.taishiTimeEvent)}:{})}:{})}});
     }});
+    const requestOne=async selectedSources=>{
+      try{return await request(selectedSources);}catch(error){
+        if(!error.archiveResponseFailure||sources.length>1)throw error;
+        const f={...error.archiveResponseFailure,sourceIndexes:selectedSources.length?selectedSources.map(s=>s.index):[-1]};
+        return {captured:f.captured,contextHash:f.contextHash,referenceFingerprint:f.referenceFingerprint,logId:this.logTask,data:{changes:[],rawFailures:[f],floorReviews:selectedSources.map(s=>({sourceIndex:s.index,status:'uncertain',changeCount:0})),historyIssues:(selectedSources.length?selectedSources:[{index:-1}]).map(s=>({kind:'分层请求',sourceIndex:s.index,name:s.index<0?'补充回复':'第 '+(s.index+1)+' 层',rawResponseFailure:true,reason:'原回复格式无效，已保留；可用AI只修复本段，不重新整理正文'})),message:'回复格式失败，原文已在本机保留；可修复格式后重新校验。'}};
+      }
+    };
     const layered=sources.length>1&&!playerNote&&!taishiWorkflow&&!terminalOrders.length&&!creationItems.length;
     const check=()=>{if(job&&(job.cancelled||this.archiveReviewJob!==job))throw new DOMException('查询已取消','AbortError');this.store.assertCapture({chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision});assert(hash(stable(chatHashes(getContext().chat)))===hash(stable(snapshot.hashes)),'整理期间剧情已变化，请重查');};
-    const result=layered?await reviewHistory(sources,source=>request([source]),{check,progress:(part,total,floor)=>{this.notice(`历史逐层整理 ${part}/${total} · 第 ${floor} 层；每层一次请求，可取消`);this.runtimeLog?.step(this.logTask,'分层进度',{part,total,floor});}}):await request(sources);
+    const result=layered?await reviewHistory(sources,source=>requestOne([source]),{check,progress:(part,total,floor)=>{this.notice(`历史逐层整理 ${part}/${total} · 第 ${floor} 层；每层一次请求，可取消`);this.runtimeLog?.step(this.logTask,'分层进度',{part,total,floor});}}):await requestOne(sources);
     if(!result.captured){result.captured={chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision};result.contextHash=hash(stable(snapshot.hashes));result.logId=this.logTask;}
 
     if (job && (job.cancelled || this.archiveReviewJob !== job)) throw new DOMException('查询已取消', 'AbortError');
@@ -335,7 +345,7 @@ export const archiveReviewMethods = {
       if(error.name==='AbortError')throw error;
       return retainRejected({kind:'候选结构',name:'返回结果',reason:'本地结构校验未完成，原始候选已保留：'+error.message,diagnostic:{stage:'batch_validation',code:'batch_structure_invalid',exception:error.name,count:result.data.changes.length}});
     }
-    if(layered&&result.data.historyIssues?.length){batch.issues.push(...result.data.historyIssues);batch.blockedFloors=[...new Set([...batch.blockedFloors,...result.data.historyIssues.map(i=>i.sourceIndex)])];}
+    if(result.data.historyIssues?.length){batch.issues.push(...result.data.historyIssues);batch.blockedFloors=[...new Set([...batch.blockedFloors,...result.data.historyIssues.map(i=>i.sourceIndex)])];}
     if(isTaishi(power))attachPersonSources(batch,prepared);
     if(taishiWorkflow&&result.data.workflowIssues?.length){batch.issues.push(...result.data.workflowIssues);batch.blockedFloors=[...new Set([...batch.blockedFloors,...sources.map(s=>s.index)])];}
     if(isTaishi(power)&&!options.taishiDraft&&!options.setupReferences&&!playerNote)filterPeopleBatch(batch,power);
@@ -407,7 +417,7 @@ export const archiveReviewMethods = {
     this.store.assertCapture(pending.captured);
     if(reference)assert(reference.fingerprint===pending.referenceFingerprint,'本批原文已变化，请重新核对');
     const originalHash=hash(stable(pending.data));
-    const power=snapshot.state.powers[pending.powerId],prompt=archiveRepairPrompt(pending,power,reference);
+    const power=snapshot.state.powers[pending.powerId],rawRepair=Boolean(pending.data.rawFailures?.length),prompt=rawRepair?responseRepairPrompt(pending,power):archiveRepairPrompt(pending,power,reference);
     // Checkpoint before the paid request: cancellation and invalid replies keep the old preview.
     this.saveReviewCheckpoint(pending);
     const emptyReference={payload:{books:[]},summary:[],characters:0,fingerprint:''};
@@ -416,7 +426,8 @@ export const archiveReviewMethods = {
     assert(hash(stable(this.ensureStable().hashes))===pending.contextHash,'剧情已变化，未采用旧修复');
     await this.assertReviewReferences(pending);
     assert(this.pendingArchiveReview===pending&&hash(stable(pending.data))===originalHash,'修复期间候选已变化，原候选保留');
-    const repaired=applyArchiveRepairResponse(pending,result.data,power);
+    const recovered=rawRepair?mergeRepairedResponse(pending,result.data,power):null;
+    const repaired=rawRepair?{data:recovered?.data||pending.data,attempted:recovered?[0]:[]}:applyArchiveRepairResponse(pending,result.data,power);
     if(!repaired.attempted.length){this.notice('AI未找到有依据的修复，原候选已保留。');return;}
     const structured=pending.setupReferences?prepareStructureImport(repaired.data,power):{data:repaired.data};
     const prepared=isTaishi(power)?preparePersonSources(structured.data,reference,power):{data:structured.data};
@@ -428,7 +439,7 @@ export const archiveReviewMethods = {
     }
     finalizeBatchLinks(batch,prepared.data);
     // Retain source/reference failures outside the raw-field normalizer.
-    const extra=(pending.issues||[]).filter(i=>i.kind!=='成果'&&i.kind!=='逐层核对'&&i.diagnostic?.stage!=='reference_validation');
+    const extra=(pending.issues||[]).filter(i=>i.kind!=='成果'&&i.kind!=='逐层核对'&&i.diagnostic?.stage!=='reference_validation'&&!(recovered&&i.rawResponseFailure&&recovered.sourceIndexes.has(i.sourceIndex)));
     batch.issues.push(...extra);
     const coverage=floorCoverage(structured.data,pending.sources,batch.changes,batch.terminalResults,batch.creationResults);
     batch.blockedFloors=[...new Set([...batch.blockedFloors,...coverage.filter(r=>r.status!=='reviewed').map(r=>r.sourceIndex)])];

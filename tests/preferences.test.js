@@ -14,7 +14,7 @@ test('recommended defaults work for new connections and saved custom values rema
   assert.equal(restored.maxTokens,4096);assert.equal(restored.temperature,0.4);assert.equal(restored.timeoutSeconds,90);
 });
 test('new profile starts at recommended generation values',()=>{
-  const names=['connectionProfile','profileName','profileKeyPolicy','mode','baseUrl','model','apiKey','clearKey','maxTokens','temperature','timeoutSeconds','thinkingMode','customParameters'];
+  const names=['connectionProfile','profileName','profileKeyPolicy','mode','baseUrl','model','apiKey','clearKey','maxTokens','temperature','timeoutSeconds','thinkingMode','archiveOutputMode','customParameters'];
   const form={elements:Object.fromEntries(names.map(name=>[name,{value:'old',checked:true,focus(){}}]))};
   WorkbenchUI.prototype.newConnectionProfile.call({modal:{querySelector:()=>form},filterModels(){},connectionVisibility(){}});
   for(const [key,value]of Object.entries(GENERATION_DEFAULTS))assert.equal(form.elements[key].value,String(value));

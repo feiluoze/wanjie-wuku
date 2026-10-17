@@ -1,3 +1,4 @@
+import {archiveFormatOptions} from './archive-contract.js';
 import {transportFailure} from './api-fallback.js';
 import {backendRequestHeaders,independentFetch} from './model-transport.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
@@ -113,7 +114,7 @@ export class ModelConnection {
   }
   async request(prompt, { signal, connection, onResponse = () => {} } = {}) {
     let diagnosticSettings,customParameters={};
-    const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_completion_tokens??customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',requestedReasoningSplit:customParameters.reasoning_split??thinkingOptions(diagnosticSettings).reasoning_split??null,requestedReasoningEffort:customParameters.reasoning_effort??thinkingOptions(diagnosticSettings).reasoning_effort??null,customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
+    const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_completion_tokens??customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',requestedReasoningSplit:customParameters.reasoning_split??thinkingOptions(diagnosticSettings).reasoning_split??null,requestedReasoningEffort:customParameters.reasoning_effort??thinkingOptions(diagnosticSettings).reasoning_effort??null,requestedResponseFormat:customParameters.response_format?.type??archiveFormatOptions(diagnosticSettings,prompt).response_format?.type??'prompt-only',customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
     const settings = clone(connection?.settings || this.settings());diagnosticSettings=settings;
     assert(settings.mode !== 'off', '异步模型已关闭；可在连接设置中自行启用');
     const seconds = requestTimeoutSeconds(settings, connection?.task);
@@ -145,7 +146,7 @@ export class ModelConnection {
     try {
       const urls = endpoints(settings.baseUrl);
       for (let i = 0; i < urls.length; i++) {
-        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, ...(settings.model==='deepseek-v4.1-flash-free'?{tool_choice:'none'}:{}), ...thinkingOptions(settings), ...customParameters, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
+        const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, ...(settings.model==='deepseek-v4.1-flash-free'?{tool_choice:'none'}:{}), ...thinkingOptions(settings), ...archiveFormatOptions(settings,prompt), ...customParameters, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
         if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }

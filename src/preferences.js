@@ -2,7 +2,7 @@ import {normalizeCustomParameters} from './model-parameters.js';
 // Account preferences contain no game state. Schemes are kept out of chat exports.
 export const THEMES = Object.freeze({ follow:'跟随酒馆', light:'浅色', dark:'深色', night:'夜读', parchment:'羊皮纸', green:'护眼绿' });
 export const themeId = value => Object.hasOwn(THEMES, value) ? value : 'follow';
-export const GENERATION_DEFAULTS = Object.freeze({temperature:0.85,maxTokens:60000,timeoutSeconds:300,thinkingMode:'auto',customParameters:''});
+export const GENERATION_DEFAULTS = Object.freeze({temperature:0.85,maxTokens:60000,timeoutSeconds:300,thinkingMode:'auto',archiveOutputMode:'auto',customParameters:''});
 export const REQUEST_TIMEOUT_LIMIT = 600;
 // Old 120-second defaults are upgraded once. Saving afterwards preserves any
 // explicit timeout, including 120, for the account and each saved profile.
@@ -19,7 +19,7 @@ export function requestTimeoutSeconds(settings = {}, task = '') {
   const ordinary = Number.isFinite(n) ? Math.max(10, Math.min(REQUEST_TIMEOUT_LIMIT, n)) : GENERATION_DEFAULTS.timeoutSeconds;
   return task === 'setup' ? Math.max(600, ordinary) : ordinary;
 }
-export const CONNECTION_FIELDS = ['mode','baseUrl','model','temperature','maxTokens','timeoutSeconds','contextMessages','thinkingMode','customParameters'];
+export const CONNECTION_FIELDS = ['mode','baseUrl','model','temperature','maxTokens','timeoutSeconds','contextMessages','thinkingMode','archiveOutputMode','customParameters'];
 export function connectionValues(values, base = {}) {
   const next = { ...base, mode:values.mode, baseUrl:String(values.baseUrl || '').trim(), model:String(values.model || '').trim() };
   if (!['off','st','custom'].includes(next.mode)) throw Error('连接方式无效');
@@ -35,6 +35,8 @@ export function connectionValues(values, base = {}) {
   }
   next.thinkingMode=values.thinkingMode ?? base.thinkingMode ?? 'auto';
   if(!['auto','off','on'].includes(next.thinkingMode))throw Error('思考模式无效');
+  next.archiveOutputMode=values.archiveOutputMode??base.archiveOutputMode??'auto';
+  if(!['auto','off','json','schema'].includes(next.archiveOutputMode))throw Error('整理输出格式无效');
   next.customParameters=normalizeCustomParameters(values.customParameters ?? base.customParameters ?? '');
   return next;
 }

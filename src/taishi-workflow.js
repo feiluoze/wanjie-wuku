@@ -1,3 +1,4 @@
+import {archiveResponseSchema} from './archive-contract.js';
 import {assert,clone,hash,stable} from './primitives.js';
 import {archiveResponseContract,archiveSummaryPreset} from './archive-preset.js';
 
@@ -31,11 +32,11 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
     payload.responseContract=archiveResponseContract(payload);
     payload.specialist={role,recordIds:payload.recordSchemas.map(r=>r.id)};
     try{
-      const data=await invoke({...prompt,user:JSON.stringify(payload),system:prompt.system+'\n<wjwk_specialist>\n本轮分工：'+(role==='taishiWorld'?'只处理世界、区域、组织、事件、文明与发展记录。':'只处理人物、眷属与关系记录，保留方向、原因、来源事件、设定细节与认知边界。')+' changes每项必须填写本轮recordSchemas中的recordId；已有对象必须沿用原archiveId和分类。不得返回terminalResults、creationResults或guide。不要处理另一专职角色的记录。floorReviews只统计本角色实际输出，不把另一专职未返回内容算入。\n</wjwk_specialist>'},role);
+      const data=await invoke({...prompt,archiveSchema:archiveResponseSchema(payload),user:JSON.stringify(payload),system:prompt.system+'\n<wjwk_specialist>\n本轮分工：'+(role==='taishiWorld'?'只处理世界、区域、组织、事件、文明与发展记录。':'只处理人物、眷属与关系记录，保留方向、原因、来源事件、设定细节与认知边界。')+' changes每项必须填写本轮recordSchemas中的recordId；已有对象必须沿用原archiveId和分类。不得返回terminalResults、creationResults或guide。不要处理另一专职角色的记录。floorReviews只统计本角色实际输出，不把另一专职未返回内容算入。\n</wjwk_specialist>'},role);
       check();assert(data&&Array.isArray(data.changes)&&data.changes.length<=64,'返回的变化列表无效');
       for(const row of data.changes){
-        const before=row?.archiveId?(input.current||[]).find(r=>r.id===row.archiveId):null;
-        if(!row||!owns(role,row.recordId)||before&&before.specific?.recordId!==row.recordId){current.issues.push(failed(role,'越过专职分类或改变已有对象分类，已跳过','专职范围',String(row?.name||role).slice(0,200)));continue;}
+        const before=row?.archiveId?(input.current||[]).find(r=>(r.archiveId||r.id)===row.archiveId):null;
+        if(!row||!owns(role,row.recordId)||before&&(before.recordId||before.specific?.recordId)!==row.recordId){current.issues.push(failed(role,'越过专职分类或改变已有对象分类，已跳过','专职范围',String(row?.name||role).slice(0,200)));continue;}
         current.changes.push(row);
       }
       current.issues.push(...validateChanges(current.changes,role).map(i=>failed(role,i.reason,'专职校验',i.name)));

@@ -47,7 +47,7 @@ const taskProcedures=Object.freeze({
 
 const output=`仅返回JSON，即一个合法JSON对象，不加Markdown代码围栏、XML、角色对话、analysis或patch。必须闭合所有字符串、数组和对象，不输出尾逗号；先完成必需数据，不复述输入。基础顶层字段是changes、floorReviews、message；允许的条件输出见responseContract，禁止未激活的输出。
 current中identityOnly=true的条目仅供识别原ID、分类和归属，不代表其余字段为空或对象没有成果。证据明确涉及它时沿用archiveId，仅填本次证据明确变化的字段，不重写未提供的旧状态；无法可靠比较时用uncertain，不猜旧值。没有变化时changes返回空数组并填写必要floorReviews，message用一句话，不重复列旧档案或整张状态栏。
-changes每项使用：archiveId（更新已有对象时填原id，新建省略）、ownerPowerId（先判定机制归属，再填当前词条id；不能用填ID代替判断）、type、name、status、fields、sourceIndex、quote（可省略）、ruleQuote（可省略）；适用专用分类时再填recordId、details。quote、ruleQuote只能位于每项顶层，不能放进fields/details。recordSchemas为空时禁止输出recordId/details，进度、触发依据和消耗记录写入对应通用fields；不得自行发明专用分类。current中的specific是内部存储结构，禁止照抄到changes；应将specific.recordId放入顶层recordId，将specific.fields中的专用字段直接放入details，不输出adapterId或嵌套fields。type只能为population/environment/facility/research/member/skill/bond/record，module不是type。
+changes每项使用：archiveId（更新已有对象时填原id，新建省略）、ownerPowerId（先判定机制归属，再填当前词条id；不能用填ID代替判断）、type、name、status、fields、sourceIndex、quote（可省略）、ruleQuote（可省略）；适用专用分类时再填recordId、details。quote、ruleQuote只能位于每项顶层，不能放进fields/details。recordSchemas为空时禁止输出recordId/details，进度、触发依据和消耗记录写入对应通用fields；不得自行发明专用分类。current和changes统一使用archiveId、type、fields与可选recordId/details；已有对象必须沿用current.archiveId，不输出内部id、specific、adapterId或嵌套fields。type只能为population/environment/facility/research/member/skill/bond/record，module不是type。
 fields仅用fieldTypes[type]的字段ID，值为文字；details仅用所选recordSchemas分类声明的字段ID，值为文字。同一字段只写一次，不同时写ID和中文标签；专用字段不要混入fields。fields只保留必要通俗现状，details保存专用细节，两处必须反映同一个对象的实际状态，不制造不同状态。未知项省略，不写“未知”来清空现有值。没有任何已知字段的对象不能形成有效变化。每项字段值最多4000字符；changes数量遵守limits，不能截成上限数量后假报全部完成。
 sourceIndex必须原样使用sources条目的index（内部0基索引），不是floor显示楼层号，也不是sources数组的序号；明确的补充、世界书底稿、建档或自主发展任务没有正文来源时使用-1。quote优先使用对应来源的一段连续原文，不跨结算、快照和叙事拼接；可省略，不编造引文。每个对象最多一条变化（同一层内），跨层更新保留各自来源。
 挂机正文新增对象的quote不可省略：连续原文的同一句须明确连接具体对象与挂机或已登记的挂机专用对象；只在其他能力帮助下学习或借用空间，不算挂机成果。无法建立联系时不新建，等待玩家确认补充。
@@ -64,7 +64,7 @@ export function archiveResponseContract(payload){
  if(payload.terminalOrders?.length&&!payload.playerNote&&!special)outputs.push('terminalResults');
  if(payload.creationItems?.length&&!payload.playerNote&&!special)outputs.push('creationResults');
  return {
-  outputs,changes:{required:['type','name','status','fields','sourceIndex'],optional:['archiveId','ownerPowerId','quote','ruleQuote','recordId','details',...(payload.moduleKind==='mmlc'?['module']:[]),...(mode==='worldbook'&&payload.moduleKind==='taishi'?['settingRefs']:[])]},
+  outputs,changes:{required:['type','name','status','fields','sourceIndex'],optional:['archiveId','ownerPowerId','quote','ruleQuote',...(payload.recordSchemas?.length?['recordId','details']:[]),...(payload.moduleKind==='mmlc'?['module']:[]),...(mode==='worldbook'&&payload.moduleKind==='taishi'?['settingRefs']:[])]},
   floorReviews:[{sourceIndex:'sources.index，内部0基整数',status:'reviewed 或 uncertain',changeCount:'本层实际返回的 changes、terminalResults、creationResults 条目总数'}],
   policy:'每层必须返回且只返回一条 floorReviews。reviewed 表示已逐项核对，包括明确无新增；遗漏、归属不明、冲突或未完成提取用 uncertain。独立历史事件分别保存，不能用最近状态概括旧事件。fields 只使用 fieldTypes[type] 的字段 ID；recordSchemas 专用字段放 details，不混入 fields。ownerPowerId 填真实所属词条 ID。'
  };
