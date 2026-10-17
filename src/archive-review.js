@@ -1,4 +1,4 @@
-import {responseRepairPrompt,mergeRepairedResponse} from './archive-response-repair.js';
+import {responseRepairPrompt,mergeRepairedResponse,repairRawResponseLocally} from './archive-response-repair.js';
 import {wireArchiveRecord,archiveResponseSchema} from './archive-contract.js';
 import {archiveContextWindow} from './archive-context.js';
 import {archiveRepairPrompt,applyArchiveRepairResponse} from './archive-repair.js';
@@ -420,7 +420,8 @@ export const archiveReviewMethods = {
     if(reference)assert(reference.fingerprint===pending.referenceFingerprint,'本批原文已变化，请重新核对');
     const originalHash=hash(stable(pending.data));
     const power=snapshot.state.powers[pending.powerId],rawRepair=Boolean(pending.data.rawFailures?.length);
-    let localOnly=false;
+    const localRecovered=rawRepair?repairRawResponseLocally(pending,power):null;
+    let localOnly=Boolean(localRecovered);
     if(!rawRepair&&!pending.setupReferences&&!isTaishi(power)&&!isMmlc(power)&&!pending.data.historyIssues?.length&&pending.issues?.length&&pending.issues.every(i=>i.kind==='成果')){
       const local=normalizeArchiveBatch(pending.data,power,pending.sources,snapshot.ctx.chat,pending.playerNote||'',snapshot.state,{chronological:Boolean(pending.layered)});
       localOnly=!local.issues.length&&!local.skippedOwnership.length&&local.changes.length>0;
@@ -434,9 +435,9 @@ export const archiveReviewMethods = {
     assert(hash(stable(this.ensureStable().hashes))===pending.contextHash,'剧情已变化，未采用旧修复');
     await this.assertReviewReferences(pending);
     assert(this.pendingArchiveReview===pending&&hash(stable(pending.data))===originalHash,'修复期间候选已变化，原候选保留');
-    const recovered=rawRepair?mergeRepairedResponse(pending,result.data,power):null;
+    const recovered=localRecovered||(rawRepair?mergeRepairedResponse(pending,result.data,power):null);
     const repairedGuide=recovered?.data.guide?normalizePlayerGuide(recovered.data.guide,power):pending.guide;
-    const repaired=localOnly?{data:pending.data,attempted:[]}:rawRepair?{data:recovered?.data||pending.data,attempted:recovered?[0]:[]}:applyArchiveRepairResponse(pending,result.data,power,snapshot.state);
+    const repaired=rawRepair?{data:recovered?.data||pending.data,attempted:recovered?[0]:[]}:localOnly?{data:pending.data,attempted:[]}:applyArchiveRepairResponse(pending,result.data,power,snapshot.state);
     if(!localOnly&&!repaired.attempted.length){this.notice('AI未找到有依据的修复，原候选已保留。');return;}
     const structured=pending.setupReferences?prepareStructureImport(repaired.data,power):{data:repaired.data};
     const prepared=isTaishi(power)?preparePersonSources(structured.data,reference,power):{data:structured.data};
@@ -460,7 +461,7 @@ export const archiveReviewMethods = {
     this.runtimeLog?.step(this.logTask,'AI修复待确认候选',{presetId:'wjwk.pending-repair.v1',localOnly,attempted:repaired.attempted.length,remaining:batch.issues.length,accepted:batch.changes.length,noImprovement});
     this.runtimeLog?.step(this.logTask,'校验结果',{accepted:batch.changes.length,issues:batch.issues,blockedFloors:batch.blockedFloors});
     this.ui.showArchiveReview(pending,power,snapshot.ctx.chat);this.refresh();
-    this.notice(localOnly?'本地格式已重新校验，未调用AI；请核对后接受更新。':!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&batch.issues.length?'修复调用已完成，但仍无可保存成果；未通过项继续保留，请查看具体原因。':noImprovement?'本次AI修复未改善校验结果；候选继续保留，请查看具体未通过原因，勿重复提交相同修复。':batch.issues.length?'修复结果已重新校验，未通过项继续保留；有效项可接受。':'失败项已修复并通过校验，请核对后接受更新。');
+    this.notice(localOnly?(batch.issues.length?'本地语法或格式已修复，未调用AI；其余未通过项继续保留。':'本地格式已修复并重新校验，未调用AI；请核对后接受更新。'):!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&batch.issues.length?'修复调用已完成，但仍无可保存成果；未通过项继续保留，请查看具体原因。':noImprovement?'本次AI修复未改善校验结果；候选继续保留，请查看具体未通过原因，勿重复提交相同修复。':batch.issues.length?'修复结果已重新校验，未通过项继续保留；有效项可接受。':'失败项已修复并通过校验，请核对后接受更新。');
   },
   async retryArchiveReferences(){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务结束');

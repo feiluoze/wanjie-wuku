@@ -2,27 +2,29 @@ import {assert,clone,ASYNC_MARKER} from './core.js';
 import {ARCHIVE_FIELDS} from './archives.js';
 import {creationConfig} from './creation-config.js';
 import {normalizePlayerGuide} from './player-guide.js';
-// Locate a root section without treating quoted prose or nested fields as keys.
+// Strings are lexical units; damaged object braces must not truncate an array.
 function rawSection(raw,key){
- let depth=0;
+ let objects=0,arrays=0;
+ const stringEnd=start=>{let i=start+1;for(;i<raw.length;i++){if(raw[i]==='\\'){i++;continue;}if(raw[i]==='"')return i;}return raw.length;};
  for(let i=0;i<raw.length;i++){
   const c=raw[i];
   if(c==='"'){
-   const start=i;for(i++;i<raw.length;i++){if(raw[i]==='\\'){i++;continue;}if(raw[i]==='"')break;}
-   if(depth!==1)continue;
+   const start=i;i=stringEnd(i);if(arrays||objects>1)continue;
    let token;try{token=JSON.parse(raw.slice(start,i+1));}catch{continue;}
    if(token!==key)continue;
    const tail=raw.slice(i+1).match(/^\s*:\s*/);if(!tail)continue;
-   const begin=i+1+tail[0].length;let nested=0;
+   const begin=i+1+tail[0].length,open=raw[begin],close=open==='['?']':'}';
+   if(open!=='['&&open!=='{')continue;
+   let nested=0,innerArrays=0;
    for(let j=begin;j<raw.length;j++){
-    if(raw[j]==='"'){for(j++;j<raw.length;j++){if(raw[j]==='\\'){j++;continue;}if(raw[j]==='"')break;}continue;}
-    if(raw[j]==='['||raw[j]==='{')nested++;
-    if(raw[j]===']'||raw[j]==='}'){nested--;if(nested===0)return raw.slice(begin,j+1);}
+    const ch=raw[j];if(ch==='"'){j=stringEnd(j);continue;}
+    if(open==='{'){if(ch==='[')innerArrays++;else if(ch===']')innerArrays=Math.max(0,innerArrays-1);if(innerArrays||ch===']')continue;}
+    if(ch===open)nested++;else if(ch===close&&--nested===0)return raw.slice(begin,j+1);
    }
    return raw.slice(begin);
   }
-  else if(c==='{'||c==='[')depth++;
-  else if(c==='}'||c===']')depth--;
+  else if(c==='[')arrays++;else if(c===']')arrays=Math.max(0,arrays-1);
+  else if(c==='{')objects++;else if(c==='}')objects=Math.max(0,objects-1);
  }
  return '';
 }
@@ -48,12 +50,31 @@ export function mergeRepairedResponse(pending,result,power){
   assert(data.guide.summary===quotedValues(originalGuide,'summary')[0]&&['description','ruleQuote'].every(key=>data.guide.abilities.every((a,i)=>a[key]===quotedValues(originalGuide,key)[i])),'格式修复不能改写原玩法说明内容');
  }
  const originalChanges=rawSection(failure.raw,'changes');
- const sources=new Set(failure.sourceIndexes),names=new Set(quotedValues(originalChanges,'name')),ids=new Set([...quotedValues(originalChanges,'archiveId'),...Object.keys(power.archives||{})]);
+ assert(originalChanges.trim().endsWith(']'),'原候选列表边界不完整，不能仅靠格式修复补写成果');
+ const sourceNames=quotedValues(originalChanges,'name');
+ const sources=new Set(failure.sourceIndexes),names=new Set(sourceNames),ids=new Set(quotedValues(originalChanges,'archiveId'));
  for(const change of data.changes){assert(sources.has(change.sourceIndex),'格式修复改变了来源楼层');assert(names.size&&names.has(change.name),'格式修复新增或更名对象');assert(!change.archiveId||ids.has(change.archiveId),'格式修复伪造档案ID');}
  const returnedNames=new Set(data.changes.map(c=>c.name));assert([...names].every(name=>returnedNames.has(name)),'格式修复遗漏原候选；原回复继续保留');
+ assert(data.changes.length===sourceNames.length&&[...names].every(name=>sourceNames.filter(n=>n===name).length===data.changes.filter(c=>c.name===name).length),'格式修复增加或遗漏同名候选；原回复继续保留');
  assert(Array.isArray(data.floorReviews)&&data.floorReviews.every(r=>sources.has(r.sourceIndex)),'格式修复逐层报告来源无效');
  const next=clone(pending.data);next.changes.push(...clone(data.changes));next.floorReviews=[...(next.floorReviews||[]).filter(r=>!sources.has(r.sourceIndex)),...clone(data.floorReviews)];next.rawFailures.splice(row.index,1);
  if(allowGuide)next.guide=clone(data.guide);
  next.historyIssues=(next.historyIssues||[]).filter(r=>!r.rawResponseFailure||!sources.has(r.sourceIndex));next.message=data.message||next.message;
  return {data:next,sourceIndexes:sources};
+}
+
+// A single premature close before a record's rule quote has an unambiguous grammar-only repair.
+// No value, quote, identifier or missing fact is generated; ambiguous results stay pending.
+export function repairRawResponseLocally(pending,power){
+ const failure=pending.data.rawFailures?.[0];if(!failure||failure.raw.length>120000)return null;
+ const matches=[...failure.raw.matchAll(/}\s*,\s*"ruleQuote"\s*:/g)];if(matches.length>8)return null;
+ const recovered=[];
+ for(const match of matches){
+  try{
+   const raw=failure.raw.slice(0,match.index)+failure.raw.slice(match.index+1),data=JSON.parse(raw);
+   const result=mergeRepairedResponse(pending,{responses:[{index:0,data}]},power);
+   if(result)recovered.push(result);
+  }catch{}
+ }
+ return recovered.length===1?recovered[0]:null;
 }
