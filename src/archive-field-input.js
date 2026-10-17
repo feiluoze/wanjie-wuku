@@ -34,7 +34,16 @@ export function unwrapArchiveInput(input){
  }
  return raw;
 }
-export function prepareArchiveFields(input,types,definition){
+export function resolveArchiveCategory(input,config,before){
+ // Existing and explicitly declared categories carry meaning: never reclassify them by field shape.
+ if(!object(input)||input.recordId||before?.specific||!object(input.details))return input;
+ if(['wuku.primordial_world','builtin-mmlc'].includes(config?.id))return input;
+ const keys=Object.keys(input.details).filter(k=>!['quote','ruleQuote','ownerPowerId'].includes(k));
+ if(!keys.length||keys.some(k=>['source_profile','time_state'].includes(k)))return input;
+ const matches=(config?.records||[]).filter(r=>keys.every(k=>r.fields?.some(f=>f.id===k)));
+ return matches.length===1?{...input,recordId:matches[0].id}:input;
+}
+export function prepareArchiveFields(input,types,definition,config){
  const raw=unwrapArchiveInput(input),fields={},details={},held=[];if(object(raw.details))raw.details={...raw.details};
  // Evidence metadata is never a dedicated statistic. Preserve conflicts for review.
  if(object(raw.details))for(const key of ['quote','ruleQuote'])if(Object.hasOwn(raw.details,key)){
@@ -62,6 +71,8 @@ export function prepareArchiveFields(input,types,definition){
   const target=section==='details'&&sid?details:gid?fields:sid?details:null;
   const id=target===details?sid:gid;
   const text=valueText(value);
+  // Preserve known, misplaced descriptive statistics without assigning a different category.
+  if(!target&&definition&&supplementTarget&&descriptiveLabels.has(key)&&text!==null&&text.length<=4000){extras.push(descriptiveLabels.get(key)+'：'+text);return;}
   if(!target&&section==='fields'&&!definition&&!raw.recordId&&supplementTarget&&genericLabels.has(key)&&text!==null&&text.length<=4000){extras.push(genericLabels.get(key)+'：'+text);return;}
   if(!target||text===null||text.length>4000){held.push({section,key,value,code:!target?'unknown_field':text===null?'non_text_field':'overlong_field'});return;}
   if(Object.hasOwn(target,id)&&!same(target[id],text)){
@@ -80,9 +91,10 @@ export function prepareArchiveFields(input,types,definition){
  for(const [id]of general)if(Object.hasOwn(raw,id)){add('fields',id,raw[id]);delete raw[id];}
  const extraLabels={progress:'进度',triggerMechanism:'触发依据',consumed:'消耗记录',remaining:'剩余记录'};
  const extras=[];
- const supplementTarget=Object.hasOwn(types[raw.type]||{},'description')?'description':Object.hasOwn(types[raw.type]||{},'condition')?'condition':Object.hasOwn(types[raw.type]||{},'progress')?'progress':null;
+ const supplementTarget=Object.hasOwn(types[raw.type]||{},'description')?'description':Object.hasOwn(types[raw.type]||{},'condition')?'condition':Object.hasOwn(types[raw.type]||{},'conditions')?'conditions':Object.hasOwn(types[raw.type]||{},'progress')?'progress':null;
  if(!definition&&!raw.recordId&&typeof raw.details==='string'&&supplementTarget){extras.push('补充记录：'+raw.details);delete raw.details;}
  const genericLabels=new Map(Object.values(types).flatMap(row=>Object.entries(row)));
+ const descriptiveLabels=new Map((config?.records||[]).flatMap(r=>(r.fields||[]).filter(f=>!/(?:^|_)(?:id|ids)$/.test(f.id)&&!['source_profile','time_state'].includes(f.id)).map(f=>[f.id,f.label||f.id])));
 
  if(!definition&&!raw.recordId&&object(raw.details))for(const [key,value]of Object.entries(raw.details)){
   if(!Object.hasOwn(extraLabels,key)||typeof value!=='string'||value.length>4000)continue;

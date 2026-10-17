@@ -2,7 +2,7 @@ import {archiveFieldRepairSchema} from './archive-contract.js';
 import {assert,clone,stable,ASYNC_MARKER} from './core.js';
 import {ARCHIVE_FIELDS} from './archives.js';
 import {creationConfig} from './creation-config.js';
-import {normalizeArchiveEnvelope} from './archive-field-input.js';
+import {normalizeArchiveEnvelope,resolveArchiveCategory} from './archive-field-input.js';
 // Only repair a missing reference; valid identities and foreign ownership stay protected.
 export function repairArchiveIdentity(raw,power,state={}){
  if(!raw.archiveId||power.archives?.[raw.archiveId])return raw;
@@ -30,13 +30,21 @@ export function repairableArchiveIssues(pending){
 export function archiveRepairPrompt(pending,power,referencePacket){
  const failed=repairableArchiveIssues(pending).map(i=>{const raw=normalizeArchiveEnvelope(pending.data.changes[i.index],creationConfig(power));let candidate=raw,identityResolution='保留原身份';try{candidate=repairArchiveIdentity(raw,power);identityResolution=candidate.archiveId===raw.archiveId?'保留原身份':candidate.archiveId?'程序将绑定唯一同名档案':'程序将移除不存在的ID，按新候选重新核对正文依据';}catch(e){identityResolution=e.message;}return {index:i.index,error:i.reason,conflicts:i.conflicts||[],candidate,identityResolution};});
  assert(failed.length,'没有可由AI修复的失败候选');
+ const config=creationConfig(power);
+ for(const item of failed){
+  const before=power.archives?.[item.candidate.archiveId]||Object.values(power.archives||{}).find(r=>r.name===item.candidate.name);
+  item.candidate=resolveArchiveCategory(item.candidate,config,before);
+  const recordId=before?.specific?.recordId||item.candidate.recordId;
+  const definition=config?.records.find(r=>r.id===recordId);
+  item.repairContract={fields:Object.keys(ARCHIVE_FIELDS[item.candidate.type]||{}),...(definition?{recordId:definition.id,details:definition.fields.filter(f=>!['source_profile','time_state'].includes(f.id)).map(f=>f.id)}:{})};
+ }
  const failedText=JSON.stringify(failed);
  const payload={task:'仅修复失败候选',setupReferences:Boolean(pending.setupReferences),presetId:ARCHIVE_REPAIR_PRESET.id,failed,fieldTypes:ARCHIVE_FIELDS,declaredSchemas:creationConfig(power)?.records||[],worldStructure:power.taishiWorldStructure||null,
  existingIdentities:Object.values(power.archives||{}).filter(r=>failedText.includes(r.id)||r.name?.length>=2&&failedText.includes(r.name)).map(r=>({archiveId:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})),
  sources:pending.sources.filter(s=>failed.some(i=>i.candidate.sourceIndex===s.index)),playerNote:pending.playerNote||'',referencePacket:referencePacket?.payload||{books:[]}};
  const user=JSON.stringify(payload);assert(user.length<=120000,'待修复资料过长，请先保存有效项后再修复');
  const referenceContract=pending.setupReferences?'本次是世界书引用修复；每项 repairs 可额外填写 settingRefs:[{book,id,part}]，仅使用 referencePacket 中的真实引用。':'本次是普通正文修复；每项 repairs 只输出 index、fields、details和可选recordId，必须省略 settingRefs。';
- return {system:ASYNC_MARKER+'\n'+ARCHIVE_REPAIR_PRESET.system+'\n'+referenceContract,user,archiveSchema:archiveFieldRepairSchema(payload),archiveRepair:true};
+ return {system:ASYNC_MARKER+'\n'+ARCHIVE_REPAIR_PRESET.system+'\n'+referenceContract+'\n每项failed.repairContract是该候选单独的输出约束。已给recordId时必须返回该值，details只能使用该项列出的键；其他分类的描述资料按原标签完整保留到该项fields的描述字段，不能混入details。字段集合不能照搬其他index。',user,archiveSchema:archiveFieldRepairSchema(payload),archiveRepair:true};
 }
 export function applyArchiveRepairResponse(pending,data,power,state={}){
  assert(data&&Array.isArray(data.repairs)&&data.repairs.length<=32,'修复响应须包含repairs数组，最多32项');

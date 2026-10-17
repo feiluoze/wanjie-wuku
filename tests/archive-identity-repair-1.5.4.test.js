@@ -24,7 +24,7 @@ test('nested location precision is merged but incompatible locations remain conf
 });
 test('dedicated repair can correct new candidate category using declared schemas but cannot reclassify existing dedicated archives',()=>{
  const power=createPower(builtinEntries().find(e=>e.name==='万物尽头'));const raw={...row,recordId:'stock',details:{identity:'种源'},ownerPowerId:power.id};
- const p={data:{changes:[raw]},issues:[{kind:'成果',index:0}],sources:[]};const prompt=archiveRepairPrompt(p,power),input=JSON.parse(prompt.user);assert(input.declaredSchemas.some(r=>r.id==='seeds'));assert(prompt.archiveSchema.properties.repairs.items.properties.recordId.enum.includes('seeds'));
+ const p={data:{changes:[raw]},issues:[{kind:'成果',index:0}],sources:[]};const prompt=archiveRepairPrompt(p,power),input=JSON.parse(prompt.user);assert(input.declaredSchemas.some(r=>r.id==='seeds'));assert(prompt.archiveSchema.properties.repairs.items.anyOf.some(v=>v.properties.recordId.const==='stock'));
  const repairs=[{index:0,recordId:'seeds',fields:{description:'已保留种源'},details:{identity:'种源'}}];const fixed=applyArchiveRepairResponse(p,{repairs},power);assert.equal(fixed.data.changes[0].recordId,'seeds');assert(!fixed.data.changes[0].archiveId);
  power.archives={real:{id:'real',name:row.name,type:'record',specific:{recordId:'stock'}}};assert.throws(()=>applyArchiveRepairResponse(p,{repairs},power),/不能改换分类/);
  assert.throws(()=>applyArchiveRepairResponse(p,{repairs:[{...repairs[0],recordId:'invented-category'}]},power),/未声明/);

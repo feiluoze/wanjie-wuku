@@ -32,10 +32,13 @@ export function archiveFormatOptions(settings,prompt){
 }
 
 export function archiveFieldRepairSchema(payload){
- const text={type:'string',maxLength:4000},all=Object.keys(ARCHIVE_FIELDS).flatMap(type=>Object.keys(ARCHIVE_FIELDS[type])),ids=[...new Set((payload.declaredSchemas||[]).flatMap(r=>(r.fields||[]).map(f=>f.id).filter(id=>!['source_profile','time_state'].includes(id))))];
+ const text={type:'string',maxLength:4000},all=Object.keys(ARCHIVE_FIELDS).flatMap(type=>Object.keys(ARCHIVE_FIELDS[type]));
  const fields=keys=>({type:'object',additionalProperties:false,properties:Object.fromEntries(keys.map(k=>[k,text]))});
- const properties={index:{enum:payload.failed.map(f=>f.index)},fields:fields([...new Set(all)]),details:fields(ids)};
- if(payload.declaredSchemas?.length)properties.recordId={enum:['',...payload.declaredSchemas.map(r=>r.id)]};
- if(payload.setupReferences)properties.settingRefs={type:'array',items:{type:'object'}};
- return {type:'object',additionalProperties:false,required:['repairs'],properties:{repairs:{type:'array',maxItems:32,items:{type:'object',additionalProperties:false,required:['index','fields','details'],properties}},unresolved:{type:'array',items:{type:'object'}},message:{type:'string'}}};
+ const variants=payload.failed.flatMap(row=>{
+  const contract=row.repairContract,base={index:{const:row.index},fields:fields(contract?.fields||[...new Set(all)])};
+  if(payload.setupReferences)base.settingRefs={type:'array',items:{type:'object'}};
+  const options=contract?.recordId?[{id:contract.recordId,fields:(contract.details||[]).map(id=>({id}))}]:[{id:'',fields:[]},...(payload.declaredSchemas||[])];
+  return options.map(record=>({type:'object',additionalProperties:false,required:['index','fields','details',...(record.id?['recordId']:[])],properties:{...base,recordId:{const:record.id},details:fields((record.fields||[]).map(f=>f.id).filter(id=>!['source_profile','time_state'].includes(id)))}}));
+ });
+ return {type:'object',additionalProperties:false,required:['repairs'],properties:{repairs:{type:'array',maxItems:32,items:{anyOf:variants}},unresolved:{type:'array',items:{type:'object'}},message:{type:'string'}}};
 }
