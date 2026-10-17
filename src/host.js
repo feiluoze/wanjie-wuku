@@ -226,7 +226,13 @@ export class ChatStore {
       try {
         for (let attempt=0;attempt<2;attempt++) {
           assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
-          const saved = await readSavedMetadata(ctx, captured, this.fetchImpl);
+          let saved;
+          try{saved = await readSavedMetadata(ctx, captured, this.fetchImpl);}catch(error){
+            assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
+            verification={attempts:attempt+1,reason:'read-error'};
+            if(attempt===1)throw error;
+            await new Promise(resolve=>setTimeout(resolve,200));continue;
+          }
           assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
           verified = saved?.id === state.id && saved.writeVersion === state.writeVersion && stable(saved) === stable(state);
           verification={attempts:attempt+1,reason:verified?'matched':!saved?'missing':saved.id!==state.id?'different-state':saved.writeVersion!==state.writeVersion?'different-write-version':'different-content'};

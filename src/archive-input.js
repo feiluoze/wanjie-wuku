@@ -45,3 +45,10 @@ export function selectArchiveInput(records,query,{compact=false,focusIds=null,de
   if(cost>remaining)return identities[i];remaining-=cost;return r;
  });
 }
+
+// A read-only archive request depends on this power and the ownership directory,
+// not the full details of unrelated powers. Never use this for resource settlement.
+export function archiveRequestScope(state,powerId){
+ return {power:state.powers?.[powerId],roleLink:state.roleLink,aiWorldbooks:state.aiWorldbooks,terminalOrders:(state.terminalOrders||[]).filter(r=>r.powerId===powerId),creations:(state.creations||[]).filter(r=>r.powerId===powerId),
+ ownership:Object.values(state.powers||{}).filter(p=>p.id!==powerId).map(p=>({id:p.id,name:p.name,active:p.active,objects:Object.values(p.archives||{}).map(r=>({id:r.id,name:r.name,type:r.type,ownerPowerId:r.ownerPowerId,previousNames:[...new Set((r.history||[]).map(h=>h.name).filter(name=>name!==r.name))]}))}))};
+}

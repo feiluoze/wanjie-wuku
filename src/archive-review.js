@@ -108,7 +108,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
     const sizes=inputCharacterBreakdown(payload),e=new Error(`发送前检查：本次请求 ${body.length} 字符，超过 120000。规则 ${sizes.rules}，正文 ${sizes.sources}，档案目录与详情 ${sizes.current}，字段定义 ${sizes.recordSchemas}。${sizes.rules>60000?'当前词条规则过长，请检查接入的规则范围。':playerNote?'请缩小本次补充涉及的对象范围，分次补充。':'请使用手动分批整理或缩小读取范围。'}尚未调用模型，已保存档案不受影响。`);
     e.requestStage='preflight';e.inputCharacters=sizes;throw e;
   }
-  return {databasePromptTrial:true,setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
+  return {archivePowerId:power.id,databasePromptTrial:true,setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
 export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '',{playerJoining=false}={}) {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');

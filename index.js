@@ -1,3 +1,4 @@
+import {archiveRequestScope} from './src/archive-input.js';
 import {databasePromptTrial,DATABASE_PROMPT_TRIAL_ID} from './src/database-prompt-trial.js';
 import {reviewCheckpointMethods} from './src/review-checkpoint.js';
 import {taishiScheduleMethods} from './src/taishi-schedule-controller.js';
@@ -203,6 +204,15 @@ export class WukuApp {
     if(!taishiWorkflow)this.aiActivity?.connection(connection);
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
+    const archiveScope=prompt.archivePowerId?stable(archiveRequestScope(snapshot.state,prompt.archivePowerId)):null;
+    const checkCapture=()=>{
+      try{this.store.assertCapture(captured);}catch(error){
+        const latest=this.store.capture(),state=this.store.read();
+        if(!archiveScope||latest.chatKey!==captured.chatKey||latest.stateId!==captured.stateId||stable(archiveRequestScope(state,prompt.archivePowerId))!==archiveScope)throw error;
+        captured.revision=latest.revision;snapshot.state=state;
+        this.runtimeLog?.step(this.logTask,'请求状态核对',{unrelatedRevisionRebased:true,revision:latest.revision});
+      }
+    };
     const contextHash = hash(stable(snapshot.hashes));
     let referenceReport,rawResponse,requestStage='preflight';const logId=this.logTask;
     this.runtimeLog?.step(logId,'准备请求',{task,profile:connection.profileName,mode:connection.settings.mode,model:connection.settings.model||'酒馆当前连接',revision:captured.revision});
@@ -210,7 +220,7 @@ export class WukuApp {
       this.aiActivity?.phase('准备附加世界书');
       assert(!referenceBatch||prompt.setupReferences||prompt.archiveRepair||prompt.personReferences&&task==='creation','所选世界书参考只能用于底稿、眷属录入或候选修复任务');
       const reference=referenceBatch||(snapshot.state.aiWorldbooks?await readReferencePacket(snapshot.state.aiWorldbooks,{ctx:snapshot.ctx,signal:controller.signal}):{payload:{books:[]},summary:[],characters:0,fingerprint:""});
-      if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);
+      if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');checkCapture();
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat)))===contextHash,'准备世界书期间剧情已变化，请重试');
       if(prompt.setupReferences)assert(reference.payload.books.some(b=>b.entries.length),'请先选择并保存个人世界书条目；尚未调用模型');
       const actualPrompt=attachReferences(prompt,reference);
@@ -222,21 +232,21 @@ export class WukuApp {
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
       const send=async(p,plan)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial||taishiWorkflow));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
-        signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');this.store.assertCapture(captured);assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
+        signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');checkCapture();assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
         onAttempt:selected=>{this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
         onFailure:(selected,error)=>this.runtimeLog?.step(logId,'API尝试失败',{task:selected.task,attempt:selected.attempt,kind:error.transportKind||'non-transport',httpStatus:error.httpStatus}),
         onSwitch:info=>this.runtimeLog?.step(logId,'切换备用API',{task:info.from.task,from:info.from.profileName,to:info.to.profileName,kind:info.kind,httpStatus:info.httpStatus})
       });};
       const invoke=async(p,role)=>{
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
-        this.store.assertCapture(captured);
+        checkCapture();
         const selected=roleConnections?.[role]||connection;
         this.aiActivity?.connection(selected);
         this.runtimeLog?.step(logId,'专职请求',{task:role,profile:selected.profileName,model:selected.settings.model||'酒馆当前连接'});
         this.runtimeLog?.capture(logId,'专职请求 '+role,p);
         const reply=await send(p,rolePlans?.[role]||connectionPlan);
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
-        this.store.assertCapture(captured);
+        checkCapture();
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
         try{return parseJSON(reply);}catch(error){error.requestStage='response';this.runtimeLog?.failureResponse(logId,reply,role);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',{...error.jsonDiagnostic,task:role});throw error;}
       };
@@ -248,11 +258,11 @@ export class WukuApp {
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');
-      if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); this.store.assertCapture(captured);
+      if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); checkCapture();
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
       return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences||prompt.personReferences?{referencePacket:reference}:{}) };
-    } catch(error){if(['查询期间剧情发生变化，本次旧结果已丢弃','准备世界书期间剧情已变化，请重试'].includes(error.message)){error.name='ContextChangedError';error.requestStage='context';}error.requestStage ||= requestStage;if(error.jsonDiagnostic&&rawResponse!==undefined)this.runtimeLog?.failureResponse(logId,rawResponse);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
+    } catch(error){if(['查询期间剧情发生变化，本次旧结果已丢弃','准备世界书期间剧情已变化，请重试','档案已经变化，本次旧结果已丢弃','聊天已经切换，本次结果不会写入其他聊天'].includes(error.message)){error.name='ContextChangedError';error.requestStage='context';}error.requestStage ||= requestStage;if(error.jsonDiagnostic&&rawResponse!==undefined)this.runtimeLog?.failureResponse(logId,rawResponse,'',error.jsonDiagnostic);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
     let names = []; try { names = await worldInfoNames(); } catch { /* JSON import is always available. */ }

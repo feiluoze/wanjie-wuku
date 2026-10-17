@@ -12,7 +12,9 @@ export function fieldDiagnostic(raw,types,definition){
    unknownFields:entries.filter(([k])=>!declared.has(k)&&![...declared.values()].includes(k)).slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)})),
    nonTextFields:entries.filter(([,v])=>typeof v!=='string').slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)}))};
  }
- return {stage:'archive_validation',...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
+ const allowedTop=new Set(['archiveId','ownerPowerId','type','name','status','fields','details','recordId','sourceIndex','quote','ruleQuote','module','settingRefs']);
+ const unexpectedTopFields=Object.keys(raw||{}).filter(k=>!allowedTop.has(k)).map(k=>/^[a-zA-Z_][a-zA-Z0-9_.-]{0,79}$/.test(k)&&!/secret|token|password|key/i.test(k)?k:'[非标准字段名]');
+ return {stage:'archive_validation',unexpectedTopFields,...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
 }
 export const ARCHIVE_PROTOCOL_POLICY='按输入的 responseContract 返回 floorReviews，逐层核对，不得只检查最后一层。每层只返回一个 {sourceIndex:内部0基整数,status:"reviewed"或"uncertain",changeCount:本层返回的变化与进展总数}；漏查、冲突或归属不明为 uncertain，明确没有变化也必须报告。优先提取 sources.settlements.facts，再用 statusSnapshots（含MMLC-archive长期总档）核对当前快照；总档存量不等于本轮新增，不重复发放或累加；content 仅补充叙事。opportunities 不代表玩家已选择、执行或到账。较新快照遗漏不代表删除旧成果；跨层重复不再次建档。已有记录复用 ID，各独立历史事件逐条保存。通用 fields 只能使用 fieldTypes[type] 的 ID；专用字段必须使用 recordSchemas 对应 recordId，并放在 details。优先使用适合该事实的专用分类；已确认在本任务范围内但无法可靠映射时可用合法通用类型，不猜recordId；通用分类不接收归属不明或其他词条成果。已有专用对象继续沿用原分类。每项明确 ownerPowerId，协作不转移归属。插件只归档已有事实，不执行结算。';
 

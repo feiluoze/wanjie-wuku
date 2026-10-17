@@ -36,6 +36,12 @@ export function unwrapArchiveInput(input){
 }
 export function prepareArchiveFields(input,types,definition){
  const raw=unwrapArchiveInput(input),fields={},details={},held=[];if(object(raw.details))raw.details={...raw.details};
+ // Evidence metadata is never a dedicated statistic. Preserve conflicts for review.
+ if(object(raw.details))for(const key of ['quote','ruleQuote'])if(Object.hasOwn(raw.details,key)){
+  const value=raw.details[key];if(typeof value!=='string')continue;
+  if(raw[key]!==undefined&&raw[key]!==value)throw Error('引用字段内容冲突，请按原文核对');
+  raw[key]=value;delete raw.details[key];
+ }
  const general=Object.entries(types[raw?.type]||{}),specific=(definition?.fields||[]).map(f=>[f.id,f.label]);
  const resolve=(key,entries)=>entries.find(([id])=>id===key)?.[0]||entries.find(([,label])=>label===key)?.[0];
  const valueText=value=>{
@@ -51,6 +57,7 @@ export function prepareArchiveFields(input,types,definition){
   const target=section==='details'&&sid?details:gid?fields:sid?details:null;
   const id=target===details?sid:gid;
   const text=valueText(value);
+  if(!target&&section==='fields'&&!definition&&!raw.recordId&&supplementTarget&&genericLabels.has(key)&&text!==null&&text.length<=4000){extras.push(genericLabels.get(key)+'：'+text);return;}
   if(!target||text===null||text.length>4000){held.push({section,key,value,code:!target?'unknown_field':text===null?'non_text_field':'overlong_field'});return;}
   if(Object.hasOwn(target,id)&&!same(target[id],text)){
    // Let the existing canonical conflict UI arbitrate; never choose a value.
@@ -62,6 +69,10 @@ export function prepareArchiveFields(input,types,definition){
  for(const [id]of general)if(Object.hasOwn(raw,id)){add('fields',id,raw[id]);delete raw[id];}
  const extraLabels={progress:'进度',triggerMechanism:'触发依据',consumed:'消耗记录',remaining:'剩余记录'};
  const extras=[];
+ const supplementTarget=Object.hasOwn(types[raw.type]||{},'description')?'description':Object.hasOwn(types[raw.type]||{},'condition')?'condition':Object.hasOwn(types[raw.type]||{},'progress')?'progress':null;
+ if(!definition&&!raw.recordId&&typeof raw.details==='string'&&supplementTarget){extras.push('补充记录：'+raw.details);delete raw.details;}
+ const genericLabels=new Map(Object.values(types).flatMap(row=>Object.entries(row)));
+
  if(!definition&&!raw.recordId&&object(raw.details))for(const [key,value]of Object.entries(raw.details)){
   if(!Object.hasOwn(extraLabels,key)||typeof value!=='string'||value.length>4000)continue;
   if(key==='progress'){
@@ -75,7 +86,7 @@ export function prepareArchiveFields(input,types,definition){
   if(raw[section]!==undefined&&!object(raw[section]))return {raw,held:[]};
   for(const [key,value]of Object.entries(raw[section]||{}))add(section,key,value);
  }
- if(extras.length){const target=Object.hasOwn(types[raw.type]||{},'description')?'description':null;const combined=[fields[target],...extras].filter(Boolean).join('\n');if(target&&combined.length<=4000)fields[target]=combined;else for(const value of extras)held.push({section:'details',key:'补充记录',value,code:'overlong_field'});}
+ if(extras.length){const target=supplementTarget;const combined=[fields[target],...extras].filter(Boolean).join('\n');if(target&&combined.length<=4000)fields[target]=combined;else for(const value of extras)held.push({section:'details',key:'补充记录',value,code:'overlong_field'});}
  if(!definition&&!raw.recordId&&object(raw.details)&&!Object.keys(raw.details).length)delete raw.details;
  return {raw:{...raw,fields,...(definition?{details}:raw.details!==undefined?{details:raw.details}:{})},held};
 }
