@@ -51,6 +51,11 @@ export function prepareArchiveFields(input,types,definition){
   return null;
  };
  const add=(section,key,value)=>{
+  if(key==='ownerPowerId'){
+   if(value===null)return;
+   if(typeof value!=='string'||raw.ownerPowerId!==undefined&&raw.ownerPowerId!==value)throw Error('字段中的金手指归属冲突，请核对');
+   raw.ownerPowerId=value;return;
+  }
   // Never quarantine protected fields and thereby bypass their original checks.
   if(['source_profile','time_state'].includes(key)){details[key]=value;return;}
   const sid=resolve(key,specific),gid=resolve(key,general);
@@ -60,6 +65,12 @@ export function prepareArchiveFields(input,types,definition){
   if(!target&&section==='fields'&&!definition&&!raw.recordId&&supplementTarget&&genericLabels.has(key)&&text!==null&&text.length<=4000){extras.push(genericLabels.get(key)+'：'+text);return;}
   if(!target||text===null||text.length>4000){held.push({section,key,value,code:!target?'unknown_field':text===null?'non_text_field':'overlong_field'});return;}
   if(Object.hasOwn(target,id)&&!same(target[id],text)){
+   // A more precise location containing the full shorter location is complementary.
+   if(id==='location'){
+    const normalize=v=>v.normalize('NFKC').replace(/\s/g,'');
+    const left=normalize(target[id]),right=normalize(text);
+    if(left&&right&&(left.includes(right)||right.includes(left))){if(right.length>left.length)target[id]=text;return;}
+   }
    // Let the existing canonical conflict UI arbitrate; never choose a value.
    throw Object.assign(Error('重复字段内容冲突：'+key+'；请本地核对'),{fieldConflicts:[{key:(target===details?'details':'fields')+':'+id,section:target===details?'details':'fields',id,label:key,left:target[id],right:text}]});
   }

@@ -428,7 +428,7 @@ export const archiveReviewMethods = {
     assert(this.pendingArchiveReview===pending&&hash(stable(pending.data))===originalHash,'修复期间候选已变化，原候选保留');
     const recovered=rawRepair?mergeRepairedResponse(pending,result.data,power):null;
     const repairedGuide=recovered?.data.guide?normalizePlayerGuide(recovered.data.guide,power):pending.guide;
-    const repaired=rawRepair?{data:recovered?.data||pending.data,attempted:recovered?[0]:[]}:applyArchiveRepairResponse(pending,result.data,power);
+    const repaired=rawRepair?{data:recovered?.data||pending.data,attempted:recovered?[0]:[]}:applyArchiveRepairResponse(pending,result.data,power,snapshot.state);
     if(!repaired.attempted.length){this.notice('AI未找到有依据的修复，原候选已保留。');return;}
     const structured=pending.setupReferences?prepareStructureImport(repaired.data,power):{data:repaired.data};
     const prepared=isTaishi(power)?preparePersonSources(structured.data,reference,power):{data:structured.data};
@@ -452,7 +452,7 @@ export const archiveReviewMethods = {
     this.runtimeLog?.step(this.logTask,'AI修复待确认候选',{presetId:'wjwk.pending-repair.v1',attempted:repaired.attempted.length,remaining:batch.issues.length,accepted:batch.changes.length,noImprovement});
     this.runtimeLog?.step(this.logTask,'校验结果',{accepted:batch.changes.length,issues:batch.issues,blockedFloors:batch.blockedFloors});
     this.ui.showArchiveReview(pending,power,snapshot.ctx.chat);this.refresh();
-    this.notice(noImprovement?'本次AI修复未改善校验结果；候选继续保留，请查看具体未通过原因，勿重复提交相同修复。':batch.issues.length?'修复结果已重新校验，未通过项继续保留；有效项可接受。':'失败项已修复并通过校验，请核对后接受更新。');
+    this.notice(!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&batch.issues.length?'修复调用已完成，但仍无可保存成果；未通过项继续保留，请查看具体原因。':noImprovement?'本次AI修复未改善校验结果；候选继续保留，请查看具体未通过原因，勿重复提交相同修复。':batch.issues.length?'修复结果已重新校验，未通过项继续保留；有效项可接受。':'失败项已修复并通过校验，请核对后接受更新。');
   },
   async retryArchiveReferences(){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务结束');

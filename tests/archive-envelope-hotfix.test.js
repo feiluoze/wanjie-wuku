@@ -26,9 +26,9 @@ test('wrong adapters, categories, conflicting values and extra operations remain
 });
 test('old failed candidate repair receives declared schema and cannot retain forbidden envelope or alter identity',()=>{
  const p=power(),raw=candidate(p),pending={data:{changes:[raw]},issues:[{kind:'成果',index:0,reason:'档案核对包含不允许的操作字段'}],sources:[{index:0,content:raw.quote}]};
- const input=JSON.parse(archiveRepairPrompt(pending,p).user);assert.equal(input.declaredSchemas[0].id,'points');assert.equal(input.failed[0].candidate.recordId,'points');assert(!input.failed[0].candidate.specific);
+ const input=JSON.parse(archiveRepairPrompt(pending,p).user);assert(input.declaredSchemas.some(r=>r.id==='points'));assert.equal(input.failed[0].candidate.recordId,'points');assert(!input.failed[0].candidate.specific);
  const out=applyArchiveRepairResponse(pending,{repairs:[{index:0,fields:raw.fields,details:raw.specific.fields}]},p);assert(!out.data.changes[0].specific);assert.equal(out.data.changes[0].recordId,'points');assert.equal(out.data.changes[0].name,raw.name);assert(raw.specific);
- assert.throws(()=>applyArchiveRepairResponse(pending,{repairs:[{index:0,recordId:'other',fields:raw.fields,details:{}}]},p),/身份或来源/);
+ assert.throws(()=>applyArchiveRepairResponse(pending,{repairs:[{index:0,recordId:'other',fields:raw.fields,details:{}}]},p),/未声明/);
 });
 test('default validation logs retain redacted reason without candidate facts',()=>{
  const log=new RuntimeLog({storage:{getItem:()=>null,setItem:()=>{}},secret:()=>['private-key']}),ticket=log.begin('核对');
