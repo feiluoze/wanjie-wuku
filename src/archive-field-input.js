@@ -52,7 +52,7 @@ export function prepareArchiveFields(input,types,definition,config){
   raw[key]=value;delete raw.details[key];
  }
  const general=Object.entries(types[raw?.type]||{}),specific=(definition?.fields||[]).map(f=>[f.id,f.label]);
- const resolve=(key,entries)=>entries.find(([id])=>id===key)?.[0]||entries.find(([,label])=>label===key)?.[0];
+ const resolve=(key,entries)=>key==='关联种群与设施'&&entries.some(([id])=>id==='related')?'related':entries.find(([id])=>id===key)?.[0]||entries.find(([,label])=>label===key)?.[0];
  const valueText=value=>{
   if(typeof value==='string')return value;
   if(typeof value==='number'&&Number.isFinite(value)||typeof value==='boolean')return String(value);

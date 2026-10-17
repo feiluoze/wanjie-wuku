@@ -12,11 +12,11 @@ import { getContext } from './host.js';
 import { isMmlc, mmlcModule, MMLC_MODULES } from './mmlc.js';
 import { managementProfile } from './management-profiles.js';
 
-export const ARCHIVE_TYPES = Object.freeze({ population: '种群', environment: '环境区域', facility: '设施', research: '研究项目', member: '成员与分身', skill: '成长与技艺', bond: '关系与契约', record: '其他成果' });
+export const ARCHIVE_TYPES = Object.freeze({ population: '群体', environment: '环境区域', facility: '设施', research: '研究项目', member: '成员与分身', skill: '成长与技艺', bond: '关系与契约', record: '其他成果' });
 export const ARCHIVE_STATUS = Object.freeze({ active: '已建立', planned: '计划中', working: '进行中', ended: '已结束' });
 export const ARCHIVE_FIELDS = Object.freeze({
   population: { scale: '数量或规模', traits: '特性与改造', purpose: '用途', location: '所在区域', limits: '条件与限制' },
-  environment: { location: '位置', changes: '已完成改造', conditions: '生态条件', scale: '覆盖范围', related: '关联种群与设施' },
+  environment: { location: '位置', changes: '已完成改造', conditions: '生态条件', scale: '覆盖范围', related: '关联群体与设施' },
   facility: { purpose: '功能', location: '位置', scale: '容量或规模', condition: '运行情况', limits: '条件与限制' },
   research: { goal: '研究目标', progress: '当前进展', outcome: '已取得成果', limits: '未解决条件' },
   member: { role: '身份与职责', traits: '已有能力与特性', location: '所在位置与部署', condition: '当前状况', limits: '条件与限制' },

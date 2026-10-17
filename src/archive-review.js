@@ -122,7 +122,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     assert(Object.keys(raw).every(k => ['archiveId', 'type', 'name', 'status', 'fields', 'sourceIndex', 'quote', 'ruleQuote', 'recordId', 'details', 'ownerPowerId', ...(isMmlc(power) ? ['module'] : [])].includes(k)), '档案核对包含不允许的操作字段');
     assert(raw.ownerPowerId===undefined||raw.ownerPowerId===power.id,'变化所属金手指与当前词条不符');
     // Exact declared UI labels are aliases, never infer a category from content.
-    const typeAlias=Object.entries(ARCHIVE_TYPES).find(([,label])=>label===raw.type)?.[0];
+    const typeAlias=raw.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===raw.type)?.[0];
     const recordAliases=creationConfig(power)?.records.filter(r=>r.label===raw.recordId)||[];
     raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
     if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
@@ -192,7 +192,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  const categoryBefore=unwrapped.archiveId?power.archives?.[unwrapped.archiveId]:!isTaishi(power)&&!isMmlc(power)&&!unwrapped.recordId?findArchiveObject(power,unwrapped.name,unwrapped.module):null;
  const categorized=resolveArchiveCategory(unwrapped,config,categoryBefore);
  const definition=config?.records.find(r=>r.id===categorized.recordId||r.label===categorized.recordId);
- const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
+ const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:unwrapped.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
  const prepared=prepareArchiveFields({...categorized,type:type||categorized.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition,config);
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
  let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
