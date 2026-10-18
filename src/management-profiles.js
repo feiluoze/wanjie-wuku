@@ -1,4 +1,5 @@
 import { PROFILE_DATA } from './management-profiles-data.js';
+import {BUILTIN_RESOURCES} from './builtin-resource-data.js';
 import { assert, clone, hash, isDedicatedEntry } from './primitives.js';
 export const PROFILE_FAMILIES = Object.freeze({ domain:'领域与经营', member:'成员与分身', archive:'档案与持续设定', relationship:'关系与契约', inventory:'库存与交易', cycle:'周期与等待', simulation:'模拟成果', modifier:'结算修正', narrative:'正文效果', growth:'成长与技艺', support:'辅助规则' });
 const byName = new Map(PROFILE_DATA.entries.map(p=>[p.name,p]));
@@ -7,7 +8,10 @@ const generic = [{id:'generic_progress',category:'progress',label:'已形成的�
 export function managementProfile(entity) {
   const body = entity?.primaryRules ?? entity?.content ?? entity?.rules ?? '', digest = hash(body);
   const named = byName.get(entity?.name), matched = named?.contentHash === digest ? named : byContent.get(digest);
-  if (matched) return { ...clone(matched), match:matched.name === entity.name ? 'exact' : 'renamed', verified:true };
+  if (matched) {
+    const resources=BUILTIN_RESOURCES.find(r=>r.contentHash===digest)?.resources||[];
+    return { ...clone(matched), templates:clone(matched.templates.filter(t=>!resources.some(r=>r.labels.some(label=>t.label.includes(label))))), match:matched.name === entity.name ? 'exact' : 'renamed', verified:true };
+  }
   return { name:entity?.name || '未知词条', role:'primary', family:'archive', templates:clone(generic), workflows:['cycle','simulation'], variantGroup:null, verified:false, match:named ? 'changed' : 'unknown', note:named ? '同名词条正文与已配置版本不同，使用通用记录；不套用旧版专用字段。' : '尚无专用配置，仍可查看完整规则、补录记录与核对正文；专用机制待核对。' };
 }
 export function configuredProfiles() { return clone(PROFILE_DATA); }

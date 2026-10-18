@@ -41,6 +41,8 @@ try{
     for(const appearance of ['arsenal','journey','taishi']){
       await page.evaluate(({id,appearance})=>{const app=wanjie_wuku_general_instance;app.powerId=id;app.ui.space=appearance==='journey'?'mmlc':appearance==='taishi'?'taishi':'wuku';app.ui.tab='management';app.ui.mmlcSection=null;app.refresh();}, {id:seed.ids[appearance],appearance});
       assert.equal(await page.locator('#wjwk-root').getAttribute('data-appearance'),appearance);assert.equal(await page.locator('[data-design-hero]').count(),1);assert.equal(await page.locator('.wjwk-design-orb').count(),1);assert.equal(await page.locator('.wjwk-header > .wjwk-spaces').count(),1);assert.equal(await page.locator('.wjwk-design-actions > button').count(),3);assert.equal(await page.locator('[data-design-aside]').count(),1);
+      const deletion=page.locator('.wjwk-quick-tools [data-action="delete-power"]');assert.equal(await page.locator('[data-action="delete-power"]').count(),1);assert(await deletion.isVisible());assert.equal(await deletion.evaluate(e=>e.closest('details')===null),true);
+      await deletion.click();assert(await page.locator('[data-action="confirm-delete-power"]').isVisible());assert((await page.locator('.wjwk-modal').textContent()).includes('重新接入不会恢复'));assert.equal(await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read())),seed.state);await page.locator('.wjwk-modal [data-action="dialog-close"]').first().click();
       const counts=await page.locator('.wjwk-saved-stats strong').allTextContents();
       assert.deepEqual(counts,appearance==='taishi'?['1','1','1']:['2','1','0']);
       for(const theme of ['follow','light','dark','night','parchment','green']){

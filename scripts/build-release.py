@@ -33,27 +33,10 @@ for name in files:
             dependency = (path.parent / value).resolve().relative_to(root).as_posix()
             if dependency not in files:
                 raise ValueError(f'Runtime import excluded: {name} -> {dependency}')
-readme = f'''# 万界武库 {manifest['version']}
-
-安装：将 ZIP 内的 wanjie-wuku 文件夹放入酒馆扩展目录；更新前备份旧扩展与聊天档案，覆盖后按 Ctrl+F5。
-也可通过酒馆扩展管理器安装或更新 https://github.com/feiluoze/wanjie-wuku 。
-聊天档案与 API 设置保存在酒馆账户，不在安装包中。无需重新导入世界书或接入已有词条。
-
-本版重排三模块界面，采用主题徽记、统计栏、独立操作区、紧凑档案卡片与右侧状态区；完整设定、说明及低频操作按需展开。
-修正整理诊断记录顺序和已声明字段兼容，新增高级任务连接预览；不放宽来源与归属校验，不自动修改玩家余额。
-本版内置新版漫漫长路完整规则书和分类预设，支持太始天剧情时间触发及事件、传闻认知整理。大档案普通整理仅发送相关完整资料与身份索引，减少重复输入。
-手动分批整理、断点保存、主动续跑与连续处理继续保留。取消或刷新保留已保存批次及日志，未保存候选需重查；失败停止，正式结算与状态块保持完整。
-势力档案、人物任职和独立关系联动；可手写指定关系并保护，AI不能覆盖玩家确认的人物身份。高级专职与独立发送分区沿用预算边界。
-内置作者1013版设定，通用123条，太始天仅保留完整版专用入口。
-世界简报、稳定档案关联、所选来源片段与资料性质分开展示。太始垂天操作写入待发送输入框，实际结果依正文确认。
-历时支持预览后登记外界历时、倍率、内部历时及局部范围；首次改设及千年资格依据已登记时间判断，不自动猜测剧情时间或历法。
-常用整理、建档与自主发展前置，时间降界与创建资料管理折叠；手动修正和错误保留明显入口。世界、人物发送分别选择与控制预算。
-三个模块分别导出和恢复，日志、备用API与手动余额修正继续保留。更新前备份；本版不制作旧档迁移，新设定建议新建档案。
-
-完整更新、验证边界与操作提醒见 {release_notes}；未完成内容及后续反馈见 docs/ROADMAP.md。
-本包只包含可读运行模块和使用文档，不包含开发数据、测试样本、运行日志或个人连接密钥。
-隐私与第三方请求说明见 PRIVACY.md。
-'''
+# Use the current release description rather than a stale template from an older build.
+source_readme = (root / 'README.md').read_text(encoding='utf-8')
+heading, _, body = source_readme.partition('\n')
+readme = heading + f"\n\n安装：将 ZIP 内的 wanjie-wuku 文件夹放入酒馆的 data/default-user/extensions/ 目录；覆盖更新前备份旧扩展与聊天档案，完成后按 Ctrl+F5。\n\n本包可用于首次安装和覆盖更新，包含完整运行文件；网页上传仓库请使用单独的增量上传包。\n\n" + body.lstrip()
 args.out.parent.mkdir(parents=True, exist_ok=True)
 with zipfile.ZipFile(args.out, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for name in files + ['README.md', release_notes, 'docs/ROADMAP.md', 'PRIVACY.md']:

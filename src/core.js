@@ -1,3 +1,4 @@
+import {inferBuiltinResources,builtinResources,resourceMatches,negativeResourceSnapshotAllowed} from './builtin-resources.js';
 import {validateSchedule,validateWorldSchedules} from './taishi-schedule.js';
 import {validateTaishiLocks} from './taishi-relations.js';
 import {validateArchiveBatch} from './archive-batch.js';
@@ -24,7 +25,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.5.6';
+export const VERSION = '1.5.7';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -147,6 +148,7 @@ export function importBook(data, name = '导入世界书') {
   return entries;
 }
 export function inferResources(entry) {
+  const declared=inferBuiltinResources(entry);if(declared)return declared;
   const bindings = [
     ['蝴蝶效应', '因果点', ['因果点余额']], ['深蓝', '源质点', ['源质点余额']],
     ['万界网购', '兑换点', ['兑换点余额']], ['指数增长', '势差值Δ', ['势差值Δ']],
@@ -174,6 +176,8 @@ export function inferResources(entry) {
   }
   return [...found.values()];
 }
+export function resourceBalanceAllowed(power,resource,value,floor=resource.floor??'0'){return amount(value)>=amount(floor)||amount(floor)===0n&&amount(value)<0n&&negativeResourceSnapshotAllowed(power,resource);}
+
 export function resourcesForPower(power, catalog = []) {
   const entry = catalog.find(e => e.id === power.id);
   const content = power.primaryRules || entry?.content || power.rules;
@@ -181,8 +185,10 @@ export function resourcesForPower(power, catalog = []) {
 }
 export function upgradeResources(power, catalog = []) {
   for (const detected of resourcesForPower(power, catalog)) {
-    const old = power.resources[detected.id];
-    power.resources[detected.id] = old ? { ...detected, ...old, labels: [...new Set([...(old.labels || []), ...detected.labels])] } : detected;
+    const definition=builtinResources(power)?.resources.find(d=>d.id===detected.id),aliases=definition?Object.values(power.resources).filter(r=>resourceMatches(r,definition)):[];
+    if(aliases.length>1)continue;
+    const old = power.resources[detected.id]||aliases[0],id=old?.id||detected.id;
+    power.resources[id] = old ? { ...detected, ...old, labels: [...new Set([...(old.labels || []), ...detected.labels])] } : detected;
   }
   return power;
 }
@@ -512,7 +518,7 @@ export function validateState(data) {
     key(id); assert(id === p.id, '词条标识不一致'); text(p.name, 200); text(p.rules, 2000000); assert(hash(p.rules) === p.ruleVersion, '正文版本校验不一致');
     assert(p.pricing === 'fixed_effect' || p.pricing === 'stateful', '报价方式无效');
     for (const map of [p.resources, p.fields, p.assets]) assert(map && typeof map === 'object' && !Array.isArray(map), '词条状态无效');
-    for (const [rId, r] of Object.entries(p.resources)) { key(rId); assert(r.id === rId, '资源标识不一致'); text(r.name, 200); const floor = amount(r.floor ?? '0'); if (r.balance !== null) assert(amount(r.balance) >= floor, '资源余额低于允许的最低余额'); }
+    for (const [rId, r] of Object.entries(p.resources)) { key(rId); assert(r.id === rId, '资源标识不一致'); text(r.name, 200); const floor = amount(r.floor ?? '0'); if (r.balance !== null) assert(resourceBalanceAllowed(p,r,r.balance), '资源余额低于允许的最低余额'); }
     for (const [fieldId, f] of Object.entries(p.fields)) { key(fieldId); text(f.label, 200); text(f.value, 8000); }
     for (const [assetId, a] of Object.entries(p.assets)) { key(assetId); assert(a.id === assetId, '所得标识不一致'); text(a.name, 200); text(a.description, 8000); assert(amount(a.quantity) >= 0n, '库存数量无效'); assert(a.removed===undefined||typeof a.removed==='boolean','背包移除标记无效'); }
     list(p.quotes || [], 1000, '方案'); list(p.fixedQuotes || [], 10000, '已定报价');

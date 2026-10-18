@@ -1,3 +1,4 @@
+import {resourceBalanceAllowed} from './core.js';
 import { assert, amount, normAmount, clone, hash, stable, importBook, chatHashes, historyChanged, historyCompatible, stripVariableReceipts } from './core.js';
 import { getContext, scope, loadBook } from './host.js';
 import { appendVariableReceipt, hasStatusReceipt, hasVariableReceipt, removeVariableReceiptIds } from './receipt.js';
@@ -189,7 +190,7 @@ export class RoleBridge {
     const changes = [];
     for (const p of Object.values(state.powers)) for (const r of Object.values(p.resources)) {
       const path = link.bindings[bindingKey(p.id, r.id)]; if (!path) continue;
-      const balance = resourceValue(at(view.stat, path)); assert(amount(balance) >= amount(r.floor ?? '0'), `${r.name}的角色余额低于已设置下限`);
+      const balance = resourceValue(at(view.stat, path)); assert(resourceBalanceAllowed(p,r,balance), `${r.name}的角色余额低于已设置下限`);
       if (r.balance !== balance) { changes.push(`${p.name} · ${r.name}：${r.balance ?? '未确认'} → ${balance}（读取角色变量）`); r.balance = balance; }
     } return changes;
   }

@@ -1,3 +1,4 @@
+import {resourceBalanceAllowed} from './src/core.js';
 import {archiveRequestScope} from './src/archive-input.js';
 import {databasePromptTrial,DATABASE_PROMPT_TRIAL_ID} from './src/database-prompt-trial.js';
 import {reviewCheckpointMethods,encodeCheckpoint} from './src/review-checkpoint.js';
@@ -775,7 +776,7 @@ export class WukuApp {
             for (const r of Object.values(p.resources)) {
               if (next.roleLink?.bindings[bindingKey(p.id, r.id)]) continue;
               const value = String(data.values[`balance:${p.id}:${r.id}`] ?? '').trim(); if (!value) continue;
-              const balance = normAmount(value); assert(amount(balance) >= amount(r.floor ?? '0'), `${p.name}的${r.name}低于允许的最低余额`);
+              const balance = normAmount(value); assert(resourceBalanceAllowed(p,r,balance), `${p.name}的${r.name}低于允许的最低余额`);
               if (balance !== r.balance) { changes.push(`${r.name}：${r.balance ?? '未确认'} → ${balance}`); r.balance = balance; }
             }
             if (changes.length) this.record(next, `${p.name} · 玩家确认当前余额`, changes, 'manual', p.id);
@@ -792,7 +793,7 @@ export class WukuApp {
           for (const r of Object.values(p.resources)) {
             if (next.roleLink?.bindings[bindingKey(p.id, r.id)]) continue;
             const balance = String(v[`balance:${r.id}`] ?? '').trim(), floor = normAmount(v[`floor:${r.id}`] ?? '0');
-            assert(!balance || amount(balance) >= amount(floor), `${r.name}余额低于设定的最低余额`);
+            assert(!balance || resourceBalanceAllowed(p,r,balance,floor), `${r.name}余额低于设定的最低余额`);
             r.balance = balance ? normAmount(balance) : null; r.floor = floor; changes.push(`${r.name}校准为 ${r.balance ?? '未知'}；最低余额 ${r.floor}`);
           }
           if (v.resourceName?.trim()) { const name = v.resourceName.trim(); const id = `res_${hash(name)}`; assert(!p.resources[id], '该资源已存在'); const balance = v.resourceBalance?.trim() ? normAmount(v.resourceBalance) : null; assert(balance === null || amount(balance) >= 0n, '新增资源余额不能为负'); p.resources[id] = { id, name, balance, floor: '0', labels: [`${name}余额`, name] }; changes.push(`登记资源 ${name}：${balance ?? '未知'}`); }

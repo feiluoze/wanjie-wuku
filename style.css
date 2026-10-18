@@ -1271,3 +1271,5 @@
 /* Modal controls stay above the task-status panel. */
 .wjwk .wjwk-modal{z-index:2147483647}
 
+
+.wjwk-original-statusbar{margin:18px 0;padding:16px;border:1px solid var(--wk-line);border-radius:12px;background:var(--wk-card)}.wjwk-original-statusbar dl>div{padding:8px 0;border-bottom:1px solid var(--wk-line)}.wjwk-original-statusbar dd{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.wjwk-original-statusbar dt{color:var(--wk-muted)}

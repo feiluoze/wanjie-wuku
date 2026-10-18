@@ -1,3 +1,4 @@
+import {projectResourceStatus} from './builtin-resources.js';
 import {recentTaishiChanges} from './taishi-continuity.js';
 import {isTaishi} from './taishi.js';
 import {taishiMemorySettings,taishiPerson,taishiMemoryText,TAISHI_MEMORY_CHANNELS} from './taishi-memory.js';
@@ -52,7 +53,7 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
     if(b.status!=='ended'&&q.includes(normalize(b.name)))linkedMatches.add(archiveIdentity(p,a));
   }
   const scopes=new Map(Object.values(state.powers).map(p=>[p.id,taishiScope(p,Object.values(p.archives||{}).filter(r=>archiveContextCurrent(r,chat)),query)]));
-  for (const p of Object.values(state.powers)) for (const r of Object.values(p.archives || {})) {
+  for (const p of Object.values(state.powers)) for (const r of Object.values(p.archives || {}).map(r=>projectResourceStatus(p,r))) {
     const id = archiveIdentity(p,r), selection = selected[id];
     const phrases = [r.name,...[r.fields.location,r.fields.related].filter(Boolean).flatMap(s=>s.split(/[，,；;、\n]/))].map(normalize).filter(s=>s.length>=2&&s.length<=80);
     const scope=scopes.get(p.id),explicit=['next','pinned'].includes(selection?.mode);
@@ -89,7 +90,7 @@ export function memoryConfigFromForm(state, powerId, values) {
   const old = state.archiveMemory || memoryDefaults(), budget = Number(values.budget), p = state.powers[powerId];
   assert(p?.active && Number.isSafeInteger(budget) && budget >= 750 && budget <= 12000, '请选择有效金手指，字符预算需为750—12000');
   const selections = clone(old.selections);
-  for (const r of Object.values(p.archives || {})) {
+  for (const r of Object.values(p.archives || {}).map(r=>projectResourceStatus(p,r))) {
     const id = archiveIdentity(p, r), mode = values[`memory:${r.id}`] || '';
     assert(['', 'next', 'pinned', 'exclude'].includes(mode), '记忆带入方式无效');
     if (!mode) delete selections[id];

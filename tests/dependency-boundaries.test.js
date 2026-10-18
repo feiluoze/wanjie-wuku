@@ -14,7 +14,7 @@ test('configuration validators stay independent from the state/controller depend
  for(const file of ['adapters.js','management-profiles.js']){
   const source=await readFile(new URL('../src/'+file,import.meta.url),'utf8');
   const imports=[...source.matchAll(/from\s*['"]([^'"]+)['"]/g)].map(m=>m[1]);
-  assert.ok(imports.every(s=>['./primitives.js','./management-profiles-data.js'].includes(s)),file+' may depend only on primitives and static data');
+  assert.ok(imports.every(s=>['./primitives.js','./management-profiles-data.js','./builtin-resource-data.js'].includes(s)),file+' may depend only on primitives and static data');
  }
 });
 

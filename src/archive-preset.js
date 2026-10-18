@@ -78,6 +78,7 @@ export function archivePreset(payload,{marker='',domain='',task='',terminal='',c
   ['wjwk_background',background],
   ['wjwk_domain',domain],
   ['wjwk_task_boundary',task],
+  ['wjwk_original_statusbar',payload.originalStatusbar?'当前原文状态栏声明见originalStatusbar；先按声明的单行当前主表核对，变化更新原ID，不扩建临时流水子表。旧档案只作为核对材料，不能自行删除或迁移。'+payload.originalStatusbar.rules:''],
   ['wjwk_scope',mode==='narrative'?scope:''],
   ['wjwk_procedure',taskProcedures[mode]||procedure],
   ['wjwk_output',output],

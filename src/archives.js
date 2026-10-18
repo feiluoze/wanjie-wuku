@@ -1,3 +1,4 @@
+import {statusbarResource} from './builtin-resources.js';
 import {creationConfig} from './creation-config.js';
 import {isTaishi} from './taishi.js';
 import {RELATION_FIELDS,assertRelation} from './taishi-relations.js';
@@ -170,7 +171,7 @@ export const archiveMethods = {
         const fields = Object.fromEntries(Object.keys(ARCHIVE_FIELDS[v.type] || {}).map(k => [k, v[`field:${k}`] || '']));
         const undoBefore=journalSnapshot(next,power.id);
         const before = { ...power.archives };
-        const old=power.archives?.[draft.id],specific=old?.specific?clone(old.specific):undefined;if(specific&&isTaishi(power)){const def=creationConfig(power)?.records.find(r=>r.id===specific.recordId);if(def)specific.labels={...specific.labels,...Object.fromEntries(def.fields.map(f=>[f.id,f.label]))};}if(specific)for(const k of Object.keys(specific.labels))if(!['source_profile','time_state'].includes(k)&&Object.hasOwn(v,'specific:'+k))specific.fields[k]=text(v['specific:'+k],4000).trim();
+        const old=power.archives?.[draft.id],specific=old?.specific?clone(old.specific):undefined;if(specific&&isTaishi(power)){const def=creationConfig(power)?.records.find(r=>r.id===specific.recordId);if(def)specific.labels={...specific.labels,...Object.fromEntries(def.fields.map(f=>[f.id,f.label]))};}if(specific)for(const k of Object.keys(specific.labels))if(!['source_profile','time_state'].includes(k)&&!(specific.recordId.startsWith('statusbar_')&&statusbarResource(power,k))&&Object.hasOwn(v,'specific:'+k))specific.fields[k]=text(v['specific:'+k],4000).trim();
         if(isTaishi(power)&&specific){resolveTaishiLinks(power,{id:draft.id,specific});assertRelation(power,{id:draft.id,specific});}
         const record = saveArchive(power, { id: draft.id, type: v.type, name: v.name, status: v.status, ownerPowerId:power.id, fields,...(specific?{specific}:{}) }, archiveSource(getContext().chat, note));
         if(isTaishi(power)&&specific&&['companion','relation'].includes(specific.recordId)){power.taishiLocks ||= {};if(v.protectRelations==='on')power.taishiLocks[record.id]=(specific.recordId==='relation'?RELATION_FIELDS:['social','relationship']).filter(k=>specific.fields[k]);else power.taishiLocks[record.id]=[];}

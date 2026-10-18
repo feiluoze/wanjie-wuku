@@ -14,11 +14,11 @@ const power=name=>createPower(entries.find(e=>e.name===name));
 test('six new adapters are version matched, distinct and classify actual facts separately from plans',()=>{
  for(const name of ['早有先例','生物计算机','大贤者','人间游戏','道途','描述改写']){
   const p=power(name),config=creationConfig(p);assert.ok(config,name);validateAdapter(config);
-  assert(config.records.length>=3);assert(config.dashboard.sections.length===config.records.length);
+  assert(config.records.length>=3);assert(config.dashboard.sections.length===config.records.filter(r=>!r.id.startsWith('statusbar_')).length);
   assert(config.operations.every(o=>p.rules.includes(o.ruleQuote)));
   p.primaryRules+=' changed';p.rules=p.primaryRules;assert.equal(creationConfig(p),null);
  }
- assert.deepEqual(creationConfig(power('早有先例')).records.map(r=>r.id),['precedent','invocation','new_history']);
+ assert.deepEqual(creationConfig(power('早有先例')).records.filter(r=>!r.id.startsWith('statusbar_')).map(r=>r.id),['precedent','invocation','new_history']);
 });
 test('80 independent precedents survive normalization, review, repeated review and pagination',()=>{
  const p=power('早有先例'),state=emptyState();state.powers[p.id]=p;

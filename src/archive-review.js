@@ -1,3 +1,5 @@
+import {projectResourceStatus,resourcePolicy,assertStatusbarResourceFields,assertNoResourceClone} from './builtin-resources.js';
+import {statusbarPolicy,statusbarTarget} from './builtin-statusbar.js';
 import {responseRepairPrompt,mergeRepairedResponse,repairRawResponseLocally} from './archive-response-repair.js';
 import {wireArchiveRecord,archiveResponseSchema} from './archive-contract.js';
 import {archiveContextWindow} from './archive-context.js';
@@ -61,11 +63,13 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   const depth = automatic ? normalizeArchiveAuto(power.archiveAuto).context : 0, first = sources[0]?.index ?? 0;
   const context = depth ? archiveContextWindow(chat,first,depth) : [];
 
-  const records=Object.values(power.archives||{}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat));
+  const records=Object.values(power.archives||{}).filter(r=>!foreignArchiveOwner(r,power,state)&&archiveContextCurrent(r,chat)).map(r=>projectResourceStatus(power,r));
   const focus=isTaishi(power)&&!setupReferences&&!taishiDraft&&!(!taishiEvolution&&playerNote)?taishiFocus(power,records,[...sources.map(s=>s.content),...context.map(s=>s.content),playerNote].join('\n'),{worldId:taishiEvolution?.worldId,evolution:Boolean(taishiEvolution)}):null;
   const payload = { ownership:ownershipContext(state,power), task: '核对经营档案变化', rules: power.rules, fieldTypes: ARCHIVE_FIELDS, statuses: ARCHIVE_STATUS,
     staleIdentities:Object.values(power.archives||{}).filter(r=>!archiveContextCurrent(r,chat)).map(r=>({id:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})), current: selectArchiveInput(records,[playerNote,...sources.map(s=>s.content),...context.map(s=>s.content)].join('\n'),{compact:!setupReferences&&!taishiDraft&&!taishiEvolution,...(focus?{focusIds:focus.ids}:{})}), sources: sources.map(s => ({ ...s, floor: s.index + 1 })),
     terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, contextPolicy:'context仅辅助理解，合计最多6000字符、每条最多2000字符，可能为尾部节选；不能据此新增成果或将遗漏视为不存在。逐层核对以完整sources为准。', playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
+  const resourceContract=resourcePolicy(power);if(resourceContract)payload.resourceLedger=resourceContract;
+  const originalStatusbar=statusbarPolicy(power);if(originalStatusbar)payload.originalStatusbar=originalStatusbar;
   if(isTaishi(power)&&power.taishiWorldStructure)payload.worldStructure=worldStructurePolicy(power);
   if(skipSetupPeople){payload.recordSchemas=payload.recordSchemas.filter(r=>r.id!=='companion');payload.personImport='玩家本次只整理世界设定；不创建或更新人物，不从地域正文中的人名建立人物档案，也不建立涉及人物的关系。人物文档之后单独整理。';}
   if(setupReferences){
@@ -126,6 +130,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const recordAliases=creationConfig(power)?.records.filter(r=>r.label===raw.recordId)||[];
     raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
     if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
+    const mainStatus=statusbarTarget(power,raw);if(mainStatus)raw={...raw,name:mainStatus.name,fields:{description:'原文状态栏：'+mainStatus.name},...(mainStatus.before?{archiveId:mainStatus.before.id}:{})};
     let type = raw.type; const name = text(raw.name, 200).trim();
     assert(Object.hasOwn(ARCHIVE_TYPES, type) && name, '档案类型或名称无效');
     const before = raw.archiveId ? power.archives?.[raw.archiveId] : (isTaishi(power)&&raw.recordId==='relation'?findRelation(power,raw.details):null)||findArchiveObject(power,name,raw.module,isTaishi(power)?raw.recordId:undefined);
@@ -190,6 +195,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  // Explicit recordId/details still pass normalizeSpecific; never guess a category.
  const config=creationConfig(power),unwrapped=unwrapArchiveInput(normalizeArchiveEnvelope(raw,config));
  const categoryBefore=unwrapped.archiveId?power.archives?.[unwrapped.archiveId]:!isTaishi(power)&&!isMmlc(power)&&!unwrapped.recordId?findArchiveObject(power,unwrapped.name,unwrapped.module):null;
+ assertStatusbarResourceFields(power,unwrapped);assertNoResourceClone(power,unwrapped);
  const categorized=resolveArchiveCategory(unwrapped,config,categoryBefore);
  const definition=config?.records.find(r=>r.id===categorized.recordId||r.label===categorized.recordId);
  const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:unwrapped.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];

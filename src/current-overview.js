@@ -1,3 +1,4 @@
+import {isStatusbarRecord} from './builtin-statusbar.js';
 import { ARCHIVE_TYPES, ARCHIVE_FIELDS, archiveCurrent } from './archives.js';
 import { isMmlc, MMLC_MODULES, mmlcModule } from './mmlc.js';
 
@@ -30,7 +31,7 @@ export function overviewHighlights(group, limit = 2) {
   return selected;
 }
 export function currentOverview(power, chat = []) {
-  const all = Object.values(power?.archives || {});
+  const all = Object.values(power?.archives || {}).filter(r=>!isStatusbarRecord(r));
   const valid = all.filter(r => archiveCurrent(r, chat));
   const definitions = isMmlc(power) ? MMLC_MODULES.map(m=>({id:m.id,title:m.title})) : Object.entries(ARCHIVE_TYPES).map(([id,title])=>({id,title}));
   const groupOf = r => isMmlc(power) ? mmlcModule(r) : r.type;
