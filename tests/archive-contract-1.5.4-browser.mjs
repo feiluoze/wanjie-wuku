@@ -29,9 +29,10 @@ try{
   await page.locator('[data-action="apply-archive-review"]').click();await page.waitForFunction(()=>Object.keys(wanjie_wuku_general_instance.store.read().powers[testPower].archives||{}).length===1);
   await page.evaluate(()=>{const a=wanjie_wuku_general_instance;a.ui.showSettings({...a.settings,mode:'custom',baseUrl:'https://fixture.invalid/v1',model:'fixture'});});
   await page.locator('.wjwk-modal details').filter({has:page.locator('summary',{hasText:'高级设置与自动核算'})}).locator('summary').first().click();
-  await page.locator('[name="archiveOutputMode"]').selectOption('schema');await page.locator('[data-action="save-settings"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.settings.archiveOutputMode==='schema');
+  await page.locator('[name="archiveOutputMode"]').selectOption('schema');await page.locator('.wjwk-dialog-footer [data-action="settings-proxy"][data-proxy="save-settings"]').click();await page.waitForFunction(()=>wanjie_wuku_general_instance.settings.archiveOutputMode==='schema');
   const native=await page.evaluate(async()=>{const {ModelConnection}=await import('/src/model.js');const m=new ModelConnection({settings:()=>({mode:'custom',baseUrl:'https://provider.invalid/v1',model:'fixture',archiveOutputMode:'schema'}),getKey:()=>'',fetchImpl:window.nativeWireFetch,context:()=>({getRequestHeaders:()=>({'X-CSRF-Token':'fixture'})})});return m.request({system:'JSON',user:'facts',archiveSchema:{type:'object'}});});assert.equal(native,'{"changes":[]}');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);checks.push({width,originalReplyRetained:true,exportedOriginalReply:true,explicitRepairCalls:2,confirmationRequired:true,oneArchiveSaved:true,outputModeSaved:true});await page.close();
  }
  assert.deepEqual(errors,[]);assert.equal(externalRequests,0);assert.equal(nativeBackendRequests,2);const report={checks,errors,externalRequests,nativeBackendRequests,paidCalls:0,realHostAcceptance:false};await writeFile(resolve(out,'evidence.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 }finally{await browser?.close();server.close();}
+

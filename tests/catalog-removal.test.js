@@ -34,8 +34,8 @@ test('protect builtin library and keep catalog unchanged when settings cannot sa
 
 test('read-book manager escapes names and offers removal for imported sources only',()=>{
   let html='';
-  WorkbenchUI.prototype.showManage.call({dialog(_title,body){html=body;},rolePanel(){return '';},previewRule(){},updateRoleSelection(){},entryOption(){return '';},modal:{querySelector(){return null;}}},withBuiltinCatalog([custom]));
-  assert(html.includes('已读取的世界书（1 本）'));
+  WorkbenchUI.prototype.showManage.call({dialog(_title,body){html=body;},rolePanel(){return '';},manageVisibility(){},previewRule(){},updateRoleSelection(){},entryOption(){return '';},modal:{querySelector(){return null;}}},withBuiltinCatalog([custom]));
+  assert(html.includes('已读取的世界书 · 1 本'));
   assert(html.includes('个人规则 &lt;测试&gt;'));
   assert(html.includes('data-action="remove-read-book"'));
   assert(!html.includes(`data-book="${BUILTIN_BOOK_NAME}"`));

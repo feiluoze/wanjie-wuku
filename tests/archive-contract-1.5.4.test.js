@@ -44,7 +44,7 @@ test('layered reply failure preserves earlier floor and unexecuted floors; repai
  await f.app.commitArchiveReview(pending,new Map([[0,null]]));const reviewed=f.store.read().powers[f.power.id].archiveReviewed;assert(reviewed.some(r=>r.index===1));assert(!reviewed.some(r=>r.index===2));
 });
 
-for(const previousVersion of ['1.5.3','1.5.4'])test(`compatible ${previousVersion} pending previews survive upgrade without relaxing capture checks`,async()=>{
+for(const previousVersion of ['1.5.3','1.5.4','1.5.5'])test(`compatible ${previousVersion} pending previews survive upgrade without relaxing capture checks`,async()=>{
  const f=fixture();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};f.app.model.request=async()=>JSON.stringify({changes:[row]});await f.app.reviewArchives({supplement:true,values:{playerNote:'玩家确认成果甲已建立'}});
  const envelope=JSON.parse(encodeCheckpoint(f.app.pendingArchiveReview,null));envelope.payload.version=previousVersion;envelope.digest=hash(stable(envelope.payload));const snapshot=f.app.contextSnapshot();const restored=decodeCheckpoint(JSON.stringify(envelope),snapshot);assert(restored.protocolUpgraded);assert.equal(restored.changes.length,1);
  const stale={...snapshot,state:{...snapshot.state,revision:snapshot.state.revision+1}};assert.equal(decodeCheckpoint(JSON.stringify(envelope),stale),null);

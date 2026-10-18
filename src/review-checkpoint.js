@@ -18,7 +18,7 @@ export function decodeCheckpoint(raw,snapshot){
  if(!raw||raw.length>LIMIT)return null;
  try{
   const {payload,digest}=JSON.parse(raw),p=payload.candidate,c=p.captured;
-  if(!['1.5.3','1.5.4',VERSION].includes(payload.version)||digest!==hash(stable(payload))||payload.referenceConfig!==hash(stable(snapshot.state.aiWorldbooks||null)))return null;
+  if(!['1.5.3','1.5.4','1.5.5',VERSION].includes(payload.version)||digest!==hash(stable(payload))||payload.referenceConfig!==hash(stable(snapshot.state.aiWorldbooks||null)))return null;
   if(c.chatKey!==snapshot.chatKey||c.stateId!==snapshot.state.id||c.revision!==snapshot.state.revision||p.contextHash!==hash(stable(snapshot.hashes))||!snapshot.state.powers[p.powerId]?.active)return null;
   if(!Array.isArray(p.changes)||p.changes.length>MAX_RETURNED_CHANGES||!Array.isArray(p.sources)||!Array.isArray(p.issues)||!Array.isArray(p.terminalResults)||!Array.isArray(p.creationResults))return null;
   return {...p,restored:true,checkpointSaved:true,protocolUpgraded:payload.version!==VERSION};

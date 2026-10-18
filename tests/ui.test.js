@@ -13,7 +13,7 @@ test('fixed-operation preview disables execution until balance is explicitly kno
   Object.values(p.resources)[0].balance = '1'; strict.doesNotMatch(WorkbenchUI.prototype.detail(p, op, false), /data-action="execute" disabled/);
 });
 test('rendered workbench keeps settings, receipts, backups and explicit confirmation reachable', () => {
-  const ui = Object.create(WorkbenchUI.prototype); ui.panel = { innerHTML: '', querySelectorAll:()=>[] }; ui.tab = 'operations'; ui.goal = '玩家目标';
+  const ui = Object.create(WorkbenchUI.prototype); ui.root={dataset:{}}; ui.panel = { innerHTML: '', querySelectorAll:()=>[] }; ui.tab = 'operations'; ui.goal = '玩家目标';
   ui.render({ state: emptyState(), power: null, selected: null, operations: [], settings: { mode: 'off' }, bridge: true });
   for (const action of ['settings', 'manage', 'generate', 'sync', 'export', 'backup']) strict.match(ui.panel.innerHTML, new RegExp(`data-action="${action}"`));
   strict.match(ui.panel.innerHTML, /异步关闭/); strict.match(ui.panel.innerHTML, /玩家目标/);
@@ -38,7 +38,7 @@ test('narrative panel exposes retry and evidence without treating any reply as c
 
 test('optional MVU read errors stay in setup unless the current chat is linked', () => {
   const ui = Object.create(WorkbenchUI.prototype);
-  ui.panel = {innerHTML:'',querySelectorAll:()=>[]}; ui.tab='operations';ui.capturePanel=()=>null;
+  ui.root={dataset:{}}; ui.panel = {innerHTML:'',querySelectorAll:()=>[]}; ui.tab='operations';ui.capturePanel=()=>null;
   const state=emptyState(), warning='未检测到可用 MVU 接口';
   const view={state,power:null,operations:[],settings:{mode:'off'},bridge:true,roleError:warning};
   ui.render(view); strict.doesNotMatch(ui.panel.innerHTML,/未检测到可用 MVU 接口/);
