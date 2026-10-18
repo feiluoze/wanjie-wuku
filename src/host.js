@@ -216,7 +216,7 @@ export class ChatStore {
       report({ local, storageError, server: '接口不可用', verified: false }); throw new Error(note);
     }
     ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = clone(state);
-    this.lastSave = { verified: false, local, note: local ? '已提交本机账本，正在核对酒馆保存…' : '本机备份不可用，正在尝试酒馆保存…', at: Date.now(), chatKey: captured.key };
+    this.lastSave = { verified: false, local, saving: true, note: local ? '已提交本机账本，正在核对酒馆保存…' : '本机备份不可用，正在尝试酒馆保存…', at: Date.now(), chatKey: captured.key };
     if (local) for (const listener of this.listeners) { try { listener(); } catch { /* Preserve the committed checkpoint. */ } }
     let verified = false, server = '接口不可用', verification = null;
     if (typeof save === 'function') {
@@ -244,7 +244,7 @@ export class ChatStore {
       } catch { server += '，落盘读取失败'; }
     }
     const note = verified ? (local ? '已保存，并核对酒馆落盘' : `已保存到酒馆并核对成功；浏览器${storageError}，本机备份暂不可用`) : local ? '已保存本机备份；酒馆落盘未核实，可稍后重试保存' : `浏览器${storageError}，酒馆保存也未确认；档案暂留本页，请重试酒馆保存或导出档案，刷新前请先处理`;
-    this.lastSave = { verified, local, note, at: Date.now(), chatKey: captured.key };
+    this.lastSave = { verified, local, storageError, server, verification, blocked: !local && !verified, note, at: Date.now(), chatKey: captured.key };
     if (!local || !verified) report({ local, storageError, server, verified, verification });
     if (!local && !verified) {
       this.pendingSaves.set(captured.key, clone(state));

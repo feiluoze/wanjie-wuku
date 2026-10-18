@@ -617,3 +617,10 @@
 .wjwk .wjwk-wuku-home .wjwk-design-overview{padding:16px 4px;margin:0 0 16px}
 .wjwk .wjwk-wuku-home .wjwk-design-actions>button{min-height:48px!important}
 @media(max-width:700px){.wjwk .wjwk-wuku-layout .wjwk-sidebar>.wjwk-section-heading,.wjwk .wjwk-wuku-layout .wjwk-sidebar>.wjwk-design-side-tools{display:none}.wjwk .wjwk-wuku-layout .wjwk-sidebar{padding-top:8px;padding-bottom:8px}.wjwk .wjwk-wuku-layout .wjwk-sidebar-tools{margin-top:4px;padding-top:4px}.wjwk .wjwk-wuku-home .wjwk-taishi-title{padding:16px;margin-bottom:12px;gap:12px}.wjwk .wjwk-wuku-home .wjwk-taishi-title h1{font-size:25px}.wjwk .wjwk-wuku-home .wjwk-design-overview{padding:12px 0;margin-bottom:12px}.wjwk .wjwk-wuku-home .wjwk-update-summary li{padding:10px}.wjwk .wjwk-wuku-home .wjwk-change-facts{-webkit-line-clamp:2}.wjwk .wjwk-wuku-home .wjwk-update-summary li>details{margin:6px 0;padding-top:6px}}
+
+/* 1.5.5 save recovery: visible within every module, without hiding export. */
+.wjwk-save-recovery{position:sticky;top:0;z-index:4;border:1px solid var(--wk-warning);border-radius:12px;padding:14px 16px;margin:0 0 18px;background:var(--wk-card);box-shadow:0 3px 14px #0002;overflow-wrap:anywhere}
+.wjwk-save-recovery p{margin:8px 0;line-height:1.6}
+.wjwk-save-recovery-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.wjwk-save-recovery-actions button{min-height:44px}
+@media(max-width:600px){.wjwk-save-recovery{padding:12px}.wjwk-save-recovery-actions>button{flex:1 1 120px}}
