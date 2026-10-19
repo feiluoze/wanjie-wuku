@@ -40,7 +40,7 @@ export function tableTarget(power,raw){
  if(!before&&raw.operation==='insert'&&table.identityFields?.length)assert(fullIdentity(raw.details,table),'新建版本档案必须明确对象名称、来源与具体版本，不能用同名代替身份');
  if(!before&&table.exclusiveWith?.length)assert(!Object.values(power.archives||{}).some(r=>r.specific?.adapterId===spec.adapter&&table.exclusiveWith.includes(r.specific.recordId)&&names(r).includes(key(raw.name))),'同一对象已在关联分类中登记；请沿用其 archiveId 和原 recordId 更新，不能重复建档');
  if(!before)assert(!Object.values(power.archives||{}).some(r=>!r.specific&&[r.name,...(r.history||[]).map(h=>h.name)].some(n=>key(n)===key(raw.name))),'同名旧通用档案已存在；请先核对身份，不自动迁移或建立副本');
- assert(before||raw.operation===undefined||key(raw.name)!==key(table.label),'新增名称应是具体对象或独立事件，不能只写子表标题');
+ assert(before||table.kind==='singleton'||key(raw.name)!==key(table.label),'新增名称应是具体对象或独立事件，不能只写子表标题');
  assert(raw.operation!=='insert'||!before,'insert 指向了已有对象；应沿用 archiveId 更新，不能重复新建');
  assert(!['update','transition'].includes(raw.operation)||before,'update/transition 没有唯一原对象；请明确 archiveId 或先新增');
  assert(raw.operation!=='transition'||raw.status&&raw.status!==before.status,'transition 必须有明确的状态变化，不能当作重复结算');
@@ -60,7 +60,7 @@ export function assertChronologicalTableInsert(power,raw,previous){
 }
 export function archiveTablePolicy(power){
  const spec=archiveTables(power);if(!spec)return null;
- return {version:2,sourceHash:spec.hash,tables:spec.tables,...(spec.frameworkSelection?{selection:frameworkSelectionPolicy(power,spec),nativePolicies:spec.nativePolicies}:{}),
+ return {version:2,sourceHash:spec.hash,tables:spec.tables,...(spec.ownership?{ownership:spec.ownership}:{}),...(spec.frameworkSelection?{selection:frameworkSelectionPolicy(power,spec),nativePolicies:spec.nativePolicies}:{}),
   writeScope:spec.tables.length?'仅向 tables 列出的默认分类新增；consolidation 分类只更新已有旧档。':'本词条没有默认独立子表；新事实按 originalStatusbar 的原文栏目更新，不以通用成果、事件或新分类重建已撤下的统计。兼容分类只更新已有旧档。',
   consolidation:spec.retiredTables.map(t=>({recordId:t.id,target:t.detailTarget||'原文状态栏',...(t.disabled?{disabled:true}:{}),existingRows:t.disabled?'框架未启用，仅保留查询与手动编辑，不自动更新。':'只更新已有原档，禁止新增；不自动迁移、合并或删除'})),
   detailPolicy:'只为有独立身份、必须跨回合单独更新的对象建档。训练、配置、过程、已得收益等依consolidation进入对象的related_details或原状态栏；同一事实只存一处，主表只摘要引用。主对象尚未成立时，候选与计划留在原文状态栏，不为容纳明细而虚构已得对象。related_details保留未改变的重要事实，不复制整份快照；没有明确主要对象时报告待核对，不猜测归属。',

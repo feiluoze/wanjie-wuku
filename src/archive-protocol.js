@@ -31,13 +31,33 @@ export function evidenceParts(content){
 export function settledOwnership(content,powerName,objectName,worldName=''){
  const alias=String(powerName||'').split(/[（(]/)[0].trim(),name=String(objectName||'').trim();
  if(!alias||!name)return false;
- return evidenceParts(content).settlements.some(receipt=>receipt.facts.split(/\r?\n/).some(line=>{
-  const markers=[...line.matchAll(/【([^】·]+)(?:·[^】]*)?】/g)].map(m=>m[1].trim());
-  const owner=markers.length?markers.every(marker=>marker===alias):line.includes(alias);
+ return evidenceParts(content).settlements.some(receipt=>{let inherited=[];return receipt.facts.split(/\r?\n/).some(line=>{
+  const markers=protocolOwners(line,[alias]);
+  if(markers.length)inherited=markers;
+  const owners=markers.length?markers:inherited;
+  const owner=owners.length?owners.every(marker=>marker===alias):line.includes(alias);
   return owner&&line.includes(name)&&(!worldName||line.includes(worldName))
    &&!/(?:尚未|未曾|未能|没有|计划|准备|拟将|如果|可能|预计)/.test(line)
    &&/(?:成功|已生效|已到账|已交付|已完成|已建立|已取得|已获得|已结算|已暂存|已延期|资格已保留)/.test(line);
- }));
+ });});
+}
+
+// Qualified protocol headings carry ownership; ordinary bracketed place/item
+// names do not. A bare heading counts only when it is a known power name.
+export function protocolOwners(text,known=[]){
+ return [...new Set([...String(text||'').matchAll(/【([^】·]+)(·[^】]*)?】/g)].filter(m=>known.includes(m[1].trim())||m[2]&&/(?:结算|回执|总览|状态|调用成果|收益)/.test(m[2])).map(m=>m[1].trim()))];
+}
+export function sourceOwnership(content,quote,known=[]){
+ const direct=protocolOwners(quote,known);if(direct.length||!quote)return direct;
+ const parts=evidenceParts(content),blocks=[...parts.settlements.map(r=>r.facts),...parts.statusSnapshots];
+ const matches=[];
+ for(const block of blocks){let offset=0;while(offset<block.length){const at=block.indexOf(quote,offset);if(at<0)break;
+   const prefix=block.slice(0,at),lines=prefix.split(/\r?\n/);let owners=[];
+   for(const line of lines){const found=protocolOwners(line,known);if(found.length)owners=found;}
+   matches.push(owners);offset=at+quote.length;
+ }}
+ // The same quote in two differently owned receipts is ambiguous, not current.
+ return [...new Set(matches.flat())];
 }
 
 // Deterministic aliases only: declared IDs and UI labels, never guessed keys.

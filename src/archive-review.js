@@ -13,7 +13,7 @@ import {assertTaishiClaims,assertRelation,findRelation} from './taishi-relations
 import {createArchiveBatch,archiveBatchSources,advanceArchiveBatch} from './archive-batch.js';
 import {resolveTaishiLinks} from './taishi-links.js';
 import {reviewHistory} from './archive-history.js';
-import {archiveTablePolicy,tableTarget,archiveWriteCounts,assertChronologicalTableInsert,assertTableBatchIdentity} from './archive-tables.js';
+import {archiveTablePolicy,archiveTables,tableTarget,archiveWriteCounts,assertChronologicalTableInsert,assertTableBatchIdentity} from './archive-tables.js';
 import {createArchiveStaging} from './archive-staging.js';
 import {selectArchiveInput,selectBuildArchiveInput,inputCharacterBreakdown} from './archive-input.js';
 import {assertTaishiOwnership} from './taishi-ownership.js';
@@ -26,9 +26,9 @@ import {isTaishi, TAISHI_REVIEW, protectTaishiBaseline} from './taishi.js';
 import {evolutionInstruction,evolutionWorld,protectEvolution,evolutionConsequence} from './taishi-evolution.js';
 import {peoplePolicy,filterPeopleBatch,retainDraftPeople,protectPeopleIdentity} from './taishi-people.js';
 import {taishiDraftInstruction,protectTaishiDraft} from './taishi-draft.js';
-import {ownershipContext,foreignArchiveOwner} from './archive-ownership.js';
+import {ownershipContext,foreignArchiveOwner,assertArchiveOwnership} from './archive-ownership.js';
 import { readerReport } from './archive-reader.js';
-import {evidenceParts,settledOwnership,canonicalFields,fieldDiagnostic,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
+import {evidenceParts,canonicalFields,fieldDiagnostic,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
 import { journalSnapshot, saveArchiveUndo } from './archive-journal.js';
 import { creationConfig } from './creation-config.js';
 import { normalizeSpecific } from './specialized-records.js';
@@ -126,7 +126,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   }
   return {archivePowerId:power.id,databasePromptTrial:false,archiveSchema:archiveResponseSchema(payload),setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
-export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '',{playerJoining=false}={}) {
+export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '',{playerJoining=false,state={}}={}) {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');
   const seen = new Map();
   return data.changes.map((raw,inputIndex) => {
@@ -170,15 +170,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const { manual, source, quote, index: sourceIndex } = evidence, ruleQuote = text(raw.ruleQuote ?? '', 1200);
     if(!manual)assertFactEvidence(quote,source.content);
     if(!manual)assertTaishiOwnership(power,raw,before,quote,source.content);
-    if(!manual&&!before&&!mainStatus&&creationConfig(power)?.id==='wuku.idle_campaign'){
-      const alias=power.name.split(/[（(]/)[0].trim();
-      const owned=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId==='wuku.idle_campaign').map(r=>r.name);
-      const sourceNames=table?.table.kind==='singleton'?[name,suppliedName].filter(Boolean):[name];
-      const place=table?.table.id==='discoveries'&&raw.details?.location;
-      const locatedShadow=typeof place==='string'&&place.trim()&&power.primaryRules?.includes('征伐之影')&&quote.split(/[。！？\n]/).some(sentence=>sentence.includes(place)&&sentence.includes('征伐之影'));
-      assert(quote&&source.content.includes(quote)&&(locatedShadow||quote.split(/[。！？\n]/).some(sentence=>sourceNames.some(n=>sentence.includes(n))&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n))))||sourceNames.some(n=>settledOwnership(source.content,power.name,n))),'挂机归属缺少正文或本层正式结算依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
-    }
-    if(!before&&!mainStatus&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
+    if(!manual)assertArchiveOwnership(power,raw,{before,mainStatus,table:table?.table,config:creationConfig(power),policy:archiveTables(power)?.ownership,quote,content:source.content,state,suppliedName});
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});
     assertTaishiClaims(power,{...raw,fields:patch},before,specific,{playerJoining});
     if(!manual&&!recovery)assertSnapshotPatch(before,patch,raw.details,quote,source.content);
@@ -218,7 +210,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  assertTableBatchIdentity(power,prepared.raw,linkRows.slice(0,index));
  if(chronological)assertChronologicalTableInsert(power,prepared.raw,linkRows.slice(0,index));
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
- let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
+ let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining,state})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
  if(linked.pendingLink&&c)c.pendingLinks=[linked.pendingLink];
  if(linked.unresolved)reject('成果',index,raw,Object.assign(Error('组织关联未确定；有效人物字段可单独保存，原关联值保留待本地核对'),{fieldCandidate:clone(raw)}));
  if(prepared.held.length){const error=Object.assign(Error('部分字段待核对：'+prepared.held.map(h=>h.key+'（'+h.code+'）').join('、')+'；有效字段可单独保存'),{fieldCandidate:clone(raw)});reject('成果',index,raw,error);}

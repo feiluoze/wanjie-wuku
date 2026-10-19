@@ -2,6 +2,7 @@
 import {assert,clone} from './primitives.js';
 import {isMmlc} from './mmlc.js';
 import {isTaishi} from './taishi.js';
+import {settledOwnership,sourceOwnership} from './archive-protocol.js';
 const nameKey=v=>String(v||'').normalize('NFKC').replace(/\s/g,'').toLowerCase();
 export function ownershipContext(state={},power){
  const powers=Object.values(state.powers||{});let budget=14000,omitted=0;
@@ -21,8 +22,8 @@ export function foreignArchiveOwner(raw,power,state={}){
  const markers=[...String(raw?.quote||'').matchAll(/【([^】·]+)(?:·[^】]*)?】/g)].map(m=>nameKey(m[1]));
  const tagged=powers.filter(p=>markers.includes(alias(p)));
  if(tagged.length===1&&tagged[0].id!==power.id)return {id:tagged[0].id,name:tagged[0].name,reason:'引用的结算或状态标题明确属于其他金手指'};
- const prefixed=others.filter(p=>alias(p).length>=2&&nameKey(raw?.name).startsWith(alias(p)));
- if(prefixed.length===1&&!nameKey(raw?.name).startsWith(alias(power)))return {id:prefixed[0].id,name:prefixed[0].name,reason:'对象名称明确以其他已接入金手指命名'};
+ // A display title can describe research, cooperation or a borrowed object.
+ // Its prefix is not evidence of ownership.
  if(!isMmlc(power)&&!isTaishi(power))return null;
  const name=nameKey(raw?.name);if(!name)return null;
  // The goldfinger itself is not an estate; no prose/hash/quote validation here.
@@ -31,6 +32,36 @@ export function foreignArchiveOwner(raw,power,state={}){
  if(declared===power.id)return null; // One person can have distinct, explicit roles in two systems.
  const matches=others.filter(p=>Object.values(p.archives||{}).some(r=>[r.name,...(r.history||[]).map(h=>h.name)].some(n=>nameKey(n)===name)));
  return matches.length?{id:matches.length===1?matches[0].id:'',name:matches.map(p=>p.name).join('／'),reason:'同名对象已记录在其他金手指，未说明漫漫长路中的独立身份'}:null;
+}
+// Shared source-scope gate for all narrative changes. Required links for new
+// objects are declarative; canonical status rows and existing IDs are separate.
+export function assertArchiveOwnership(power,raw,{before,mainStatus,table,config,policy,quote,content,state={},suppliedName}={}){
+ const foreign=foreignArchiveOwner({...raw,quote},power,state);
+ assert(!foreign,'归属与原文明确声明冲突，请核对所属词条');
+ const powers=[power,...Object.values(state.powers||{}).filter(p=>p.id!==power.id)];
+ const aliases=powers.map(p=>String(p.name||'').split(/[（(]/)[0].trim());
+ const tags=sourceOwnership(content||'',quote,aliases);
+ assert(tags.length<=1,'引用跨越多个金手指的归属范围，请缩小引用到本项事实，不能仅凭ownerPowerId选择归属');
+ assert(!tags.length||nameKey(tags[0])===nameKey(aliases[0]),'归属与来源结算或状态栏标题冲突；请保留在原词条，不按展示名称或ownerPowerId改归属');
+ if(!before&&!mainStatus&&table?.kind!=='singleton')assert(!config?.records.some(r=>nameKey(r.label)===nameKey(raw.name)),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
+ if(before||mainStatus||isTaishi(power)||!policy?.requireLink)return;
+ const alias=String(power.name||'').split(/[（(]/)[0].trim();
+ const owned=Object.values(power.archives||{}).flatMap(r=>[r.name,...(r.history||[]).map(h=>h.name)]).filter(Boolean);
+ const rules=power.primaryRules??power.rules??'';
+ // Mechanisms come from maintained, hash-bound declarations, never arbitrary
+ // model-supplied rule quotes or words extracted from schema descriptions.
+ const mechanisms=(policy.mechanisms||[]).filter(s=>s.length>=2&&rules.includes(s));
+ const identityIds=table?.identityFields||[];
+ const anchors=[raw.name,...(table?.kind==='singleton'?[suppliedName]:[]),...identityIds.map(id=>raw.details?.[id]),...['location','origin','source','target','item'].map(id=>raw.details?.[id])].filter(v=>typeof v==='string'&&v.trim().length>=2);
+ const sentences=String(quote||'').split(/[。！？\n]/);
+ const literal=Boolean(quote&&content?.includes(quote));
+ const related=literal&&sentences.some(s=>{
+  if(alias&&s.includes(alias)&&anchors.some(n=>s.includes(n)))return true;
+  if(owned.some(n=>n.length>=2&&s.includes(n))&&anchors.some(n=>s.includes(n)))return true;
+  return mechanisms.some(n=>s.includes(n))&&anchors.some(n=>s.includes(n));
+ });
+ const settled=anchors.some(n=>settledOwnership(content||'',power.name,n));
+ assert(related||settled,'归属缺少正文或本层正式结算依据：请引用当前词条、已有对象或规则机制与本项事实的明确联系；展示标题不要求逐字出现在原文');
 }
 export function moveArchiveOwnership(state,fromId,id,toId){
  const from=state.powers?.[fromId],to=state.powers?.[toId],record=from?.archives?.[id];

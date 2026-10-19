@@ -66,7 +66,7 @@ test('unique evidence repairs a wrong valid floor; ambiguity never defaults to l
 test('all ordinary powers reject explicitly foreign protocol headings even with a false owner declaration',()=>{
  const a={id:'alpha',name:'甲系统',archives:{}},b={id:'beta',name:'乙系统（完整版）',archives:{}},state={powers:{alpha:a,beta:b}};
  assert.equal(foreignArchiveOwner({name:'某成果',ownerPowerId:a.id,quote:'【乙系统·回执】已经交付'},a,state).id,b.id);
- assert.equal(foreignArchiveOwner({name:'乙系统物资交付',ownerPowerId:a.id},a,state).id,b.id);
+ assert.equal(foreignArchiveOwner({name:'乙系统物资交付',ownerPowerId:a.id},a,state),null); // Display prefixes do not establish ownership.
  assert.equal(foreignArchiveOwner({name:'甲系统的乙系统研究',quote:'【甲系统】自身研究'},a,state),null);
 });
 test('last-floor-only response keeps earlier floors unreviewed and does not delete old facts',()=>{
