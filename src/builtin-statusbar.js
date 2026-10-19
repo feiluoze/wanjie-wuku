@@ -19,6 +19,13 @@ export function withBuiltinStatusbar(config,power){
  const existing=(config?.records||[]).map(r=>({...r,...(r.fields.some(f=>archiveResource(power,r.id,f.id))?{description:r.description+' 当前余额只读引用资源账本；此分类只登记收支依据，不得把余额另写进通用描述。'}:{}),fields:r.fields.filter(f=>!archiveResource(power,r.id,f.id))}));
  return {...(config||{format:'wjwk-adapter',schemaVersion:1,target:{primaryHashes:[row.contentHash]},id:'wuku.statusbar_'+row.contentHash,version:'1.0.0',name:row.name+'原文状态栏',operations:[]}),records:[...existing,...records]};
 }
+// insert/update on a declared original statusbar are redundant hints, not table commands.
+export function normalizeStatusbarOperation(power,raw){
+ const row=builtinStatusbar(power),declared=row?.disposition!=='dedicated'&&row?.groups.some(g=>g.id===raw.recordId);
+ if(!declared||raw.operation===undefined)return raw;
+ assert(['insert','update'].includes(raw.operation),'原文状态栏只接受 insert/update 兼容标记；不允许删除、批量覆盖或状态转换操作');
+ const {operation,...candidate}=raw;return candidate;
+}
 export function statusbarTarget(power,raw){
  assertStatusbarResourceFields(power,raw);
  const row=builtinStatusbar(power),group=row?.disposition!=='dedicated'&&row?.groups.find(g=>g.id===raw.recordId);
@@ -38,6 +45,6 @@ export function statusbarPolicy(power){
  return {sourceHash:row.contentHash,source:row.block,mode:row.disposition==='dedicated'?'dedicated-existing-controls':'original-statusbar-first',
   tables:row.disposition==='dedicated'?[]:row.groups.map(g=>({recordId:g.id,name:g.title,cardinality:g.cardinality,...(g.keyField?{keyField:g.keyField}:{}),fields:g.fields.filter(f=>!statusbarResourceReadOnly(power,f.id))})),
   resourceBindings:resourcePolicy(power),
-  rules:'只依据当前原文状态栏维护当前状态；原文占位符不是事实，未明确不初始化为0或无。相同总览只更新原archiveId，不按楼层新建；cardinality为per-object的具名详情按keyField分别维护，不覆盖其他对象，不在描述字段复制整份总览。既有其他档案保持，不能自动迁移、删除、清空或降级。缺席不代表失效；只有本轮明确变化才提交字段，不变则changes:[]。普通小额流水和日常细节不另建成果；仅在 longTermTables 明确声明范围内展开长期明细，其余不扩建子表。汇总有完整已核实明细时才计算，不能用省略输入推算。原文固定额度和规则参数不是已发生收益。已完成事件与待办、当前状态分别表述；当前主表不计作新增能力。专用模块沿用其已有受保护的字段、时间和人物入口，不允许用总览绕过保护。'};
+  rules:'只依据当前原文状态栏维护当前状态；原文状态栏不输出operation，由程序按单行或具名身份接续；insert/update仅兼容为冗余标记，不表示新建第二份主记录。原文占位符不是事实，未明确不初始化为0或无。相同总览只更新原archiveId，不按楼层新建；cardinality为per-object的具名详情按keyField分别维护，不覆盖其他对象，不在描述字段复制整份总览。既有其他档案保持，不能自动迁移、删除、清空或降级。缺席不代表失效；只有本轮明确变化才提交字段，不变则changes:[]。普通小额流水和日常细节不另建成果；仅在 longTermTables 明确声明范围内展开长期明细，其余不扩建子表。汇总有完整已核实明细时才计算，不能用省略输入推算。原文固定额度和规则参数不是已发生收益。已完成事件与待办、当前状态分别表述；当前主表不计作新增能力。专用模块沿用其已有受保护的字段、时间和人物入口，不允许用总览绕过保护。'};
 }
 export const isStatusbarRecord=record=>Boolean(record?.specific?.recordId?.startsWith('statusbar_'));

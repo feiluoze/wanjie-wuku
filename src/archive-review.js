@@ -1,5 +1,5 @@
 import {projectResourceStatus,resourcePolicy,assertStatusbarResourceFields,assertNoResourceClone} from './builtin-resources.js';
-import {statusbarPolicy,statusbarTarget} from './builtin-statusbar.js';
+import {statusbarPolicy,statusbarTarget,normalizeStatusbarOperation} from './builtin-statusbar.js';
 import {responseRepairPrompt,mergeRepairedResponse,repairRawResponseLocally} from './archive-response-repair.js';
 import {wireArchiveRecord,archiveResponseSchema} from './archive-contract.js';
 import {legacyFrameworkForType} from './record-frameworks.js';
@@ -139,6 +139,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const recordAliases=creationConfig(power)?.records.filter(r=>r.label===raw.recordId)||[];
     raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
     if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
+    raw=normalizeStatusbarOperation(power,raw);
     const suppliedName=text(raw.name,200).trim();
     const mainStatus=statusbarTarget(power,raw);if(mainStatus)raw={...raw,name:mainStatus.name,fields:{description:'原文状态栏：'+mainStatus.name},...(mainStatus.before?{archiveId:mainStatus.before.id}:{})};
     const table=tableTarget(power,raw);if(table)raw={...raw,name:table.name,...(table.before?{archiveId:table.before.id}:{})};

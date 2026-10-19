@@ -66,7 +66,7 @@ export function archiveTablePolicy(power){
   detailPolicy:'只为有独立身份、必须跨回合单独更新的对象建档。训练、配置、过程、已得收益等依consolidation进入对象的related_details或原状态栏；同一事实只存一处，主表只摘要引用。主对象尚未成立时，候选与计划留在原文状态栏，不为容纳明细而虚构已得对象。related_details保留未改变的重要事实，不复制整份快照；没有明确主要对象时报告待核对，不猜测归属。',
   ...(spec.boundaries?{boundaries:spec.boundaries}:{}),...(spec.sourceQuotes?{sourceQuotes:spec.sourceQuotes}:{}),
   operations:{insert:'新独立对象或事件；明确事实依据，不重复已有对象。',update:'沿用原 archiveId，只给发生变化的列；省略列保持，不写整段快照。',transition:'原对象确实转入另一状态；不代表再次到账。'},
-  rules:'原文状态栏为主表，子表仅展开需要后续调用、持续约束、未完成事项或重要独立结算。严格按各表 retain/update 及 boundaries 判断；普通细节不逐次入表，但原文明确要求的独立进展仍更新对应对象。同一长期对象名称稳定，阶段名变化沿用 archiveId；不同订单、投资、支出不可因同商品或同币种合并。identityFields 为明确身份列，新建时完整填写，更新不得换成其他版本；exclusiveWith 表示同一生命跨这些分类仍只留一个身份，不自动换类。名称不能只写分类标题。已有通用档案不自动迁移或删改，身份歧义报告 uncertain。每项优先填写 operation；无变化返回 changes:[]。禁止删除、清空整表、补算奖励、创建第二份余额；规则示例不属于实得。ended 只来自明确结束，未提及不等于结束。子表与主表不要复制同一份长清单。event 表用于追溯，默认不自动注入正文；玩家仍可单独选为记忆。'};
+  rules:'原文状态栏为主表，子表仅展开需要后续调用、持续约束、未完成事项或重要独立结算。严格按各表 retain/update 及 boundaries 判断；普通细节不逐次入表，但原文明确要求的独立进展仍更新对应对象。同一长期对象名称稳定，阶段名变化沿用 archiveId；不同订单、投资、支出不可因同商品或同币种合并。identityFields 为明确身份列，新建时完整填写，更新不得换成其他版本；exclusiveWith 表示同一生命跨这些分类仍只留一个身份，不自动换类。名称不能只写分类标题。已有通用档案不自动迁移或删改，身份歧义报告 uncertain。仅tables声明的长期子表项优先填写operation；originalStatusbar主状态栏和其他记录不填写operation；无变化返回 changes:[]。禁止删除、清空整表、补算奖励、创建第二份余额；规则示例不属于实得。ended 只来自明确结束，未提及不等于结束。子表与主表不要复制同一份长清单。event 表用于追溯，默认不自动注入正文；玩家仍可单独选为记忆。'};
 }
 export function archiveWriteCounts(before,saved,selectedCount= saved.length){
  const final=[...new Map(saved.map(r=>[r.id,r])).values()];

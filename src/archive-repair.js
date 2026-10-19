@@ -1,3 +1,4 @@
+import {normalizeStatusbarOperation} from './builtin-statusbar.js';
 import {archiveFieldRepairSchema} from './archive-contract.js';
 import {assert,clone,stable,ASYNC_MARKER} from './core.js';
 import {ARCHIVE_FIELDS} from './archives.js';
@@ -33,7 +34,7 @@ export function archiveRepairPrompt(pending,power,referencePacket){
  const config=creationConfig(power);
  for(const item of failed){
   const before=power.archives?.[item.candidate.archiveId]||Object.values(power.archives||{}).find(r=>r.name===item.candidate.name);
-  item.candidate=resolveArchiveCategory(item.candidate,config,before);
+  item.candidate=normalizeStatusbarOperation(power,resolveArchiveCategory(item.candidate,config,before));
   const recordId=before?.specific?.recordId||item.candidate.recordId;
   const definition=config?.records.find(r=>r.id===recordId);
   item.repairContract={fields:Object.keys(ARCHIVE_FIELDS[item.candidate.type]||{}),...(definition?{recordId:definition.id,details:definition.fields.filter(f=>!['source_profile','time_state'].includes(f.id)).map(f=>f.id)}:{})};
@@ -66,6 +67,7 @@ export function applyArchiveRepairResponse(pending,data,power,state={}){
    resolved.recordId=row.recordId||undefined;
   }
   next.changes[row.index]={...resolved,fields:clone(row.fields),details:clone(row.details),...(pending.setupReferences&&row.settingRefs!==undefined?{settingRefs:clone(row.settingRefs)}:{})};
+  if(power)next.changes[row.index]=normalizeStatusbarOperation(power,next.changes[row.index]);
   if(!resolved.recordId&&!Object.keys(row.details).length)delete next.changes[row.index].details;
   for(const k of ['name','type','ownerPowerId','status','sourceIndex','quote','ruleQuote'])assert(stable(next.changes[row.index][k]??null)===stable(original[k]??null),'修复改变了受保护属性');
  }
