@@ -9,9 +9,9 @@ const raw=(recordId,name,details,extra={})=>({type:'record',recordId,name,status
 const local=(p,rows)=>normalizeArchiveBatch({changes:rows},p,[],[],'玩家确认已有事实');
 const save=(p,b)=>applyArchiveChanges(p,b.changes,[],new Map(b.changes.map((c,i)=>[i,c.id])),[]);
 
-test('first-batch 28 tables remain intact; all 16 current declarations expose 52 tables and eleven added schemas',()=>{
- assert.equal(ARCHIVE_TABLE_DEFINITIONS.slice(0,9).flatMap(d=>d.tables).length,28);assert.equal(ARCHIVE_TABLE_DEFINITIONS.slice(0,9).flatMap(d=>d.records||[]).length,7);
- assert.equal(ARCHIVE_TABLE_DEFINITIONS.length,16);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.tables).length,52);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.records||[]).length,11);
+test('26 declarations expose 30 independent tables and preserve 53 legacy categories and all existing schemas',()=>{
+ assert.equal(ARCHIVE_TABLE_DEFINITIONS.slice(0,9).flatMap(d=>[...d.tables,...d.retiredTables]).length,28);assert.equal(ARCHIVE_TABLE_DEFINITIONS.slice(0,9).flatMap(d=>d.records||[]).length,7);
+ assert.equal(ARCHIVE_TABLE_DEFINITIONS.length,26);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.tables).length,30);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.records||[]).length,11);
  for(const d of ARCHIVE_TABLE_DEFINITIONS){const p=power(d.name),spec=archiveTables(p),cfg=creationConfig(p);assert(spec,d.name);assert.equal(spec.adapter,d.adapter);assert.equal(new Set(cfg.records.map(r=>r.id)).size,cfg.records.length);
   for(const t of spec.tables){assert(t.retain.length>4);assert(t.update.length>8);assert(t.fields.length);assert(!t.fields.some(f=>f.id==='balance'));}
   assert.equal(JSON.parse(archivePrompt(p,[],[],'确认').user).longTermTables.tables.length,spec.tables.length);
@@ -21,10 +21,10 @@ test('first-batch 28 tables remain intact; all 16 current declarations expose 52
  const p=power('天人骨血');p.adapterBinding={config:{id:'custom.owner',records:[],operations:[]}};assert.equal(archiveTables(p),null);
 });
 
-for(const d of ARCHIVE_TABLE_DEFINITIONS)for(const t of d.tables)test(`${d.name}/${t.id}: stable row identity, partial updates, no-op and state persistence`,()=>{
- const p=power(d.name),table=archiveTables(p).tables.find(x=>x.id===t.id),field=table.fields.find(f=>!table.identityFields?.includes(f.id)).id,wallet=stable(p.resources),name='独立对象甲';
+for(const d of ARCHIVE_TABLE_DEFINITIONS)for(const t of [...d.tables,...d.retiredTables])test(`${d.name}/${t.id}: stable row identity, partial updates, no-op and state persistence`,()=>{
+ const p=power(d.name),table=[...archiveTables(p).tables,...archiveTables(p).retiredTables].find(x=>x.id===t.id),field=table.fields.find(f=>!table.identityFields?.includes(f.id)).id,wallet=stable(p.resources),name='独立对象甲';
  const identity=Object.fromEntries((table.identityFields||[]).map(id=>[id,id==='version'?'明确来源原典v1':'独立对象甲']));
- let b=local(p,[raw(t.id,name,{...identity,[field]:'已有明确依据'},{operation:'insert'})]);assert.deepEqual(b.issues,[]);save(p,b);const r=Object.values(p.archives)[0],id=r.id;
+ let b=local(p,[raw(t.id,name,{...identity,[field]:'已有明确依据'},{operation:t.updateOnly?undefined:'insert'})]);assert.deepEqual(b.issues,[]);save(p,b);const r=Object.values(p.archives)[0],id=r.id;
  b=local(p,[raw(t.id,r.name,{[field]:'本次已确认深化'},{archiveId:id,operation:'update'})]);assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,1);assert.equal(p.archives[id].history.length,1);
  const before=clone(p.archives);save(p,b);assert.equal(p.archives[id].history.length,1);assert.equal(stable(p.resources),wallet);
  assert.throws(()=>tableTarget(p,{recordId:t.id,name:r.name,operation:'insert'}),/已有对象/);

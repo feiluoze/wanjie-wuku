@@ -72,7 +72,11 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
     terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, contextPolicy:'context仅辅助理解，合计最多6000字符、每条最多2000字符，可能为尾部节选；不能据此新增成果或将遗漏视为不存在。逐层核对以完整sources为准。', playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
   const resourceContract=resourcePolicy(power);if(resourceContract)payload.resourceLedger=resourceContract;
   const originalStatusbar=statusbarPolicy(power);if(originalStatusbar)payload.originalStatusbar=originalStatusbar;
-  const tables=archiveTablePolicy(power);if(tables)payload.longTermTables=tables;
+  const tables=archiveTablePolicy(power);if(tables){
+   payload.longTermTables=tables;
+   const retired=new Set(tables.consolidation.map(t=>t.recordId)),existing=new Set(records.map(r=>r.specific?.recordId));
+   payload.recordSchemas=payload.recordSchemas.filter(r=>!retired.has(r.id)||existing.has(r.id)).map(r=>retired.has(r.id)?{...r,updateOnly:true,description:r.description+'；此分类仅兼容已有旧档，不可新增。'}:r);
+  }
   if(isTaishi(power)&&power.taishiWorldStructure)payload.worldStructure=worldStructurePolicy(power);
   if(skipSetupPeople){payload.recordSchemas=payload.recordSchemas.filter(r=>r.id!=='companion');payload.personImport='玩家本次只整理世界设定；不创建或更新人物，不从地域正文中的人名建立人物档案，也不建立涉及人物的关系。人物文档之后单独整理。';}
   if(setupReferences){

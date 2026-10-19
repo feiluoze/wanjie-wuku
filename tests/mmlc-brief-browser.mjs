@@ -41,6 +41,7 @@ try{
    });a.refresh();
    a.model.request=async prompt=>{mockCalls++;window.lastInput=JSON.parse(prompt.user);return JSON.stringify({draft:{title:'精炼改良方案',content:'基于已验证的电磁传导与温控工艺，先验证新材料，再改良现有阵眼；保留两件已有阵眼，不宣称已制成新物。',conditions:'实际结果等待正文确认',ruleQuote:lastInput.rules.slice(0,20)}});};
   });
+  await page.locator('[data-action="mmlc-view"][data-mode="brief"]').click();
   for(const kind of ['cultivation','knowledge','ongoing','deliveries'])assert(await page.locator(`[data-mmlc-brief="${kind}"]`).isVisible());
   assert.equal(await page.locator('.wjwk-mmlc-directory').getAttribute('open'),null);
   const before=await page.evaluate(()=>JSON.stringify(wanjie_wuku_general_instance.store.read()));

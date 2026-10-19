@@ -53,7 +53,7 @@ test('brief and engineering relations preserve identity, status and actual quant
  const item=add(p,'定位阵眼','items',{quantity:'两件',links:project.name});
  add(p,'相似定位','arts',{effect:'独立方法'});const before=stable(p),brief=mmlcBrief(p,[]);
  assert.equal(brief.ongoing[0].id,project.id);assert.deepEqual([...brief.links.get(project.id)].sort(),[method.id,item.id].sort());assert.equal(stable(p),before);
- const ui=Object.create(WorkbenchUI.prototype);ui.view={state:f.store.read()};ui.mmlcSection='projects';
+ const ui=Object.create(WorkbenchUI.prototype);ui.mmlcView='brief';ui.view={state:f.store.read()};ui.mmlcSection='projects';
  const html=ui.management(f.store.read(),p,false,'st',null,[]);
  assert.match(html,/成果脉络/);assert.match(html,/两件|定位阵眼/);assert.match(html,/仍待解决/);assert.match(html,/图纸/);
  assert.equal(project.status,'working');assert.equal(item.specific.fields.quantity,'两件');assert.equal(stable(p),before);
@@ -73,7 +73,7 @@ test('selected continuation brings focus and explicit linked knowledge without c
 test('brief presents cultivation and suppresses duplicate facts without losing full archive',async()=>{
  const f=await setup(),p=f.store.read().powers[MMLC_ID],body=add(p,'本体','body',{realm:'金丹',body:'身神协调',soul:'身神协调',progress:'专修空间'});
  assert.deepEqual(mmlcBriefFacts(body).map(x=>x.value),['金丹','身神协调','专修空间']);assert.equal(body.specific.fields.soul,'身神协调');
- const ui=Object.create(WorkbenchUI.prototype);ui.view={state:f.store.read()};const html=ui.management(f.store.read(),p,false,'off',null,[]);
+ const ui=Object.create(WorkbenchUI.prototype);ui.mmlcView='brief';ui.view={state:f.store.read()};const html=ui.management(f.store.read(),p,false,'off',null,[]);
  for(const label of ['本体修行','新近参悟','正在推进','最新交付'])assert(html.includes(label));
  assert.match(html,/data-action="mmlc-continue"[^>]*disabled/);assert.match(html,/<details class="wjwk-mmlc-directory">/);
 });

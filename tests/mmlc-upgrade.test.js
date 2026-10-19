@@ -77,6 +77,6 @@ test('related facts join narrative memory with exclusions and ended state protec
  config.selections[p.id+'/'+b.id]={mode:'exclude',token:'t'};plan=memoryPlan(s,[],a.name,config);assert.ok(!plan.included.some(r=>r.id.endsWith('/'+b.id)));
 });
 test('module home displays concrete facts, visible assets, action entrance and escaped names',()=>{
- const {p,s}=setup();add(p,'<img src=x>玄黄舰','fleet',{quantity:'两艘',availability:'一艘维修'});const ui=Object.create(WorkbenchUI.prototype);ui.view={state:s};ui.mmlcSection='fleet';const html=ui.management(s,p,false,'st',null,[]);
+ const {p,s}=setup();add(p,'<img src=x>玄黄舰','fleet',{quantity:'两艘',availability:'一艘维修'});const ui=Object.create(WorkbenchUI.prototype);ui.mmlcView='brief';ui.view={state:s};ui.mmlcSection='fleet';const html=ui.management(s,p,false,'st',null,[]);
  assert.match(html,/当前家底/);assert.match(html,/两艘/);assert.match(html,/一艘维修/);assert.match(html,/规划舰船部署/);assert.match(html,/data-action="creation-open" data-section="fleet"/);assert.doesNotMatch(html,/<img src=x>/);
 });

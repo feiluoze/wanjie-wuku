@@ -4,7 +4,7 @@
   "js": "bootstrap.js",
   "css": "style.css",
   "author": "万界武库项目",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "auto_update": false,
   "minimum_client_version": "1.12.14"
 }

@@ -1,15 +1,8 @@
 import {createServer} from 'node:http';import {readFile,mkdir,writeFile} from 'node:fs/promises';import {resolve,relative,isAbsolute,extname} from 'node:path';import {createRequire} from 'node:module';import assert from 'node:assert/strict';
 const {chromium}=createRequire(process.env.WJWK_NODE_MODULES+'/package.json')('playwright'),out=process.env.WJWK_SCREENSHOTS;await mkdir(out,{recursive:true});
 const server=createServer(async(req,res)=>{try{const p=resolve('.','.'+decodeURIComponent(new URL(req.url,'http://local').pathname)),rel=relative(process.cwd(),p);if(rel.startsWith('..')||isAbsolute(rel))throw Error('path');res.setHeader('Content-Type',{'.js':'text/javascript','.html':'text/html','.css':'text/css'}[extname(p)]||'application/octet-stream');res.end(await readFile(p));}catch{res.writeHead(404);res.end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
-const cases=[
- {name:'生命球',table:'forms',title:'赤龙生命',details:{state:'已入库',growth:'真实形态成长'},edit:'features'},
- {name:'拓印',table:'patterns',title:'周天蓝图',details:{count:'十印',baseline:'实际周天',nature:'永久蓝图'},edit:'history'},
- {name:'万灵图鉴',table:'missions',title:'北岭远行',details:{members:'已入册星萤',goal:'真实已授权寻药',progress:'已经出发'},edit:'results'},
- {name:'模板',table:'loadout',title:'当前配置',details:{personal:'首领',phase:'第二阶段',equipped:'已经搭载的模板'},edit:'total'},
- {name:'挂机',table:'shadow',title:'征伐之影',details:{state:'已经实际出征',location:'既有战区'},edit:'configuration'},
- {name:'咨询法',table:'consultations',title:'孙悟空·原典',details:{figure:'孙悟空',version:'西游记原典',resonance:'正文确认一次未兑现共鸣'},edit:'basis'},
- {name:'每日情报',table:'leads',title:'北门危险线索',details:{finding:'实际已交付危机情报',tracking:'确已锁定'},edit:'outcome'}
-];
+const {builtinEntries}=await import('../src/builtin-worldbook.js'),{createPower}=await import('../src/core.js'),{archiveTables}=await import('../src/archive-tables.js');
+const cases=['生命球','拓印','万灵图鉴','模板','挂机','咨询法','每日情报'].map(name=>{const t=archiveTables(createPower(builtinEntries().find(e=>e.name===name))).tables[0];return {name,table:t.id,title:name+'实际对象',details:{[t.fields[0].id]:'正文已确认的事实',...Object.fromEntries((t.identityFields||[]).map(id=>[id,id==='version'?'原典版本甲':'孙悟空']))},edit:t.fields.at(-1).id};});
 try{
  browser=await chromium.launch({headless:true,executablePath:process.env.WJWK_BROWSER_EXECUTABLE});const errors=[],checks=[];let externalRequests=0;
  for(const width of [1440,390,320])for(const theme of ['dark','light']){

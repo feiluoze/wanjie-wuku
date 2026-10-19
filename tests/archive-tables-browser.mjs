@@ -13,7 +13,7 @@ try{
    const b=normalizeArchiveBatch({changes},p,[],[],'玩家确认上述已有事实');if(b.issues.length)throw Error(JSON.stringify(b.issues));applyArchiveChanges(p,b.changes,[],new Map(b.changes.map((c,i)=>[i,c.id])),[]);
    await a.store.transact(s=>{s.powers={[p.id]:p};s.historyAnchor=chatHashes([]);s.syncCursor=0;});a.powerId=p.id;a.settings.theme=theme;a.settings.mode='off';a.ui.tab='management';a.refresh();a.ui.setOpen(true);
   },{theme});
-  await page.locator('[data-long-term-table="scars"]').scrollIntoViewIfNeeded();assert.equal(await page.locator('[data-long-term-table]').count(),3);
+  await page.locator('[data-long-term-table="scars"]').scrollIntoViewIfNeeded();assert.equal(await page.locator('[data-long-term-table]').count(),2);
   await page.screenshot({path:resolve(out,`tables-${width}-${theme}.png`)});
   await page.locator('[data-long-term-table="scars"] [data-action="archive-library"]').click();assert((await page.locator('[data-library-category]').inputValue()).endsWith('/scars'));assert.equal(await page.locator('[data-library-results] .wjwk-archive-card').count(),2);
   await page.locator('[data-library-status]').selectOption('active');assert.equal(await page.locator('[data-library-results] .wjwk-archive-card').count(),1);await page.locator('[data-library-query]').fill('不存在');assert((await page.locator('[data-library-results]').textContent()).includes('没有匹配档案'));

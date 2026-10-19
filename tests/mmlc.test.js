@@ -27,7 +27,7 @@ test('MMLC raw evidence builds all outcome categories and keeps pending work sep
  const changes=normalizeArchiveChanges({changes:raw},p,sources,chat);applyArchiveChanges(p,changes,sources,new Map([[0,null],[1,null]]),chat);
  strict.equal(Object.keys(p.archives).length,2);strict.equal(Object.keys(p.assets).length,0);validateState(clone(state));
  const again=normalizeArchiveChanges({changes:raw},p,sources,chat);applyArchiveChanges(p,again,sources,new Map(again.map((c,i)=>[i,c.id])),chat);strict.equal(Object.keys(p.archives).length,2);strict.equal(Object.values(p.archives)[0].history.length,0);
- const ui=Object.create(WorkbenchUI.prototype);ui.view={};const html=ui.management(state,p,false,'st',null,chat);strict.match(html,/法器丹药/);strict.match(html,/玄黄舰/);strict.match(html,/正在推进/);strict.doesNotMatch(html,/能做什么|场景建议|记录当前方向/);
+ const ui=Object.create(WorkbenchUI.prototype);ui.view={};const html=ui.management(state,p,false,'st',null,chat);strict.match(html,/法器丹药/);strict.match(html,/玄黄舰/);strict.match(html,/进行中/);strict.doesNotMatch(html,/能做什么|场景建议|记录当前方向/);
 });
 test('dedicated AI instructions scope outcomes and skip ability explanations',()=>{
  const {p}=setup(),prompt=archivePrompt(p,[],[]);strict.equal(JSON.parse(prompt.user).explainRules,false);strict.match(prompt.system,/明确属于其他金手指则跳过/);strict.match(prompt.system,/MMLC-archive/);strict.match(prompt.system,/不生成玩法说明/);

@@ -10,11 +10,11 @@ function save(p,rows){const b=batch(p,rows);assert.deepEqual(b.issues,[],JSON.st
 const rows=(p,id)=>Object.values(p.archives||{}).filter(r=>r.specific?.recordId===id);
 const byName=(p,name)=>Object.values(p.archives).find(r=>r.name===name);
 
-test('second batch has seven exact source identities, 24 tables and four missing schemas; all evidence is verbatim',()=>{
- const definitions=ARCHIVE_TABLE_DEFINITIONS.slice(9);assert.equal(definitions.length,7);assert.equal(definitions.flatMap(d=>d.tables).length,24);assert.equal(definitions.flatMap(d=>d.records||[]).length,4);
+test('second batch has seven exact source identities, 9 independent tables, 15 compatible categories and four added schemas; all evidence is verbatim',()=>{
+ const definitions=ARCHIVE_TABLE_DEFINITIONS.slice(9,16);assert.equal(definitions.length,7);assert.equal(definitions.flatMap(d=>d.tables).length,9);assert.equal(definitions.flatMap(d=>d.records||[]).length,4);
  for(const d of definitions){const p=power(d.name),spec=archiveTables(p),policy=archiveTablePolicy(p),config=creationConfig(p);assert(spec);assert(d.sourceQuotes.length>=2);for(const quote of d.sourceQuotes)assert(entry(d.name).content.includes(quote),d.name+': '+quote);
   assert.deepEqual(policy.boundaries,d.boundaries);assert.deepEqual(policy.sourceQuotes,d.sourceQuotes);assert(d.boundaries.length>=2);
-  for(const t of spec.tables){assert(config.records.some(r=>r.id===t.id));for(const id of t.identityFields||[])assert(t.fields.some(f=>f.id===id));for(const id of t.exclusiveWith||[])assert(spec.tables.some(x=>x.id===id));}
+  for(const t of spec.tables){assert(config.records.some(r=>r.id===t.id));for(const id of t.identityFields||[])assert(t.fields.some(f=>f.id===id));for(const id of t.exclusiveWith||[])assert([...spec.tables,...spec.retiredTables].some(x=>x.id===id));}
   const prompt=JSON.parse(archivePrompt(p,[],[],'实际事实').user);assert.equal(prompt.longTermTables.tables.length,d.tables.length);assert.deepEqual(prompt.longTermTables.boundaries,d.boundaries);
   const initial=stable(p);assert.equal(archiveLibraryPage(p).categories.length,d.tables.length);assert.equal(stable(p),initial);
   const ui=Object.create(WorkbenchUI.prototype);assert(ui.archiveTablesPanel(p,[]).includes('长期档案'));assert.equal(stable(p),initial);
@@ -40,7 +40,7 @@ test('spirit shadow becomes a formal member in its original identity; peer dupli
  const p=power('万灵图鉴');save(p,[raw('shadows','星萤',{known:'真实接触的夜间感知',relation:'仍在观察'})]);const shadow=rows(p,'shadows')[0];
  let b=batch(p,[raw('members','星萤',{relation:'已认可加入',state:'成员已成立'},{operation:'insert'})]);assert.equal(b.changes.length,0);assert.match(b.issues[0].reason,/原 recordId/);
  save(p,[raw('shadows',shadow.name,{relation:'已明确认可并正式加入正册',result:'正式关系已经成立'},{archiveId:shadow.id,operation:'update'})]);assert.equal(Object.keys(p.archives).length,1);assert.equal(rows(p,'shadows')[0].id,shadow.id);assert.equal(rows(p,'members').length,0);
- const q=power('万灵图鉴');b=batch(q,[raw('shadows','烬灵',{known:'已接触'}, {operation:'insert'}),raw('members','烬灵',{relation:'正式关系'}, {operation:'insert'})]);assert.equal(b.changes.length,1);assert.match(b.issues[0].reason,/同时出现在影页/);
+ const q=power('万灵图鉴');b=batch(q,[raw('shadows','烬灵',{known:'已接触'}),raw('members','烬灵',{relation:'正式关系'}, {operation:'insert'})]);assert.equal(b.changes.length,1);assert.match(b.issues[0].reason,/同时出现在影页/);
  save(p,[raw('missions','北岭寻药远行',{members:'星萤与既有队友',goal:'已授权前往北岭寻药',progress:'已经出发',results:'尚未取得药材'},{status:'working'})]);const mission=rows(p,'missions')[0];save(p,[raw('missions',mission.name,{progress:'已经回到领域',results:'正文确认已带回药材，原成员仍在'},{archiveId:mission.id,status:'ended'})]);assert.equal(rows(p,'missions').length,1);assert.equal(rows(p,'shadows').length,1);
 });
 

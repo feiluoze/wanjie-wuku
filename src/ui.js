@@ -2,6 +2,7 @@ import {archiveTables,tableForRecord} from './archive-tables.js';
 import {statusbarResource,archiveResource,resourceDefinition,projectResourceStatus} from './builtin-resources.js';
 import {builtinStatusbar,isStatusbarRecord} from './builtin-statusbar.js';
 import {mmlcBriefHTML} from './mmlc-brief.js';
+import {mmlcTableHTML,mmlcTableResultsHTML} from './mmlc-table.js';
 import {REVIEW_SEGMENT_SIZE} from './archive-result-list.js';
 import {receiptStatus} from './receipt-status.js';
 import {taishiStructureUI} from './taishi-structure-ui.js';
@@ -101,7 +102,10 @@ export class WorkbenchUI {
       if (name === 'new-api-profile') { this.newConnectionProfile(); return; }
       if (name === 'close') { this.setOpen(false); return; }
       if (name === 'dialog-close') { if(this.modal.querySelector('[data-taishi-structure]'))this.action('taishi-structure-dismiss',{}); if(this.modal.querySelector('[data-taishi-civilization-draft]'))this.action('taishi-civilization-dismiss',{}); if(this.modal.querySelector('[data-taishi-descent],[data-taishi-clock],[data-taishi-clock-preview]'))this.action('taishi-control-dismiss',{}); if(this.modal.querySelector('[data-outbox-dialog]')) this.action('outbox-dismiss',{}); if(this.modal.querySelector('[data-ai-reference-dialog]')) this.action('ai-ref-dismiss',{}); if(this.modal.querySelector('[data-archive-tool-dialog]')) this.action('archive-tool-dismiss',{}); if(this.modal.querySelector('[data-taishi-workflow-review]')) this.action('taishi-workflow-cancel',{}); if(this.modal.querySelector('[data-taishi-build]')) this.action('taishi-build-dismiss',{}); if(this.modal.querySelector('[data-taishi-development]')) this.action('taishi-development-dismiss',{}); if(this.modal.querySelector('[data-taishi-relation]')) this.action('taishi-relation-dismiss',{}); if(this.modal.querySelector('[data-taishi-people]')) this.action('taishi-people-dismiss',{}); if(this.modal.querySelector('[data-taishi-draft]')) this.action('taishi-draft-dismiss',{}); if(this.modal.querySelector('[data-creation-dialog]')) this.action('creation-dismiss',{}); if(this.modal.querySelector('[data-terminal-dialog]')) this.action('terminal-dismiss',{}); if (this.modal.querySelector('[data-scene-dialog]')) this.action('cancel-scene', {}); this.action('cancel-model-list', {}); this.closeDialog(); return; }
-      if (name === 'mmlc-section') { this.mmlcSection = button.dataset.section || null; this.tab = 'management'; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); return; }
+      if(name==='mmlc-view'){this.mmlcView=button.dataset.mode==='brief'?'brief':'table';this.render(this.view);this.panel.querySelector(`[data-action="mmlc-view"][data-mode="${this.mmlcView}"]`)?.focus();return;}
+      if(name==='mmlc-table-page'){this.mmlcTableFilter={...this.mmlcTableFilter,page:(this.mmlcTableFilter?.page||0)+Number(button.dataset.direction)};this.updateMmlcTable();return;}
+      if(name==='mmlc-table-reset'){this.mmlcTableFilter={query:'',status:'',page:0};this.render(this.view);this.panel.querySelector('[data-mmlc-table-query]')?.focus();return;}
+      if (name === 'mmlc-section') { this.mmlcSection = button.dataset.section || null; this.mmlcTableFilter={query:'',status:'',page:0};this.tab = 'management'; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); return; }
       if (name === 'tab' || name === 'open-tab') { this.tab = name === 'tab' ? button.dataset.tab : button.dataset.target; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); this.panel.querySelector(`.wjwk-tabs [data-tab="${this.tab}"]`)?.focus(); return; }
       let data = { ...button.dataset };
       if (button.closest('form')) { const form = button.closest('form'); if (requiresFormValidation(name)) {const invalid=form.querySelector(':invalid');if(invalid)for(let p=invalid.parentElement;p&&p!==form;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;if(!form.reportValidity())return;} data.form = form; data.values = Object.fromEntries(new FormData(form)); }
@@ -121,6 +125,7 @@ export class WorkbenchUI {
       for (const other of this.root.querySelectorAll('.wjwk-action-menu[open]')) if (other !== node) other.open = false;
     }, { capture: true, signal: this.eventController.signal });
     listen('input', event => {
+      if(event.target.matches('[data-mmlc-table-query]')){this.mmlcTableFilter={...this.mmlcTableFilter,query:event.target.value,page:0};this.updateMmlcTable();return;}
       if(event.target.matches('[data-taishi-query]')){this.taishiQuery=event.target.value;clearTimeout(this.taishiSearchTimer);this.taishiSearchTimer=setTimeout(()=>{if(!this.destroyed)this.render(this.view);},180);}
       if(event.target.matches('[data-library-query]')) { this.libraryFilter.query=event.target.value;this.libraryFilter.page=0;this.updateArchiveLibrary(); }
       if(event.target.matches('[data-ai-ref-search]')) this.filterReferenceRows(event.target.value,event.target.dataset.aiRefSearch);
@@ -132,6 +137,8 @@ export class WorkbenchUI {
       if (event.target.matches('[data-entry-search]')) this.filterEntries(event.target.value);
     });
     listen('change', event => {
+      if(event.target.matches('[data-mmlc-table-module]')){this.mmlcSection=event.target.value||null;this.mmlcTableFilter={query:'',status:'',page:0};this.render(this.view);this.panel.querySelector('[data-mmlc-table-module]')?.focus();return;}
+      if(event.target.matches('[data-mmlc-table-status]')){this.mmlcTableFilter={...this.mmlcTableFilter,status:event.target.value,page:0};this.updateMmlcTable();return;}
       if(event.target.matches('[data-taishi-structure] [name="mode"]')){const f=event.target.closest('form'),single=event.target.value==='single';f.querySelector('[data-structure-world]').hidden=!single;f.elements.worldName.disabled=!single;f.elements.worldName.required=single;}
       if(event.target.matches('[data-taishi-main-world]')){this.setTaishiLayout({worldId:event.target.value});return;}
       if(event.target.matches('[data-taishi-civilization]')){this.setTaishiLayout({civilizationId:event.target.value});return;}
@@ -198,7 +205,7 @@ export class WorkbenchUI {
     if (focused && [...this.panel.querySelectorAll('button,input,textarea,select,summary')].filter(n => this.panelIdentity(n) === this.panelIdentity(focused)).length !== 1) focused = null;
     return {
       details: [...this.panel.querySelectorAll('details')].map(n => ({ id: this.panelIdentity(n), open: n.open })).filter((item, _, all) => all.filter(other => other.id === item.id).length === 1),
-      scroll: ['.wjwk-main', '.wjwk-sidebar'].map(selector => { const n = this.panel.querySelector(selector); return { selector, top: n?.scrollTop || 0, left: n?.scrollLeft || 0 }; }),
+      scroll: ['.wjwk-main', '.wjwk-sidebar','.wjwk-mmlc-layout .wjwk-content','.wjwk-mmlc-table-scroll'].map(selector => { const n = this.panel.querySelector(selector); return { selector, top: n?.scrollTop || 0, left: n?.scrollLeft || 0 }; }),
       focus: focused && { id: this.panelIdentity(focused), value: focused.matches('textarea,input:not([type]),input[type="text"],input[type="search"]') ? focused.value : undefined, start: focused.selectionStart, end: focused.selectionEnd, direction: focused.selectionDirection, top: focused.scrollTop },
     };
   }
@@ -485,7 +492,7 @@ export class WorkbenchUI {
     return `<section class="wjwk-original-statusbar"><h2>当前状态</h2>${hasResources?`<p class="wjwk-muted" data-static-help>余额只读引用同一账本；绑定角色 MVU 时沿用绑定值，不另记一份。能量上限与当前可用值分开核对。</p>${btn('baseline','核对资源余额','wjwk-link',blocked)}`:''}${spec.groups.map(g=>{const records=Object.values(power.archives||{}).filter(r=>r.specific?.recordId===g.id);return `<article><h3>${esc(g.title)}</h3>${records.length>1&&g.cardinality!=='per-object'?'<p>主记录重复，需先核对，未自动合并。</p>':records.length?records.map(r=>table(g,r)).join(''):table(g,null)}</article>`;}).join('')}<details><summary>原文栏目与保留规则</summary><pre class="wjwk-full-rule">${esc(spec.block)}</pre></details></section>`;
   }
   archiveTablesPanel(power,chat,blocked=false) {
-    const spec=archiveTables(power);if(!spec)return '';
+    const spec=archiveTables(power);if(!spec?.tables.length)return '';
     const groups=spec.tables.map(t=>{
       const rows=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId===spec.adapter&&r.specific.recordId===t.id),valid=rows.filter(r=>archiveCurrent(r,chat));
       const open=`<button type="button" class="wjwk-secondary" data-action="archive-library" data-category="${esc(spec.adapter+'/'+t.id)}">${rows.length?'查看 '+rows.length+' 项':'打开子表'} →</button>`;
@@ -503,6 +510,7 @@ export class WorkbenchUI {
     return `<section class="wjwk-current-overview" aria-label="当前概况"><header><h2>当前概况</h2><small>${overview.paused?'已暂停统计 · 保留上次记录':'随已保存档案自动更新'}</small></header><p class="wjwk-overview-counts">${this.overviewCountLine(counts)}</p>${stale?`<p class="wjwk-error">${stale} 项来源待核对，未计入现状</p>`:''}${groups.length?`<div class="wjwk-overview-groups">${groups.map(group=>`<div><header class="wjwk-group-heading"><h3>${esc(group.title)}</h3><button type="button" class="wjwk-link" data-action="archive-library" ${isMmlc(power)?'':`data-type="${esc(group.id)}"`}>${isMmlc(power)?'浏览全部档案':`查看全部 ${group.records.length} 项`} →</button></header>${overviewHighlights(group).map(row=>`<p><strong>${esc(row.name)}</strong><small>${esc(ARCHIVE_STATUS[row.status])}</small><span>${this.overviewFacts(row)}</span><button type="button" class="wjwk-link" data-action="open-archive" data-id="${esc(row.id)}" ${blocked?'disabled':''}>打开档案 →</button></p>`).join('')||'<p class="wjwk-muted">暂无当前成果</p>'}</div>`).join('')}</div>`:'<p class="wjwk-muted">AI整理并保存剧情后，已有成果和进展会自动汇总到这里。</p>'}</section>`;
   }
   mmlcStatistics(power, blocked, mode, chat) {
+    const tableScope=JSON.stringify([this.view?.chatKey,power.id]);if(tableScope!==this.mmlcTableScope){this.mmlcTableScope=tableScope;this.mmlcTableFilter={query:'',status:'',page:0};}
     const all = Object.values(power.archives || {}), valid = all.filter(r => archiveCurrent(r, chat));
     const canAI = !blocked && power.active && mode !== 'off', section = MMLC_MODULES.find(m => m.id === this.mmlcSection);
     const pending = this.view?.pendingArchiveReview?.powerId === power.id ? this.view.pendingArchiveReview : null;
@@ -512,7 +520,8 @@ export class WorkbenchUI {
     const actions=btn(all.length?'review-archives':'player-initial','AI 整理剧情','wjwk-primary',!canAI)+(section?btn('creation-open',esc(module.operation.label),'wjwk-secondary',!canAI).replace('data-action="creation-open"',`data-action="creation-open" data-section="${section.id}"`):btn('archive-library','完整档案库','wjwk-secondary',blocked))+(!all.length?btn('mmlc-initial','按初授状态建档','wjwk-secondary',blocked||!power.active):'')+btn('mmlc-rulebook','内置完整规则书','wjwk-link',blocked);
     const hero=`<section class="wjwk-mmlc-masthead"><header><div><small>漫漫长路 · ${power.active?'正文规则智能选取':'正文规则已暂停'}</small><h1>${esc(section?.title||'道场简报')}</h1></div><details><summary>简介</summary><p>${esc(section?.hint||'以所得之理成就性命，让已成之法用于万象。')}</p></details></header><div class="wjwk-mmlc-status">${this.savedStatStrip(rows)}${this.automaticArchiveControls(power,blocked,mode)}</div><div class="wjwk-design-actions wjwk-mmlc-actions">${actions}</div></section>`;
     return `${hero}<div class="wjwk-design-content"><div class="wjwk-design-primary">
-    ${mmlcBriefHTML(power,chat,section?.id,{esc,btn,blocked:blocked||!power.active,canAI,state:this.view?.state||{}})}
+    <div class="wjwk-mmlc-view-switch" role="group" aria-label="漫漫长路显示方式">${['table','brief'].map(id=>`<button type="button" data-action="mmlc-view" data-mode="${id}" aria-pressed="${(this.mmlcView||'table')===id}" class="wjwk-secondary">${id==='table'?'表格':'简报'}</button>`).join('')}</div>
+    ${this.mmlcView==='brief'?mmlcBriefHTML(power,chat,section?.id,{esc,btn,blocked:blocked||!power.active,canAI,state:this.view?.state||{}}):mmlcTableHTML(power,chat,section?.id,this.mmlcTableFilter,{esc,btn,blocked:blocked||!power.active,canAI})}
     <details class="wjwk-support-panel"><summary>本次整理与正文记忆</summary>${this.archiveUpdatePanel(power,chat,blocked,section?.id)}${this.memoryStatusPanel(power,blocked)}</details>
     <details class="wjwk-support-panel"><summary>拟定内容与安排</summary>${this.creationPanel(power,chat,blocked,mode)}${this.terminalPanel(power,chat,blocked,mode)}</details>
     <details class="wjwk-home-tools"><summary>近期变化与历史</summary>${btn('archive-tools','一句话纠错与阶段回顾','wjwk-link',!canAI)}${playerTimeline(power,chat).filter(r=>!section || mmlcModule(r)===section.id).map(r=>`<p><strong>${esc(r.name)}</strong> · ${esc(r.text || '状态已更新')}</p>`).join('') || '<p>确认保存后，变化会留在这里。</p>'}</details>
@@ -542,6 +551,14 @@ export class WorkbenchUI {
       const visible=section.records.filter(r=>r.status!=='ended'),preview=visible.slice(0,2),remaining=visible.slice(2),ended=section.records.filter(r=>r.status==='ended'),c=section.counts;
       return `<article data-dashboard-section="${esc(section.id)}"><h4>${esc(section.label)}</h4><small>已建立 ${c.active} · 进行中 ${c.working} · 计划 ${c.planned}${c.stale?' · 待核对 '+c.stale:''}</small>${preview.map(r=>`<div class="wjwk-dashboard-object">${button(r)}<dl>${specificRows(r).slice(0,3).map(f=>`<div><dt>${esc(f.label)}</dt><dd>${esc(f.value.length>140?f.value.slice(0,140)+'…':f.value)}</dd></div>`).join('')}</dl></div>`).join('')||`<p class="wjwk-muted">${esc(section.description)}</p>`}${remaining.length?`<details><summary>其余 ${remaining.length} 项</summary>${remaining.map(button).join('')}</details>`:''}${ended.length?`<details><summary>已结束 ${ended.length} 项</summary>${ended.map(button).join('')}</details>`:''}</article>`;
     }).join('')}</div></section>`;
+  }
+  updateMmlcTable(){
+    const view=this.view,power=view?.power,container=this.panel.querySelector('[data-mmlc-table-results]');if(!power||!isMmlc(power)||!container)return;
+    const left=container.querySelector('.wjwk-mmlc-table-scroll')?.scrollLeft||0,active=document.activeElement,direction=active?.matches('[data-action="mmlc-table-page"]')?active.dataset.direction:null;
+    const blocked=Boolean(view.busy||view.historyMismatch||view.state?.roleWrites?.some(w=>w.status==='pending'));
+    container.innerHTML=mmlcTableResultsHTML(power,view.managementChat||[],this.mmlcSection,this.mmlcTableFilter,{esc,btn,blocked:blocked||!power.active,canAI:!blocked&&power.active&&view.settings.mode!=='off'});
+    container.querySelector('.wjwk-mmlc-table-scroll').scrollLeft=left;
+    if(direction)(container.querySelector(`[data-action="mmlc-table-page"][data-direction="${direction}"]:not(:disabled)`)||container.querySelector('.wjwk-mmlc-table-scroll')).focus({preventScroll:true});
   }
   specializedStatistics(power,chat,blocked){
     const dashboard=statisticsDashboard(power,chat),covered=new Set(dashboard?.sections.flatMap(s=>s.records.map(r=>r.id))||[]);
