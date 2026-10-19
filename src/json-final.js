@@ -44,3 +44,31 @@ function insertMissingCommas(source){
  };
  const result=value();if(at!==tokens.length)throw Error('extra root');return result;
 }
+
+// Repair one narrowly defined typo only at an object-key position. All keys must
+// be declared by the captured schema; strings and values are copied byte-for-byte.
+export function repairKnownKeyQuotes(source,allowedKeys){
+ if(typeof source!=='string'||source.length>120000||!allowedKeys?.size)return null;
+ let i=0;const insertions=[];
+ const skip=()=>{while(i<source.length&&/\s/.test(source[i]))i++;};
+ const string=()=>{const start=i++;let escaped=false;for(;i<source.length;i++){const c=source[i];if(escaped)escaped=false;else if(c==='\\')escaped=true;else if(c==='"'){i++;return JSON.parse(source.slice(start,i));}}throw Error('unclosed string');};
+ const value=(depth=0)=>{
+  if(depth>64)throw Error('depth');skip();const c=source[i];
+  if(c==='"'){string();return;}
+  if(c==='{'||c==='['){const object=c==='{',close=object?'}':']',keys=new Set();i++;skip();if(source[i]===close){i++;return;}
+   while(i<source.length){
+    if(object){
+     skip();if(source[i]!=='"')throw Error('key');
+     const missing=source.slice(i).match(/^"([A-Za-z_][A-Za-z0-9_]{0,79}):\s*(?=["{\[\d\-tfn])/);
+     let key;
+     if(missing&&allowedKeys.has(missing[1])){key=missing[1];i+=key.length+1;insertions.push(i);if(insertions.length>8)throw Error('repair limit');}
+     else key=string();
+     if(keys.has(key))throw Error('duplicate key');keys.add(key);skip();if(source[i++]!==':')throw Error('colon');
+    }
+    value(depth+1);skip();if(source[i]===close){i++;return;}if(source[i++]!==',')throw Error('separator');skip();
+   }throw Error('unclosed container');
+  }
+  const m=source.slice(i).match(/^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/);if(!m)throw Error('value');i+=m[0].length;
+ };
+ try{value();skip();if(i!==source.length||!insertions.length)return null;let raw=source;for(const at of insertions.reverse())raw=raw.slice(0,at)+'"'+raw.slice(at);return {data:JSON.parse(raw),raw,repairs:insertions.length};}catch{return null;}
+}

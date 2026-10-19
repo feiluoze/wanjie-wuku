@@ -170,13 +170,15 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const { manual, source, quote, index: sourceIndex } = evidence, ruleQuote = text(raw.ruleQuote ?? '', 1200);
     if(!manual)assertFactEvidence(quote,source.content);
     if(!manual)assertTaishiOwnership(power,raw,before,quote,source.content);
-    if(!manual&&!before&&creationConfig(power)?.id==='wuku.idle_campaign'){
+    if(!manual&&!before&&!mainStatus&&creationConfig(power)?.id==='wuku.idle_campaign'){
       const alias=power.name.split(/[（(]/)[0].trim();
       const owned=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId==='wuku.idle_campaign').map(r=>r.name);
       const sourceNames=table?.table.kind==='singleton'?[name,suppliedName].filter(Boolean):[name];
-      assert(quote&&source.content.includes(quote)&&(quote.split(/[。！？\n]/).some(sentence=>sourceNames.some(n=>sentence.includes(n))&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n))))||sourceNames.some(n=>settledOwnership(source.content,power.name,n))),'挂机归属缺少正文或本层正式结算依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
+      const place=table?.table.id==='discoveries'&&raw.details?.location;
+      const locatedShadow=typeof place==='string'&&place.trim()&&power.primaryRules?.includes('征伐之影')&&quote.split(/[。！？\n]/).some(sentence=>sentence.includes(place)&&sentence.includes('征伐之影'));
+      assert(quote&&source.content.includes(quote)&&(locatedShadow||quote.split(/[。！？\n]/).some(sentence=>sourceNames.some(n=>sentence.includes(n))&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n))))||sourceNames.some(n=>settledOwnership(source.content,power.name,n))),'挂机归属缺少正文或本层正式结算依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
     }
-    if(!before&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
+    if(!before&&!mainStatus&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});
     assertTaishiClaims(power,{...raw,fields:patch},before,specific,{playerJoining});
     if(!manual&&!recovery)assertSnapshotPatch(before,patch,raw.details,quote,source.content);
