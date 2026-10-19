@@ -12,7 +12,7 @@ import {assertTaishiClaims,assertRelation,findRelation} from './taishi-relations
 import {createArchiveBatch,archiveBatchSources,advanceArchiveBatch} from './archive-batch.js';
 import {resolveTaishiLinks} from './taishi-links.js';
 import {reviewHistory} from './archive-history.js';
-import {archiveTablePolicy,tableTarget,archiveWriteCounts,assertChronologicalTableInsert} from './archive-tables.js';
+import {archiveTablePolicy,tableTarget,archiveWriteCounts,assertChronologicalTableInsert,assertTableBatchIdentity} from './archive-tables.js';
 import {createArchiveStaging} from './archive-staging.js';
 import {selectArchiveInput,selectBuildArchiveInput,inputCharacterBreakdown} from './archive-input.js';
 import {assertTaishiOwnership} from './taishi-ownership.js';
@@ -133,6 +133,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const recordAliases=creationConfig(power)?.records.filter(r=>r.label===raw.recordId)||[];
     raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
     if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
+    const suppliedName=text(raw.name,200).trim();
     const mainStatus=statusbarTarget(power,raw);if(mainStatus)raw={...raw,name:mainStatus.name,fields:{description:'原文状态栏：'+mainStatus.name},...(mainStatus.before?{archiveId:mainStatus.before.id}:{})};
     const table=tableTarget(power,raw);if(table)raw={...raw,name:table.name,...(table.before?{archiveId:table.before.id}:{})};
     let type = raw.type; const name = text(raw.name, 200).trim();
@@ -165,7 +166,8 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     if(!manual&&!before&&creationConfig(power)?.id==='wuku.idle_campaign'){
       const alias=power.name.split(/[（(]/)[0].trim();
       const owned=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId==='wuku.idle_campaign').map(r=>r.name);
-      assert(quote&&source.content.includes(quote)&&(quote.split(/[。！？\n]/).some(sentence=>sentence.includes(name)&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n))))||settledOwnership(source.content,power.name,name)),'挂机归属缺少正文或本层正式结算依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
+      const sourceNames=table?.table.kind==='singleton'?[name,suppliedName].filter(Boolean):[name];
+      assert(quote&&source.content.includes(quote)&&(quote.split(/[。！？\n]/).some(sentence=>sourceNames.some(n=>sentence.includes(n))&&(sentence.includes(alias)||owned.some(n=>sentence.includes(n))))||sourceNames.some(n=>settledOwnership(source.content,power.name,n))),'挂机归属缺少正文或本层正式结算依据：新任务或产出须明确关联挂机或已有专用对象；普通学习、借用设施不自动记入');
     }
     if(!before&&creationConfig(power)?.id==='wuku.idle_campaign')assert(!creationConfig(power)?.records.some(r=>r.label===name),'对象名称不能使用分类标题；请填写具体任务、事件或对象名称');
     const specific=normalizeSpecific(raw,power,before,{recovery,chat});
@@ -204,6 +206,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  const definition=config?.records.find(r=>r.id===categorized.recordId||r.label===categorized.recordId);
  const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:unwrapped.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
  const prepared=prepareArchiveFields({...categorized,type:type||categorized.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition,config);
+ assertTableBatchIdentity(power,prepared.raw,linkRows.slice(0,index));
  if(chronological)assertChronologicalTableInsert(power,prepared.raw,linkRows.slice(0,index));
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
  let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
