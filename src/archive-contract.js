@@ -15,7 +15,7 @@ export function archiveResponseSchema(payload){
  for(const type of Object.keys(ARCHIVE_FIELDS)){
   const base={...common,type:{const:type},fields:{$ref:'#/$defs/fields_'+type}};
   variants.push({type:'object',additionalProperties:false,required:['type','name','status','fields','sourceIndex'],properties:base});
-  for(const record of payload.recordSchemas||[])variants.push({type:'object',additionalProperties:false,required:['type','name','status','fields','sourceIndex','recordId','details'],properties:{...base,recordId:{const:record.id},details:{$ref:'#/$defs/details_'+record.id}}});
+  for(const record of payload.recordSchemas||[]){const isTable=payload.longTermTables?.tables.some(t=>t.id===record.id);variants.push({type:'object',additionalProperties:false,required:['type','name','status','fields','sourceIndex','recordId','details',...(isTable?['operation']:[])],properties:{...base,...(isTable?{operation:{enum:['insert','update','transition']}}:{}),recordId:{const:record.id},details:{$ref:'#/$defs/details_'+record.id}}});}
  }
  const properties={changes:{type:'array',maxItems:payload.limits?.changes||64,items:{anyOf:variants}},floorReviews:{type:'array',items:{type:'object',additionalProperties:false,required:['sourceIndex','status','changeCount'],properties:{sourceIndex:{type:'integer'},status:{enum:['reviewed','uncertain']},changeCount:{type:'integer',minimum:0}}}},message:{type:'string'}};
  for(const key of ['guide','terminalResults','creationResults'])if(payload.responseContract?.outputs?.includes(key))properties[key]=key==='guide'?{type:'object'}:{type:'array',items:{type:'object'}};

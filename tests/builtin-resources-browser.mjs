@@ -23,7 +23,14 @@ try{
    await a.store.transact(s=>{s.powers={[p.id]:p};});a.powerId=p.id;a.refresh();
   });
   assert(await panel.locator('dd').getByText('30',{exact:true}).isVisible());assert(await panel.locator('dd').getByText('100',{exact:true}).isVisible());await panel.locator('[data-action="open-archive"]').click();const capacityId=await page.evaluate(()=>window.capacityField);assert.equal(await page.locator(`[name="specific:${capacityId}"]`).count(),1);assert.equal(await page.locator(`[name="specific:${capacityId}"]`).inputValue(),'100');await page.keyboard.press('Escape');
-  checks.push({width,sharedBalanceVisible:true,readonlyDetail:true,ledgerRefreshReflected:true,legacySnapshotUnchanged:true,energyCapacitySeparatelyEditable:true,noHorizontalOverflow:true});await page.close();
+  await page.evaluate(async()=>{
+   const a=wanjie_wuku_general_instance,{createPower}=await import('/src/core.js'),{builtinEntries}=await import('/src/builtin-worldbook.js'),{creationConfig}=await import('/src/creation-config.js'),{saveArchive,archiveSource}=await import('/src/archives.js');const p=createPower(builtinEntries().find(e=>e.name==='故事点'));Object.values(p.resources)[0].balance='170';
+   const r=saveArchive(p,{type:'record',name:'点数账户快照',status:'active',fields:{description:'旧账户依据'},specific:{adapterId:creationConfig(p).id,recordId:'account',version:'1.0.0',label:'点数账户快照',labels:{balance:'已确认故事点余额',activation:'实际激活入账记录'},fields:{balance:'999',activation:'原有依据'}}},archiveSource([],'旧资料保留'));
+   window.legacyRecordId=r.id;await a.store.transact(s=>{s.powers={[p.id]:p};});a.powerId=p.id;a.refresh();a.openArchive(r.id);
+  });
+  assert.equal(await page.locator('[name="specific:balance"]').count(),0);assert.equal(await page.locator('[name="specific:activation"]').inputValue(),'原有依据');assert((await page.locator('.wjwk-modal').textContent()).includes('170'));
+  await page.evaluate(async()=>{const a=wanjie_wuku_general_instance;await a.saveArchive({values:{type:'record',name:'点数账户快照',status:'active','field:description':'已补充依据',note:'玩家确认收支依据','specific:activation':'新的依据','specific:balance':'8888'}});const p=a.store.read().powers[a.powerId];if(Object.values(p.resources)[0].balance!=='170'||p.archives[legacyRecordId].specific.fields.balance!=='999'||p.archives[legacyRecordId].specific.fields.activation!=='新的依据')throw Error('Legacy readonly balance or editable evidence failed');});
+  checks.push({width,sharedBalanceVisible:true,readonlyDetail:true,ledgerRefreshReflected:true,legacySnapshotUnchanged:true,energyCapacitySeparatelyEditable:true,legacyBalanceReadonly:true,forgedManualBalanceIgnored:true,legacyEvidenceEditable:true,noHorizontalOverflow:true});await page.close();
  }
  assert.deepEqual(errors,[]);assert.equal(externalRequests,0);const report={checks,errors,externalRequests,paidCalls:0,realHostAcceptance:false};await writeFile(resolve(out,'resource-evidence.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 }finally{await browser?.close();server.close();}

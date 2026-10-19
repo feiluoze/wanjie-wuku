@@ -12,7 +12,7 @@ export function fieldDiagnostic(raw,types,definition){
    unknownFields:entries.filter(([k])=>!declared.has(k)&&![...declared.values()].includes(k)).slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)})),
    nonTextFields:entries.filter(([,v])=>typeof v!=='string').slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)}))};
  }
- const allowedTop=new Set(['archiveId','ownerPowerId','type','name','status','fields','details','recordId','sourceIndex','quote','ruleQuote','module','settingRefs']);
+ const allowedTop=new Set(['archiveId','ownerPowerId','type','name','status','fields','details','recordId','sourceIndex','quote','ruleQuote','module','settingRefs','operation']);
  const unexpectedTopFields=Object.keys(raw||{}).filter(k=>!allowedTop.has(k)).map(k=>/^[a-zA-Z_][a-zA-Z0-9_.-]{0,79}$/.test(k)&&!/secret|token|password|key/i.test(k)?k:'[非标准字段名]');
  return {stage:'archive_validation',unexpectedTopFields,...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
 }

@@ -64,7 +64,7 @@ export function archiveResponseContract(payload){
  if(payload.terminalOrders?.length&&!payload.playerNote&&!special)outputs.push('terminalResults');
  if(payload.creationItems?.length&&!payload.playerNote&&!special)outputs.push('creationResults');
  return {
-  outputs,changes:{required:['type','name','status','fields','sourceIndex'],optional:['archiveId','ownerPowerId','quote','ruleQuote',...(payload.recordSchemas?.length?['recordId','details']:[]),...(payload.moduleKind==='mmlc'?['module']:[]),...(mode==='worldbook'&&payload.moduleKind==='taishi'?['settingRefs']:[])]},
+  outputs,changes:{required:['type','name','status','fields','sourceIndex'],optional:['archiveId','ownerPowerId','quote','ruleQuote',...(payload.longTermTables?['operation']:[]),...(payload.recordSchemas?.length?['recordId','details']:[]),...(payload.moduleKind==='mmlc'?['module']:[]),...(mode==='worldbook'&&payload.moduleKind==='taishi'?['settingRefs']:[])]},
   floorReviews:[{sourceIndex:'sources.index，内部0基整数',status:'reviewed 或 uncertain',changeCount:'本层实际返回的 changes、terminalResults、creationResults 条目总数'}],
   policy:'每层必须返回且只返回一条 floorReviews。reviewed 表示已逐项核对，包括明确无新增；遗漏、归属不明、冲突或未完成提取用 uncertain。独立历史事件分别保存，不能用最近状态概括旧事件。fields 只使用 fieldTypes[type] 的字段 ID；recordSchemas 专用字段放 details，不混入 fields。ownerPowerId 填真实所属词条 ID。'
  };
@@ -79,6 +79,7 @@ export function archivePreset(payload,{marker='',domain='',task='',terminal='',c
   ['wjwk_domain',domain],
   ['wjwk_task_boundary',task],
   ['wjwk_original_statusbar',payload.originalStatusbar?'当前原文状态栏声明见originalStatusbar；先按声明的单行当前主表核对，变化更新原ID，不扩建临时流水子表。旧档案只作为核对材料，不能自行删除或迁移。'+payload.originalStatusbar.rules:''],
+  ['wjwk_long_term_tables',payload.longTermTables?'长期子表仅按 longTermTables 声明保留；其规则与字段和主表共同生效。子表变化填写 operation=insert/update/transition；recordSchemas 的 ID/字段才是有效列。'+payload.longTermTables.rules:''],
   ['wjwk_scope',mode==='narrative'?scope:''],
   ['wjwk_procedure',taskProcedures[mode]||procedure],
   ['wjwk_output',output],

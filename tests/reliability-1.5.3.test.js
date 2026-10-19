@@ -34,8 +34,8 @@ test('oversized single diagnostic is bounded while final task status remains wri
 });
 test('declared points record echoed as type is normalized, while unknown types are still rejected',()=>{
  const p=createPower(builtinEntries().find(e=>e.name==='升变之印')),chat=[{is_user:false,mes:'本轮实际支付15点升变点；当前升变点余额85。'}],state={powers:{[p.id]:p}},sources=archiveSources(chat,state,p,{rescan:true});
- const raw={type:'points',recordId:'points',name:'本次升变支出',status:'ended',fields:{balance:'85',input:'支付15点',basis:'已完成升变',change:'-15'},details:{balance:'85',input:'支付15点',basis:'已完成升变',change:'-15'},sourceIndex:0,quote:chat[0].mes,ruleQuote:p.rules.slice(0,20)};
- const before=JSON.stringify(p.resources),b=normalizeArchiveBatch({changes:[raw]},p,sources,chat,'',state);assert.equal(b.issues.length,0);assert.equal(b.changes[0].type,'record');assert.equal(b.changes[0].specific.fields.balance,'85');assert.equal(JSON.stringify(p.resources),before);
+ const raw={type:'points',recordId:'points',name:'本次升变支出',status:'ended',fields:{input:'支付15点',basis:'已完成升变',change:'-15'},details:{input:'支付15点',basis:'已完成升变',change:'-15'},sourceIndex:0,quote:chat[0].mes,ruleQuote:p.rules.slice(0,20)};
+ const before=JSON.stringify(p.resources),b=normalizeArchiveBatch({changes:[raw]},p,sources,chat,'',state);assert.equal(b.issues.length,0);assert.equal(b.changes[0].type,'record');assert.equal(b.changes[0].specific.fields.input,'支付15点');assert.equal(JSON.stringify(p.resources),before);
  const bad=normalizeArchiveBatch({changes:[{...raw,type:'madeup'}]},p,sources,chat,'',state);assert.equal(bad.changes.length,0);assert(bad.issues.length);
 });
 test('known 100 balance and candidate 85 are counted and selectable, without silently overwriting ledger',async()=>{

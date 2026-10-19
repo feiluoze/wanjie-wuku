@@ -1,4 +1,4 @@
-import {statusbarResourceReadOnly,statusbarResource,assertStatusbarResourceFields,resourcePolicy} from './builtin-resources.js';
+import {statusbarResourceReadOnly,statusbarResource,archiveResource,assertStatusbarResourceFields,resourcePolicy} from './builtin-resources.js';
 import {BUILTIN_STATUSBARS} from './builtin-statusbar-data.js';
 import {hash,clone,assert} from './primitives.js';
 const byHash=new Map(BUILTIN_STATUSBARS.map(row=>[row.contentHash,row]));
@@ -16,7 +16,8 @@ export function withBuiltinStatusbar(config,power){
  const row=builtinStatusbar(power);
  if(!row||row.disposition==='dedicated'||power?.adapterBinding&&!config)return config;
  const records=row.groups.map(g=>({id:g.id,label:g.title,description:g.cardinality==='per-object'?'原文具名详情，同一名称更新原对象，不覆盖其他对象。':'原文状态栏当前主表，每块仅一条；不是新增成果或事件流水。',fields:g.fields.filter(f=>!statusbarResourceReadOnly(power,f.id))}));
- return {...(config||{format:'wjwk-adapter',schemaVersion:1,target:{primaryHashes:[row.contentHash]},id:'wuku.statusbar_'+row.contentHash,version:'1.0.0',name:row.name+'原文状态栏',operations:[]}),records:[...(config?.records||[]),...records]};
+ const existing=(config?.records||[]).map(r=>({...r,...(r.fields.some(f=>archiveResource(power,r.id,f.id))?{description:r.description+' 当前余额只读引用资源账本；此分类只登记收支依据，不得把余额另写进通用描述。'}:{}),fields:r.fields.filter(f=>!archiveResource(power,r.id,f.id))}));
+ return {...(config||{format:'wjwk-adapter',schemaVersion:1,target:{primaryHashes:[row.contentHash]},id:'wuku.statusbar_'+row.contentHash,version:'1.0.0',name:row.name+'原文状态栏',operations:[]}),records:[...existing,...records]};
 }
 export function statusbarTarget(power,raw){
  assertStatusbarResourceFields(power,raw);
@@ -37,6 +38,6 @@ export function statusbarPolicy(power){
  return {sourceHash:row.contentHash,source:row.block,mode:row.disposition==='dedicated'?'dedicated-existing-controls':'original-statusbar-first',
   tables:row.disposition==='dedicated'?[]:row.groups.map(g=>({recordId:g.id,name:g.title,cardinality:g.cardinality,...(g.keyField?{keyField:g.keyField}:{}),fields:g.fields.filter(f=>!statusbarResourceReadOnly(power,f.id))})),
   resourceBindings:resourcePolicy(power),
-  rules:'只依据当前原文状态栏维护当前状态；原文占位符不是事实，未明确不初始化为0或无。相同总览只更新原archiveId，不按楼层新建；cardinality为per-object的具名详情按keyField分别维护，不覆盖其他对象，不在描述字段复制整份总览。既有其他档案保持，不能自动迁移、删除、清空或降级。缺席不代表失效；只有本轮明确变化才提交字段，不变则changes:[]。普通小额流水和日常细节不另建成果；当前阶段不扩建原文未要求的子表。汇总有完整已核实明细时才计算，不能用省略输入推算。原文固定额度和规则参数不是已发生收益。已完成事件与待办、当前状态分别表述；当前主表不计作新增能力。专用模块沿用其已有受保护的字段、时间和人物入口，不允许用总览绕过保护。'};
+  rules:'只依据当前原文状态栏维护当前状态；原文占位符不是事实，未明确不初始化为0或无。相同总览只更新原archiveId，不按楼层新建；cardinality为per-object的具名详情按keyField分别维护，不覆盖其他对象，不在描述字段复制整份总览。既有其他档案保持，不能自动迁移、删除、清空或降级。缺席不代表失效；只有本轮明确变化才提交字段，不变则changes:[]。普通小额流水和日常细节不另建成果；仅在 longTermTables 明确声明范围内展开长期明细，其余不扩建子表。汇总有完整已核实明细时才计算，不能用省略输入推算。原文固定额度和规则参数不是已发生收益。已完成事件与待办、当前状态分别表述；当前主表不计作新增能力。专用模块沿用其已有受保护的字段、时间和人物入口，不允许用总览绕过保护。'};
 }
 export const isStatusbarRecord=record=>Boolean(record?.specific?.recordId?.startsWith('statusbar_'));

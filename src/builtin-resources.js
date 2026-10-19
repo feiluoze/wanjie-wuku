@@ -9,23 +9,32 @@ export function inferBuiltinResources(entry){
 export function resourceMatches(resource,definition){return resource.id===definition.id||definition.labels.includes(resource.name);}
 export function resourceDefinition(power,resource){return builtinResources(power)?.resources.find(d=>resourceMatches(resource,d))||null;}
 export function statusbarResource(power,fieldId){
- const definition=builtinResources(power)?.resources.find(d=>'s_'+hash(d.label).slice(0,10)===fieldId);if(!definition)return null;
+ const definition=builtinResources(power)?.resources.find(d=>'s_'+hash(d.label).slice(0,10)===fieldId||d.label===fieldId);return resourceBinding(power,definition);
+}
+function resourceBinding(power,definition){
+ if(!definition)return null;
  const matches=Object.values(power.resources||{}).filter(r=>resourceMatches(r,definition));
  return {definition,resource:matches.length===1?matches[0]:null,conflict:matches.length>1};
 }
+export function archiveResource(power,recordId,fieldId){
+ if(recordId?.startsWith('statusbar_'))return statusbarResource(power,fieldId);
+ const definition=builtinResources(power)?.resources.find(d=>d.legacyBindings?.some(b=>(b.recordId===recordId||b.recordLabel===recordId)&&(b.fieldId===fieldId||b.fieldLabel===fieldId)));
+ return resourceBinding(power,definition);
+}
 export function statusbarResourceReadOnly(power,fieldId){const b=statusbarResource(power,fieldId);return Boolean(b&&(b.definition.kind!=='energy'||b.conflict||b.resource?.balance!=null));}
 export function assertStatusbarResourceFields(power,raw){
- if(!raw.recordId?.startsWith('statusbar_'))return;
+ const recordId=raw.recordId??power.archives?.[raw.archiveId]?.specific?.recordId;if(!recordId)return;
  for(const [id,value]of Object.entries(raw.details||{})){
-  const binding=statusbarResource(power,id);if(!binding)continue;
-  assert(!statusbarResourceReadOnly(power,id)&&typeof value==='string'&&!/\d/.test(value),'状态栏资源余额引用现有账本，不接受第二份数值；请通过余额核对或角色MVU更新');
+  const binding=archiveResource(power,recordId,id);if(!binding)continue;
+  assert(binding.definition.kind==='energy'&&!binding.conflict&&binding.resource?.balance==null&&typeof value==='string'&&!/\d/.test(value),'状态栏或专用档案的资源余额引用现有账本，不接受第二份数值；请通过余额核对或角色MVU更新');
  }
 }
 export function projectResourceStatus(power,record){
- if(!record?.specific?.recordId?.startsWith('statusbar_'))return record;
+ if(!record?.specific?.recordId)return record;
+ const ids=Object.keys(record.specific.labels||{}).filter(id=>archiveResource(power,record.specific.recordId,id));if(!ids.length)return record;
  const result=clone(record);
- for(const id of Object.keys(result.specific.labels||{})){
-  const b=statusbarResource(power,id);if(!b)continue;
+ for(const id of ids){
+  const b=archiveResource(power,result.specific.recordId,id);if(!b)continue;
   if(b.conflict)result.specific.fields[id]='同名资源账本有歧义，需核对';
   else if(b.resource?.balance!=null)result.specific.fields[id]=String(b.resource.balance);
   else if(b.definition.kind!=='energy'||/\d/.test(result.specific.fields[id]||''))result.specific.fields[id]='未确认（以资源账本为准）';

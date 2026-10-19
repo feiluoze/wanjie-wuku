@@ -1,3 +1,4 @@
+import {creationConfig} from '../src/creation-config.js';
 // Original synthetic stories; no bundled source worldbook.
 import {createPower} from '../src/core.js';
 export function transformationsCases(entries){const cases=[
@@ -365,4 +366,4 @@ export function transformationsCases(entries){const cases=[
     ]
   }
 ];return cases.map(c=>({...c,power:createPower(entries.find(e=>e.name===c.name))}));}
-export const transformationsProposals=(c,index=1)=>c.rows.map(([type,name,status,fields,recordId,details])=>({type,name,status,fields,recordId,details,sourceIndex:index,quote:c.story,ruleQuote:c.power.primaryRules.slice(0,30)}));
+export const transformationsProposals=(c,index=1)=>c.rows.map(([type,name,status,fields,recordId,details])=>({type,name,status,fields,recordId,details:Object.fromEntries(Object.entries(details).filter(([key])=>creationConfig(c.power).records.find(r=>r.id===recordId).fields.some(f=>f.id===key))),sourceIndex:index,quote:c.story,ruleQuote:c.power.primaryRules.slice(0,30)}));

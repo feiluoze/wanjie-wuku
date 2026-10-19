@@ -12,6 +12,8 @@ import {assertTaishiClaims,assertRelation,findRelation} from './taishi-relations
 import {createArchiveBatch,archiveBatchSources,advanceArchiveBatch} from './archive-batch.js';
 import {resolveTaishiLinks} from './taishi-links.js';
 import {reviewHistory} from './archive-history.js';
+import {archiveTablePolicy,tableTarget,archiveWriteCounts,assertChronologicalTableInsert} from './archive-tables.js';
+import {createArchiveStaging} from './archive-staging.js';
 import {selectArchiveInput,selectBuildArchiveInput,inputCharacterBreakdown} from './archive-input.js';
 import {assertTaishiOwnership} from './taishi-ownership.js';
 import {archivePreset,archiveResponseContract,archiveScopePolicy} from './archive-preset.js';
@@ -70,6 +72,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
     terminalOrders: playerNote ? [] : terminalOrders, creationItems:playerNote?[]:creationItems,recordSchemas:creationConfig(power)?.records||[], context, contextPolicy:'context仅辅助理解，合计最多6000字符、每条最多2000字符，可能为尾部节选；不能据此新增成果或将遗漏视为不存在。逐层核对以完整sources为准。', playerNote, setupReferences, explainRules: !isTaishi(power) && !isMmlc(power) && !currentPlayerGuide(power) };
   const resourceContract=resourcePolicy(power);if(resourceContract)payload.resourceLedger=resourceContract;
   const originalStatusbar=statusbarPolicy(power);if(originalStatusbar)payload.originalStatusbar=originalStatusbar;
+  const tables=archiveTablePolicy(power);if(tables)payload.longTermTables=tables;
   if(isTaishi(power)&&power.taishiWorldStructure)payload.worldStructure=worldStructurePolicy(power);
   if(skipSetupPeople){payload.recordSchemas=payload.recordSchemas.filter(r=>r.id!=='companion');payload.personImport='玩家本次只整理世界设定；不创建或更新人物，不从地域正文中的人名建立人物档案，也不建立涉及人物的关系。人物文档之后单独整理。';}
   if(setupReferences){
@@ -123,7 +126,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
   return data.changes.map((raw,inputIndex) => {
     assert(raw && typeof raw === 'object' && !Array.isArray(raw), '档案变化无效');
     raw=normalizeArchiveEnvelope(raw,creationConfig(power));
-    assert(Object.keys(raw).every(k => ['archiveId', 'type', 'name', 'status', 'fields', 'sourceIndex', 'quote', 'ruleQuote', 'recordId', 'details', 'ownerPowerId', ...(isMmlc(power) ? ['module'] : [])].includes(k)), '档案核对包含不允许的操作字段');
+    assert(Object.keys(raw).every(k => ['archiveId', 'type', 'name', 'status', 'fields', 'sourceIndex', 'quote', 'ruleQuote', 'recordId', 'details', 'ownerPowerId', 'operation', ...(isMmlc(power) ? ['module'] : [])].includes(k)), '档案核对包含不允许的操作字段');
     assert(raw.ownerPowerId===undefined||raw.ownerPowerId===power.id,'变化所属金手指与当前词条不符');
     // Exact declared UI labels are aliases, never infer a category from content.
     const typeAlias=raw.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===raw.type)?.[0];
@@ -131,9 +134,10 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     raw={...raw,...(typeAlias?{type:typeAlias}:{}),...(recordAliases.length===1?{recordId:recordAliases[0].id}:{})};
     if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
     const mainStatus=statusbarTarget(power,raw);if(mainStatus)raw={...raw,name:mainStatus.name,fields:{description:'原文状态栏：'+mainStatus.name},...(mainStatus.before?{archiveId:mainStatus.before.id}:{})};
+    const table=tableTarget(power,raw);if(table)raw={...raw,name:table.name,...(table.before?{archiveId:table.before.id}:{})};
     let type = raw.type; const name = text(raw.name, 200).trim();
     assert(Object.hasOwn(ARCHIVE_TYPES, type) && name, '档案类型或名称无效');
-    const before = raw.archiveId ? power.archives?.[raw.archiveId] : (isTaishi(power)&&raw.recordId==='relation'?findRelation(power,raw.details):null)||findArchiveObject(power,name,raw.module,isTaishi(power)?raw.recordId:undefined);
+    const before = raw.archiveId ? power.archives?.[raw.archiveId] : table?table.before:(isTaishi(power)&&raw.recordId==='relation'?findRelation(power,raw.details):null)||findArchiveObject(power,name,raw.module,isTaishi(power)?raw.recordId:undefined);
     assert(!raw.archiveId || before, '引用的档案不存在');
     if(isTaishi(power))assertStructureCandidate(power,raw,before);
     if(isTaishi(power)&&before?.type==='environment'&&['world','region'].includes(raw.recordId)&&raw.type!==before.type&&Object.hasOwn(raw.fields||{},'description')){
@@ -200,6 +204,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  const definition=config?.records.find(r=>r.id===categorized.recordId||r.label===categorized.recordId);
  const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:unwrapped.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
  const prepared=prepareArchiveFields({...categorized,type:type||categorized.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition,config);
+ if(chronological)assertChronologicalTableInsert(power,prepared.raw,linkRows.slice(0,index));
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
  let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
  if(linked.pendingLink&&c)c.pendingLinks=[linked.pendingLink];
@@ -313,10 +318,11 @@ export const archiveReviewMethods = {
     // specialists only handle ordinary archive review, never reward settlement.
     const taishiWorkflow=isTaishi(power)&&power.taishiWorkflow===true&&(!playerNote||options.taishiEvolution)&&!options.setupReferences&&!options.taishiDraft&&!terminalOrders.length&&!creationItems.length;
     assert(!options.workflowResume||taishiWorkflow,'高级工作流已关闭或当前任务不支持续跑');
-    const request = selectedSources => this.query(archivePrompt(power, selectedSources, snapshot.ctx.chat, playerNote, {automatic: Boolean(options.automatic), terminalOrders,creationItems,state:snapshot.state,setupReferences:Boolean(options.setupReferences),referenceBatch:options.referenceBatch||null,skipSetupPeople:Boolean(options.skipSetupPeople),taishiDraft:options.taishiDraft||null,taishiEvolution:options.taishiEvolution||null}), snapshot, {task:options.workflowRetryRole||(options.taishiDraft?'creation':options.setupReferences?'setup':'archive'),taishiWorkflow,referenceBatch:options.referenceBatch||null,workflowResume:options.workflowResume||null,workflowRetryRole:options.workflowRetryRole||null,validateWorkflowChanges:changes=>{const checked=normalizeArchiveBatch({changes},power,sources,snapshot.ctx.chat,playerNote,snapshot.state);if(options.taishiEvolution)for(const c of checked.changes){const reason=evolutionConsequence(c,power);if(reason)checked.issues.push({kind:"高影响后果",name:c.name,reason});}return checked.issues;},workflowOnAttempt:options.workflowOnAttempt,workflowOnCheckpoint:(workflowState,referenceFingerprint)=>{
+    let staging=null;
+    const request = selectedSources => {const prompt=archivePrompt(staging?.power||power, selectedSources, snapshot.ctx.chat, playerNote, {automatic: Boolean(options.automatic), terminalOrders,creationItems,state:snapshot.state,setupReferences:Boolean(options.setupReferences),referenceBatch:options.referenceBatch||null,skipSetupPeople:Boolean(options.skipSetupPeople),taishiDraft:options.taishiDraft||null,taishiEvolution:options.taishiEvolution||null});return this.query(staging?staging.prompt(prompt):prompt, snapshot, {task:options.workflowRetryRole||(options.taishiDraft?'creation':options.setupReferences?'setup':'archive'),taishiWorkflow,referenceBatch:options.referenceBatch||null,workflowResume:options.workflowResume||null,workflowRetryRole:options.workflowRetryRole||null,validateWorkflowChanges:changes=>{const checked=normalizeArchiveBatch({changes},power,sources,snapshot.ctx.chat,playerNote,snapshot.state);if(options.taishiEvolution)for(const c of checked.changes){const reason=evolutionConsequence(c,power);if(reason)checked.issues.push({kind:"高影响后果",name:c.name,reason});}return checked.issues;},workflowOnAttempt:options.workflowOnAttempt,workflowOnCheckpoint:(workflowState,referenceFingerprint)=>{
       const state=clone(workflowState);for(const role of ['taishiWorld','taishiPeople'])if(state.stages[role].status==='pending')state.stages[role].status='failed';
       this.saveReviewCheckpoint({captured:{chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision},contextHash:hash(stable(snapshot.hashes)),referenceFingerprint,powerId:power.id,sources,playerNote,data:{workflowState:state},changes:[],issues:[],terminalResults:[],creationResults:[],floorReviews:[],blockedFloors:sources.map(s=>s.index),readOnly:true,message:'任务中断，已保留成功阶段；请选择未完成阶段继续。',workflowOptions:{rescan:Boolean(options.rescan),initial:Boolean(options.initial),automatic:Boolean(options.automatic),...(options.manualBatch?{manualBatch:clone(options.manualBatch)}:{}),...(options.taishiEvolution?{taishiEvolution:clone(options.taishiEvolution),supplement:true,values:{playerNote},...(options.taishiScheduleEvent?{taishiScheduleEvent:clone(options.taishiScheduleEvent)}:{}),...(options.taishiTimeEvent?{taishiTimeEvent:clone(options.taishiTimeEvent)}:{})}:{})}});
-    }});
+     }});};
     const requestOne=async selectedSources=>{
       try{return await request(selectedSources);}catch(error){
         if(!error.archiveResponseFailure||sources.length>1)throw error;
@@ -325,8 +331,9 @@ export const archiveReviewMethods = {
       }
     };
     const layered=sources.length>1&&!playerNote&&!taishiWorkflow&&!terminalOrders.length&&!creationItems.length;
+    if(layered&&archiveTablePolicy(power))staging=createArchiveStaging(power,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat:snapshot.ctx.chat,state:snapshot.state});
     const check=()=>{if(job&&(job.cancelled||this.archiveReviewJob!==job))throw new DOMException('查询已取消','AbortError');this.store.assertCapture({chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision});assert(hash(stable(chatHashes(getContext().chat)))===hash(stable(snapshot.hashes)),'整理期间剧情已变化，请重查');};
-    const result=layered?await reviewHistory(sources,source=>requestOne([source]),{check,progress:(part,total,floor)=>{this.notice(`历史逐层整理 ${part}/${total} · 第 ${floor} 层；每层一次请求，可取消`);this.runtimeLog?.step(this.logTask,'分层进度',{part,total,floor});}}):await requestOne(sources);
+    const result=layered?await reviewHistory(sources,source=>requestOne([source]),{check,stage:(data,source)=>staging?staging.accept(data,source):data,progress:(part,total,floor)=>{this.notice(`历史逐层整理 ${part}/${total} · 第 ${floor} 层；每层一次请求，可取消`);this.runtimeLog?.step(this.logTask,'分层进度',{part,total,floor});}}):await requestOne(sources);
     if(!result.captured){result.captured={chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision};result.contextHash=hash(stable(snapshot.hashes));result.logId=this.logTask;}
 
     if (job && (job.cancelled || this.archiveReviewJob !== job)) throw new DOMException('查询已取消', 'AbortError');
@@ -397,7 +404,7 @@ export const archiveReviewMethods = {
       this.archiveAutoIncomplete ||= {};this.archiveAutoIncomplete[power.id]=Boolean(reviewed.blockedFloors.length);
       this.archiveAutoStatus ||= {}; this.archiveAutoStatus[power.id] = committed?.save?.verified===false?'本机已保存，酒馆待核实':'已保存本批成果';
       if(committed?.save?.verified===false)this.runtimeLog?.patch(result.logId,{partial:true});
-      return this.notice(`${reviewed.issues.length?'部分更新已保存，'+reviewed.issues.length+' 项待重查（见运行日志）。':''}自动更新已保存：${reviewed.changes.length} 项成果、${reviewed.terminalResults.length} 项安排进展、${reviewed.creationResults.length} 项拟定进展。${reviewed.skippedOwnership.length?' 已跳过 '+reviewed.skippedOwnership.length+' 项其他金手指对象。':''}${committed?.save?.verified === false ? committed.save.note : ''}`);
+      return this.notice(`${reviewed.issues.length?'部分更新已保存，'+reviewed.issues.length+' 项待重查（见运行日志）。':''}自动更新已保存：${committed?.counts?.objects??reviewed.changes.length} 个档案对象、${reviewed.terminalResults.length} 项安排进展、${reviewed.creationResults.length} 项拟定进展。${reviewed.skippedOwnership.length?' 已跳过 '+reviewed.skippedOwnership.length+' 项其他金手指对象。':''}${committed?.save?.verified === false ? committed.save.note : ''}`);
     }
     this.pendingArchiveReview = reviewed;this.saveReviewCheckpoint(reviewed);
     if (!options.silent) this.ui.showArchiveReview(this.pendingArchiveReview, power, snapshot.ctx.chat);
@@ -604,7 +611,7 @@ export const archiveReviewMethods = {
         if(pending.taishiDraft?.kind==='companion')retainDraftPeople(p,saved,pending.taishiDraft.joining);
         const progressed=applyTerminalResults(next,results,selected,p.id,getContext().chat);
         const created=applyCreationResults(next,creationResults,acceptedCreations,p,pending.changes,chosen,getContext().chat);
-        counts={saved:saved.length,arrangements:progressed.length,creations:created.length,rejected:pending.issues?.length||0,floors:pending.sources.map(s=>({floor:s.index+1,saved:saved.filter(r=>r.source?.anchor?.index===s.index).length,reviewed:p.archiveReviewed.some(a=>a.index===s.index&&a.swipeId===s.swipeId&&!blockedFloors.has(s.index))}))};
+        counts={saved:saved.length,...archiveWriteCounts(before,saved,chosen.size),arrangements:progressed.length,creations:created.length,rejected:pending.issues?.length||0,floors:pending.sources.map(s=>({floor:s.index+1,saved:saved.filter(r=>r.source?.anchor?.index===s.index).length,reviewed:p.archiveReviewed.some(a=>a.index===s.index&&a.swipeId===s.swipeId&&!blockedFloors.has(s.index))}))};
         if(pending.manualBatch&&!blockedFloors.size&&chosen.size===pending.changes.length&&selected.size===results.length&&acceptedCreations.size===creationResults.length)advanceArchiveBatch(p,pending.manualBatch,pending.sources);
         saveArchiveUpdate(p,before,saved,pending.sources,{automatic,arrangements:progressed.length+created.length,chat:getContext().chat});
         if (pending.guide) p.playerGuide = pending.guide;
@@ -623,7 +630,7 @@ export const archiveReviewMethods = {
         this.runtimeLog?.step(pending.logId,'保留本批待补全',{remaining:rows.length,accepted:batch.changes.length,cached:remainder.checkpointSaved});
       }else this.clearReviewCheckpoint(pending.captured);
       this.runtimeLog?.step(pending.logId,'保存结果',{...counts,verified:result?.save?.verified!==false});
-      return result;
+      result.counts=counts;return result;
     } catch(error){error.requestStage='save';this.runtimeLog?.step(pending.logId,'保存失败',{error:error.message});this.runtimeLog?.patch(pending.logId,{status:'保存失败'});throw error;} finally { this.committing = false; this.refresh(); }
   },
 };

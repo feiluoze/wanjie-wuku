@@ -29,7 +29,7 @@ test('all six categories survive confirmation, repeated review and reroll withou
   const again=normalizeArchiveBatch(raw,p,sources,chat);assert(again.changes.every(c=>c.id));
   applyArchiveChanges(p,again.changes,sources,new Map(again.changes.map((c,i)=>[i,c.id])),chat);
   assert.deepEqual(p.archives,saved,name+'重复整理应无档案写入');assert.deepEqual(p.resources,resources);validateState(state);
-  if(name==='故事点'||name==='指数增长')assert(Object.values(p.archives).some(r=>r.specific.fields.balance==='-12'));
+  if(name==='故事点'||name==='指数增长')assert(Object.values(p.archives).every(r=>r.specific.fields.balance===undefined));assert(Object.values(p.resources).every(r=>r.balance===null));
   const manual=saveArchive(p,{name:'玩家保留内容',type:'record',status:'active',fields:{description:'玩家确认'}},{type:'manual',note:'手动修正'});
   chat[0].swipe_id=1;chat[0].mes='新分支无旧事件';rollbackStoryRecords(state,chat);
   assert.deepEqual(Object.keys(p.archives),[manual.id]);assert.deepEqual(p.resources,resources);validateState(state);

@@ -1,6 +1,6 @@
 // One source per request prevents later floors from replacing the historical
 // input. This is bounded sequential work, never an automatic retry loop.
-export async function reviewHistory(sources, request, {check=()=>{}, progress=()=>{}}={}) {
+export async function reviewHistory(sources, request, {check=()=>{}, progress=()=>{}, stage=data=>data}={}) {
  const data={changes:[],terminalResults:[],creationResults:[],floorReviews:[],historyIssues:[],rawFailures:[]};let result;
  for(let i=0;i<sources.length;i++){
   check();const source=sources[i];progress(i+1,sources.length,source.index+1);
@@ -12,6 +12,7 @@ export async function reviewHistory(sources, request, {check=()=>{}, progress=()
     if(current.data[key]!==undefined&&!Array.isArray(current.data[key]))throw Error('返回列表无效');
     if((current.data[key]||[]).some(row=>row.sourceIndex!==undefined&&row.sourceIndex!==source.index))throw Error('候选引用了未提供的楼层');
    }
+   current={...current,data:await stage(current.data,source)};check();
    for(const key of ['changes','terminalResults','creationResults'])data[key].push(...(current.data[key]||[]).map(row=>({...row,sourceIndex:source.index})));
    // Reports are not invented from successful HTTP requests.
    data.floorReviews.push(...(current.data.floorReviews||[]).filter(row=>row?.sourceIndex===source.index));

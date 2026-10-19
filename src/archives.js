@@ -1,4 +1,5 @@
-import {statusbarResource} from './builtin-resources.js';
+import {archiveResource} from './builtin-resources.js';
+import {separateArchiveTables} from './archive-table-definitions.js';
 import {creationConfig} from './creation-config.js';
 import {isTaishi} from './taishi.js';
 import {RELATION_FIELDS,assertRelation} from './taishi-relations.js';
@@ -121,7 +122,7 @@ export function saveArchive(power, input, source) {
   const previous = input.id ? power.archives[key(input.id)] : null;
   assert(!input.id || previous, '档案不存在');
   assert(!previous || previous.type === type, '已有档案不能改换类型');
-  if (!previous || normalizedName(previous.name)!==normalizedName(name)) assert(!Object.values(power.archives).some(r => r.id !== previous?.id && archiveNames(r).includes(normalizedName(name)) && (!isTaishi(power)||!input.specific?.recordId||!r.specific?.recordId||input.specific.recordId===r.specific.recordId)), '已有同名档案（含旧名档案），请编辑原对象，避免重复统计');
+  if (!previous || normalizedName(previous.name)!==normalizedName(name)) assert(!Object.values(power.archives).some(r => r.id !== previous?.id && archiveNames(r).includes(normalizedName(name)) && !separateArchiveTables(power,input.specific,r.specific) && (!isTaishi(power)||!input.specific?.recordId||!r.specific?.recordId||input.specific.recordId===r.specific.recordId)), '已有同名档案（含旧名档案），请编辑原对象，避免重复统计');
   assert(previous || Object.keys(power.archives).length < 512, '单词条档案超过512项，请先导出整理');
   const fields = Object.fromEntries(Object.keys(ARCHIVE_FIELDS[type]).map(k => [k, text(input.fields?.[k] || '', 4000).trim()]));
   assert(Object.values(fields).some(Boolean), '请填写至少一项实际情况；未明确的字段可以留空');
@@ -171,7 +172,7 @@ export const archiveMethods = {
         const fields = Object.fromEntries(Object.keys(ARCHIVE_FIELDS[v.type] || {}).map(k => [k, v[`field:${k}`] || '']));
         const undoBefore=journalSnapshot(next,power.id);
         const before = { ...power.archives };
-        const old=power.archives?.[draft.id],specific=old?.specific?clone(old.specific):undefined;if(specific&&isTaishi(power)){const def=creationConfig(power)?.records.find(r=>r.id===specific.recordId);if(def)specific.labels={...specific.labels,...Object.fromEntries(def.fields.map(f=>[f.id,f.label]))};}if(specific)for(const k of Object.keys(specific.labels))if(!['source_profile','time_state'].includes(k)&&!(specific.recordId.startsWith('statusbar_')&&statusbarResource(power,k))&&Object.hasOwn(v,'specific:'+k))specific.fields[k]=text(v['specific:'+k],4000).trim();
+        const old=power.archives?.[draft.id],specific=old?.specific?clone(old.specific):undefined;if(specific){const def=creationConfig(power)?.records.find(r=>r.id===specific.recordId);if(def)specific.labels={...specific.labels,...Object.fromEntries(def.fields.map(f=>[f.id,f.label]))};}if(specific)for(const k of Object.keys(specific.labels))if(!['source_profile','time_state'].includes(k)&&!(archiveResource(power,specific.recordId,k))&&Object.hasOwn(v,'specific:'+k))specific.fields[k]=text(v['specific:'+k],4000).trim();
         if(isTaishi(power)&&specific){resolveTaishiLinks(power,{id:draft.id,specific});assertRelation(power,{id:draft.id,specific});}
         const record = saveArchive(power, { id: draft.id, type: v.type, name: v.name, status: v.status, ownerPowerId:power.id, fields,...(specific?{specific}:{}) }, archiveSource(getContext().chat, note));
         if(isTaishi(power)&&specific&&['companion','relation'].includes(specific.recordId)){power.taishiLocks ||= {};if(v.protectRelations==='on')power.taishiLocks[record.id]=(specific.recordId==='relation'?RELATION_FIELDS:['social','relationship']).filter(k=>specific.fields[k]);else power.taishiLocks[record.id]=[];}

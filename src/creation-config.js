@@ -1,4 +1,5 @@
 import {withBuiltinStatusbar} from './builtin-statusbar.js';
+import {withArchiveTables} from './archive-table-definitions.js';
 import { isTaishi, taishiConfig } from './taishi.js';
 import { isMmlc } from './mmlc.js';
 import { MMLC_CONFIG } from './mmlc-config.js';
@@ -15,4 +16,4 @@ function baseCreationConfig(power){
 
 export const creationRules = (power,operationId='',goal='') => isMmlc(power) ? power.rules+"\n\n以下是漫漫长路玩法参考，仅用于拟定，不作为已拥有成果：\n"+mmlcRuleSelection(operationId,goal).text : power.rules;
 
-export function creationConfig(power){return withBuiltinStatusbar(baseCreationConfig(power),power);}
+export function creationConfig(power){return withArchiveTables(withBuiltinStatusbar(baseCreationConfig(power),power),power);}

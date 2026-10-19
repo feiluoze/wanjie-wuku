@@ -1,4 +1,5 @@
 import {isStatusbarRecord} from './builtin-statusbar.js';
+import {projectResourceStatus} from './builtin-resources.js';
 import { isMmlc, mmlcModule } from './mmlc.js';
 export { specificRows, specificDiff } from './specific-values.js';
 import { validateSpecific } from './state-validation.js';
@@ -31,7 +32,7 @@ export function normalizeSpecific(raw,power,before,{recovery=false,chat=[]}={}){
 
 
 export function specializedGroups(power,chat){
- const groups=new Map();for(const r of Object.values(power.archives||{})){if(!r.specific||isStatusbarRecord(r))continue;const id=r.specific.adapterId+'/'+r.specific.recordId;if(!groups.has(id))groups.set(id,{id,label:r.specific.label,records:[],active:0,working:0,planned:0,stale:0});const g=groups.get(id);g.records.push(r);if(!archiveCurrent(r,chat))g.stale++;else if(Object.hasOwn(g,r.status))g[r.status]++;}
+ const groups=new Map();for(const r of Object.values(power.archives||{}).map(r=>projectResourceStatus(power,r))){if(!r.specific||isStatusbarRecord(r))continue;const id=r.specific.adapterId+'/'+r.specific.recordId;if(!groups.has(id))groups.set(id,{id,label:r.specific.label,records:[],active:0,working:0,planned:0,stale:0});const g=groups.get(id);g.records.push(r);if(!archiveCurrent(r,chat))g.stale++;else if(Object.hasOwn(g,r.status))g[r.status]++;}
  return [...groups.values()];
 }
 
@@ -39,7 +40,7 @@ export function specializedGroups(power,chat){
 export function statisticsDashboard(power,chat){
  const config=creationConfig(power);if(!config?.dashboard)return null;
  const sections=config.dashboard.sections.map(section=>{
-  const records=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId===config.id&&section.recordIds.includes(r.specific.recordId));
+  const records=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId===config.id&&section.recordIds.includes(r.specific.recordId)).map(r=>projectResourceStatus(power,r));
   const counts={active:0,working:0,planned:0,ended:0,stale:0};for(const r of records){if(!archiveCurrent(r,chat))counts.stale++;else counts[r.status]++;}
   return {...section,records,counts};
  });

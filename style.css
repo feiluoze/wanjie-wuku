@@ -1273,3 +1273,12 @@
 
 
 .wjwk-original-statusbar{margin:18px 0;padding:16px;border:1px solid var(--wk-line);border-radius:12px;background:var(--wk-card)}.wjwk-original-statusbar dl>div{padding:8px 0;border-bottom:1px solid var(--wk-line)}.wjwk-original-statusbar dd{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.wjwk-original-statusbar dt{color:var(--wk-muted)}
+/* Long-term archive navigation uses the existing theme and one-column mobile flow. */
+.wjwk-long-term{margin:1.2rem 0;min-width:0}
+.wjwk-long-term>header{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:baseline}
+.wjwk-long-term-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.wjwk-long-term-grid>article{min-width:0;border:1px solid var(--wk-line);border-radius:10px;padding:14px;overflow-wrap:anywhere}
+.wjwk-long-term-grid h3{margin:0 0 8px}
+.wjwk-long-term-grid p{line-height:1.6}
+.wjwk-long-term-grid button{min-height:36px}
+.wjwk-long-term-grid details{margin-top:10px}

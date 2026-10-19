@@ -143,7 +143,7 @@ for(const [name,recordId,title,details,story]of cases)test(name+': AI-shaped upd
   await commit();const saved=f.store.read().powers[p.id],record=Object.values(saved.archives)[0];assert.deepEqual(record.specific.fields,details);assert.equal(stable(saved.resources),wallet);assert.equal(f.replacementCount,0);
   await commit();const state=f.store.read(),power=state.powers[p.id];assert.equal(Object.keys(power.archives).length,1);assert.equal(power.archives[record.id].history.length,0);
   assert(statisticsDashboard(power,f.ctx.chat).sections.some(s=>s.records.some(r=>r.id===record.id)));
-  assert(memoryPlan(state,f.ctx.chat,title,{auto:true,budget:10000,selections:{}}).packet.includes(Object.values(details)[0]));validateState(clone(state));
+  assert(memoryPlan(state,f.ctx.chat,title,{auto:true,budget:10000,selections:{[p.id+'/'+record.id]:{mode:'pinned'}}}).packet.includes(Object.values(details)[0]));validateState(clone(state));
   const request=JSON.parse(creationPrompt(power,f.ctx.chat,'拟定下一步').prompt.user);assert.equal(request.operation.id,'draft');
 });
 

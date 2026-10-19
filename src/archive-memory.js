@@ -1,4 +1,5 @@
 import {projectResourceStatus} from './builtin-resources.js';
+import {tableForRecord} from './archive-tables.js';
 import {recentTaishiChanges} from './taishi-continuity.js';
 import {isTaishi} from './taishi.js';
 import {taishiMemorySettings,taishiPerson,taishiMemoryText,TAISHI_MEMORY_CHANNELS} from './taishi-memory.js';
@@ -36,7 +37,7 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
   // One compact summary per module/type. Whole records retain limits; exclusions apply here too.
   if (config.auto) for (const p of Object.values(state.powers)) {
     if(isTaishi(p))continue; // Taishi uses scoped compact records below, never a global overview.
-    const filtered = { ...p, archives: Object.fromEntries(Object.entries(p.archives || {}).filter(([,r]) => selected[archiveIdentity(p,r)]?.mode !== 'exclude' && archiveContextCurrent(r,chat))) };
+    const filtered = { ...p, archives: Object.fromEntries(Object.entries(p.archives || {}).filter(([,r]) => selected[archiveIdentity(p,r)]?.mode !== 'exclude' && tableForRecord(p,r)?.kind!=='event' && archiveContextCurrent(r,chat))) };
     for (const group of currentOverview(filtered, chat).groups) {
       const rows = overviewHighlights(group, 1);
       if (!rows.length) continue;
@@ -66,7 +67,7 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
       add(id,r.name,p,selection,true,archiveContextCurrent(r,chat),4,{发送分区:'world',金手指:p.name,对象:r.name,状态:ARCHIVE_STATUS[r.status],情况:{'近期已确认变化（非新任务）':change.details.map(d=>d.label+'：'+d.value).join('；')||'当前状态：'+ARCHIVE_STATUS[r.status]},信息边界:projection.informationBoundary,来源:r.source.type==='story'?`正文第${r.source.anchor.index+1}条，已核对保存`:'玩家已确认保存'});
       const item=candidates.find(c=>c.id===id);if(item)item.feedback={id,signature:change.signature};continue;
     }
-    const auto = channelAuto && r.status !== 'ended' && (Boolean(scope)||phrases.some(s=>q.includes(s))||linkedMatches.has(id));
+    const auto = channelAuto && tableForRecord(p,r)?.kind!=='event' && r.status !== 'ended' && (Boolean(scope)||phrases.some(s=>q.includes(s))||linkedMatches.has(id));
     add(id,r.name,p,selection,auto,archiveContextCurrent(r,chat),q.includes(normalize(r.name))?2:1,{...(scope?{发送分区:channel}:{}),金手指:p.name,对象:r.name,类型:r.specific?.label||ARCHIVE_TYPES[r.type],...(projection.provenance?{资料性质:projection.provenance}:{}),...(projection.informationBoundary?{信息边界:projection.informationBoundary}:{}),...(projection.specific?{专用统计:Object.fromEntries(specificRows(projection).map(f=>[f.label,f.value]))}:{}),状态:ARCHIVE_STATUS[r.status],情况:Object.fromEntries(Object.entries(projection.fields).filter(([,v])=>v).map(([k,v])=>[ARCHIVE_FIELDS[r.type][k]||k,v])),来源:r.source.type==='story'?`正文第${r.source.anchor.index+1}条／回复${r.source.anchor.swipeId+1}，玩家确认`:'玩家手工核对'});
   }
   for (const o of state.terminalOrders || []) {
