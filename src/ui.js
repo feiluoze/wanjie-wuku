@@ -108,6 +108,13 @@ export class WorkbenchUI {
       if(name==='mmlc-table-reset'){this.mmlcTableFilter={query:'',status:'',page:0};this.render(this.view);this.panel.querySelector('[data-mmlc-table-query]')?.focus();return;}
       if (name === 'mmlc-section') { this.mmlcSection = button.dataset.section || null; this.mmlcTableFilter={query:'',status:'',page:0};this.tab = 'management'; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); return; }
       if (name === 'tab' || name === 'open-tab') { this.tab = name === 'tab' ? button.dataset.tab : button.dataset.target; this.render(this.view); this.panel.querySelector('.wjwk-main')?.scrollTo(0, 0); this.panel.querySelector(`.wjwk-tabs [data-tab="${this.tab}"]`)?.focus(); return; }
+      const powerMenu = button.closest('.wjwk-power-menu');
+      if (powerMenu) {
+        if (powerMenu.dataset.powerId !== this.view?.power?.id) { powerMenu.open = false; this.setNotice('词条已切换，请从当前词条的“⋯”菜单重试', true); return; }
+        const trigger = powerMenu.querySelector(':scope > summary');
+        powerMenu.open = false;
+        trigger?.focus({ preventScroll: true });
+      }
       let data = { ...button.dataset };
       const actionForm=button.form||button.closest('form');
       if (actionForm) { const form = actionForm; if (requiresFormValidation(name)) {const invalid=form.querySelector(':invalid');if(invalid)for(let p=invalid.parentElement;p&&p!==form;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true;if(!form.reportValidity())return;} data.form = form; data.values = Object.fromEntries(new FormData(form)); }
@@ -118,14 +125,21 @@ export class WorkbenchUI {
     this.root.addEventListener('keydown', event => this.handleKeydown(event), { capture: true, signal: this.eventController.signal });
     this.modal.addEventListener('click', event => { if (event.target === this.modal) this.requestDialogClose(); }, { signal: this.eventController.signal });
     document.addEventListener('pointerdown', event => {
-      if (event.target instanceof Element && event.target.closest('.wjwk-action-menu')) return;
-      for (const node of this.root.querySelectorAll('.wjwk-action-menu[open]')) node.open = false;
+      if (event.target instanceof Element && event.target.closest('.wjwk-action-menu,.wjwk-power-menu')) return;
+      for (const node of this.root.querySelectorAll('.wjwk-action-menu[open],.wjwk-power-menu[open]')) node.open = false;
     }, { capture: true, signal: this.eventController.signal });
     this.root.addEventListener('toggle', event => {
       const node = event.target;
-      if (!node.matches?.('.wjwk-action-menu') || !node.open) return;
-      for (const other of this.root.querySelectorAll('.wjwk-action-menu[open]')) if (other !== node) other.open = false;
+      if (!node.matches?.('.wjwk-action-menu,.wjwk-power-menu') || !node.open) return;
+      for (const other of this.root.querySelectorAll('.wjwk-action-menu[open],.wjwk-power-menu[open]')) if (other !== node) other.open = false;
+      if (node.matches('.wjwk-power-menu')) this.positionPowerMenu(node);
     }, { capture: true, signal: this.eventController.signal });
+    const closePowerMenus = event => {
+      if (event?.target instanceof Element && event.target.closest('.wjwk-power-menu-list')) return;
+      for (const node of this.root.querySelectorAll('.wjwk-power-menu[open]')) node.open = false;
+    };
+    this.root.addEventListener('scroll', closePowerMenus, { capture: true, signal: this.eventController.signal });
+    addEventListener('resize', closePowerMenus, { signal: this.eventController.signal });
     listen('input', event => {
       if(event.target.matches('[data-mmlc-table-query]')){this.mmlcTableFilter={...this.mmlcTableFilter,query:event.target.value,page:0};this.updateMmlcTable();return;}
       if(event.target.matches('[data-taishi-query]')){this.taishiQuery=event.target.value;clearTimeout(this.taishiSearchTimer);this.taishiSearchTimer=setTimeout(()=>{if(!this.destroyed)this.render(this.view);},180);}
@@ -241,6 +255,36 @@ export class WorkbenchUI {
   showModules(state) {
     this.dialog('独立模块开关', `<form><p data-wjwk-help>只开启当前聊天正在玩的模块。关闭后暂停自动整理、规则与档案发送，已有数据保留。</p><label class="wjwk-checkbox"><input type="checkbox" name="mmlc" ${moduleEnabled(state,'mmlc')?'checked':''}>漫漫长路</label><label class="wjwk-checkbox"><input type="checkbox" name="taishi" ${moduleEnabled(state,'taishi')?'checked':''}>太始天</label><p class="wjwk-muted">开启统计模块不代表玩家已经获得能力。漫漫长路仍需正文侧世界书；太始天会发送已接入的完整版词条规则，个人世界设定需另行挂载或选择参考。</p>${btn('modules-save','保存模块开关','wjwk-primary')}</form>`);
   }
+  powerMenu(power, blocked, busy) {
+    const name = esc(power.name);
+    const pendingWrite = (this.view?.state?.roleWrites || []).some(w => w.status === 'pending');
+    const toggleDisabled = busy || pendingWrite;
+    const toggleTitle = toggleDisabled ? '当前有未完成操作，完成后再切换' : power.active ? '暂停接入当前词条' : '恢复接入当前词条';
+    const deleteTitle = blocked ? '当前有未完成操作，完成后再删除' : '删除当前词条（需再次确认）';
+    return `<details class="wjwk-power-menu" data-power-id="${esc(power.id)}"><summary class="wjwk-power-menu-trigger" aria-label="管理词条：${name}" title="管理词条：${name}" aria-haspopup="menu">⋯</summary><div class="wjwk-power-menu-list" role="menu" aria-label="词条管理：${name}"><span class="wjwk-power-menu-label" aria-hidden="true">${name}</span><button type="button" role="menuitem" data-action="view-rule">查看规则</button><button type="button" role="menuitem" data-action="toggle-power" ${toggleDisabled ? 'disabled' : ''} title="${toggleTitle}">${power.active ? '暂停接入' : '恢复接入'}</button><div class="wjwk-power-menu-danger"><button type="button" role="menuitem" class="wjwk-warning" data-action="delete-power" ${blocked ? 'disabled' : ''} title="${deleteTitle}">删除当前词条</button><small>删除前会再次确认，并可在确认页先导出备份。</small></div></div></details>`;
+  }
+  positionPowerMenu(menu) {
+    const list = menu.querySelector('.wjwk-power-menu-list');
+    const trigger = menu.querySelector(':scope > summary');
+    if (!list || !trigger) return;
+    if (innerWidth <= 900) {
+      Object.assign(list.style, { position: 'fixed', left: '12px', right: '12px', bottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', top: 'auto', width: 'auto', maxWidth: '420px', margin: '0 auto' });
+      return;
+    }
+    const box = trigger.getBoundingClientRect(), frame = this.panel.getBoundingClientRect();
+    const transformed = getComputedStyle(this.panel).transform !== 'none';
+    const originX = transformed ? frame.left : 0, originY = transformed ? frame.top : 0;
+    const limitX = transformed ? frame.right : innerWidth, limitY = transformed ? frame.bottom : innerHeight;
+    const width = 190;
+    Object.assign(list.style, { position: 'fixed', right: 'auto', bottom: 'auto', width: `${width}px`, maxWidth: '', margin: '0' });
+    const height = list.offsetHeight || 180;
+    let left = Math.max(originX + 8, Math.min(box.right - width, limitX - width - 8));
+    let top = box.bottom + 6;
+    if (top + height > limitY - 8) top = box.top - height - 6;
+    top = Math.max(originY + 8, Math.min(top, limitY - height - 8));
+    list.style.left = `${left - originX}px`;
+    list.style.top = `${top - originY}px`;
+  }
   hideToast() { const toast = this.root?.querySelector('.wjwk-toast'); if (toast) toast.hidden = true; }
   requestDialogClose() {
     if (this.modal.hidden) return;
@@ -264,8 +308,8 @@ export class WorkbenchUI {
   handleKeydown(event) {
     if (event.key === 'Escape') {
       if (!this.modal.hidden) { event.preventDefault(); event.stopPropagation(); this.requestDialogClose(); return; }
-      const menu = this.root.querySelector('.wjwk-action-menu[open]');
-      if (menu) { menu.open = false; event.preventDefault(); return; }
+      const menu = this.root.querySelector('.wjwk-action-menu[open],.wjwk-power-menu[open]');
+      if (menu) { const trigger = menu.querySelector(':scope > summary'); menu.open = false; trigger?.focus({ preventScroll: true }); event.preventDefault(); return; }
       if (this.open && !(event.target instanceof HTMLElement && event.target.matches('input,textarea,select'))) {
         event.preventDefault();
         this.setOpen(false);
@@ -386,8 +430,8 @@ export class WorkbenchUI {
     this.root.dataset.busy = busy || querying || committing || continuing ? 'true' : 'false';
     this.panel.innerHTML = `<header class="wjwk-header"><div class="wjwk-brand">${icon('arsenal')}<div><strong>万界武库</strong><small>当前聊天 · v${VERSION}</small></div></div><div class="wjwk-header-actions">${this.outboxButton(state,busy)}<span class="wjwk-connection ${settings.mode === 'off' ? 'is-off' : ''}" title="当前 AI 连接方式"><i></i>${connection}</span>${btn('modules-open', icon('modules'), 'wjwk-icon-button').replace('<button ', '<button title="模块开关" aria-label="模块开关" ')}${btn('theme', icon('theme'), 'wjwk-icon-button').replace('<button ', '<button title="切换界面主题" aria-label="切换界面主题" ')}${btn('settings', icon('settings'), 'wjwk-icon-button').replace('<button ', '<button title="AI 连接与方案" aria-label="AI 连接与方案" ')}${btn('minimize-fab', icon('chevron'), 'wjwk-icon-button').replace('<button ', '<button title="收起到边缘" aria-label="收起到边缘" ')}${btn('close', icon('close'), 'wjwk-icon-button').replace('<button ', '<button title="关闭万界武库" aria-label="关闭万界武库" ')}</div>${moduleNav}</header>${power?.archiveSummaryRecovery?`<p class="wjwk-muted" role="status">${esc(power.archiveSummaryRecovery)}</p>`:''}
       <div class="wjwk-layout ${isMmlc(power) ? 'wjwk-mmlc-layout' : isTaishi(power)?'wjwk-taishi-layout':''} ${!isMmlc(power)&&!isTaishi(power)?'wjwk-wuku-layout':''} ${this.tab !== 'operations' || !selected ? 'wjwk-management-layout' : ''}"><aside class="wjwk-sidebar"><div class="wjwk-design-side-heading"><span>${appearanceLabels[appearance]}</span><small>当前聊天</small></div>${isTaishi(power)?`<nav class="wjwk-mmlc-nav" aria-label="太始天模块"><button data-action="taishi-section" data-section="" class="${!this.taishiSection?'is-selected':''}">${layoutNames.overview}</button>${TAISHI_SECTIONS.map(s=>`<button data-action="taishi-section" data-section="${s.id}" class="${this.taishiSection===s.id?'is-selected':''}">${layoutNames[s.id]||s.title}</button>`).join('')}</nav>`:isMmlc(power) ? `<nav class="wjwk-mmlc-nav" aria-label="漫漫长路模块"><button data-action="mmlc-section" data-section="" class="${!this.mmlcSection ? 'is-selected' : ''}">道场总览</button>${MMLC_MODULES.map(m => `<button data-action="mmlc-section" data-section="${m.id}" class="${this.mmlcSection === m.id ? 'is-selected' : ''}">${m.title}</button>`).join('')}</nav>` : `<div class="wjwk-section-heading"><span>我的金手指</span>${btn('manage', icon('plus'), 'wjwk-icon-button', busy)}</div>
-      <div class="wjwk-mobile-power"><label><span>当前金手指</span><select data-power-picker>${powers.map(p => `<option value="${esc(p.id)}" ${p.id === power?.id ? 'selected' : ''}>${esc(p.name)}${p.active ? '' : '（已暂停）'}</option>`).join('') || '<option>尚未接入</option>'}</select></label>${btn('manage', '＋ 添加金手指', 'wjwk-secondary wjwk-mobile-add', busy)}</div>
-      <div class="wjwk-power-list">${powers.map(p => `<button type="button" data-action="select-power" data-id="${esc(p.id)}" class="wjwk-power ${power?.id === p.id ? 'is-selected' : ''}"><span class="wjwk-orb ${p.active ? '' : 'is-paused'}"></span><span>${esc(p.name)}<small>${p.active ? '已接入' : '已暂停'} · ${esc(p.source?.book || '导入词条')}</small></span></button>`).join('') || empty('先接入一个金手指词条')}</div>`}
+      <div class="wjwk-mobile-power"><label><span>当前金手指</span><select data-power-picker>${powers.map(p => `<option value="${esc(p.id)}" ${p.id === power?.id ? 'selected' : ''}>${esc(p.name)}${p.active ? '' : '（已暂停）'}</option>`).join('') || '<option>尚未接入</option>'}</select></label>${btn('manage', '＋ 添加金手指', 'wjwk-secondary wjwk-mobile-add', busy)}${power && !isMmlc(power) && !isTaishi(power) ? this.powerMenu(power, busy || historyMismatch || pending.length > 0, busy) : ''}</div>
+      <div class="wjwk-power-list">${powers.map(p => { const selected = power?.id === p.id; return `<div class="wjwk-power-row ${selected ? 'is-selected' : ''}"><button type="button" data-action="select-power" data-id="${esc(p.id)}" class="wjwk-power ${selected ? 'is-selected' : ''}"><span class="wjwk-orb ${p.active ? '' : 'is-paused'}"></span><span>${esc(p.name)}<small>${p.active ? '已接入' : '已暂停'} · ${esc(p.source?.book || '导入词条')}</small></span></button>${selected ? this.powerMenu(p, busy || historyMismatch || pending.length > 0, busy) : ''}</div>`; }).join('') || empty('先接入一个金手指词条')}</div>`}
       ${resources.length ? `<div class="wjwk-resource-heading">资源</div>${btn('baseline','手动修正余额','wjwk-secondary wjwk-manual-balance',busy)}` : ''}${resources.map(r => {const d=resourceDefinition(power,r);return `<div class="wjwk-resource"><span>${esc(r.name)}${d?`<small> · ${{point:'专属点数',energy:'可用能量',quota:'可用次数'}[d.kind]}</small>`:''}</span><strong>${r.balance === null ? '未确认' : esc(r.balance)}</strong></div>`;}).join('')}
       <details class="wjwk-sidebar-tools"><summary>其他设置与管理</summary>${btn('runtime-log-open','运行日志','wjwk-link')}${btn('ai-ref-open','插件 AI 参考世界书','wjwk-link',busy)}${power ? btn('adapter-open','词条适配配置','wjwk-link',busy) : ''}${power && !isMmlc(power)&&!isTaishi(power) ? '<details><summary>余额与接入</summary>' + btn('baseline', resources.some(r => r.balance === null) ? '确认余额 · 开始使用' : resources.length ? '调整余额与已有能力' : '补录已有能力与物品', 'wjwk-primary wjwk-setup-button', busy) + (resources.length ? btn('balances', '查看全部词条余额', 'wjwk-link', busy) : '') + btn('toggle-power', power.active ? '暂停接入' : '恢复接入', 'wjwk-link', busy) + '</details>' : ''}</details>
       <details class="wjwk-role-status"><summary>角色变量接入</summary><strong>${roleLinked ? '角色 MVU 已接入' : '角色变量（可选）'}</strong><p>${roleLinked ? `绑定 ${Object.keys(state.roleLink.bindings).length} 项余额 · ${state.roleLink.roots.length} 个区域` : '无需接入也能管理记录；已有变量可绑定读取。'}</p>${btn('manage', '金手指与角色接入', 'wjwk-link', busy)}${roleLinked ? btn('role-refresh', '刷新角色余额', 'wjwk-link', busy || pending.length > 0) : ''}</details>
@@ -432,7 +476,7 @@ export class WorkbenchUI {
     const groups = Object.entries(ARCHIVE_TYPES).filter(([type]) => archives.some(r => r.type === type&&!r.specific));
     const stale = archives.length - valid.length, active = valid.filter(r => r.status === 'active').length;
     const appearance = workbenchAppearance(power);
-    const more=`<details class="wjwk-action-menu"><summary><span>更多操作</span>${icon('chevron')}</summary><div class="wjwk-action-menu-list"><div class="wjwk-menu-group"><span class="wjwk-menu-label">整理与记录</span>${btn('archive-batch',power.archiveBatch&&power.archiveBatch.cursor<power.archiveBatch.parts.length?'继续分批整理':'分批整理','wjwk-link',!canAI)}${btn('scene-open','查看行动方向','wjwk-link',!canAI)}${btn('open-archive','手动补录档案','wjwk-link',blocked||!power.active)}${Object.keys(power.resources||{}).length?btn('baseline','修正余额','wjwk-link',blocked):''}${btn('archive-tools','纠错与阶段回顾','wjwk-link',!canAI)}</div><div class="wjwk-menu-group"><span class="wjwk-menu-label">查阅</span>${btn('view-rule','查看完整规则','wjwk-link')}</div><div class="wjwk-menu-group is-danger"><span class="wjwk-menu-label">危险操作</span>${btn('delete-power','删除当前词条','wjwk-warning',blocked)}</div></div></details>`;
+    const more=`<details class="wjwk-action-menu"><summary><span>更多操作</span>${icon('chevron')}</summary><div class="wjwk-action-menu-list"><div class="wjwk-menu-group"><span class="wjwk-menu-label">整理与记录</span>${btn('archive-batch',power.archiveBatch&&power.archiveBatch.cursor<power.archiveBatch.parts.length?'继续分批整理':'分批整理','wjwk-link',!canAI)}${btn('scene-open','查看行动方向','wjwk-link',!canAI)}${btn('open-archive','手动补录档案','wjwk-link',blocked||!power.active)}${Object.keys(power.resources||{}).length?btn('baseline','修正余额','wjwk-link',blocked):''}${btn('archive-tools','纠错与阶段回顾','wjwk-link',!canAI)}</div><small class="wjwk-menu-hint">查看规则、暂停接入和删除词条在词条名旁的“⋯”菜单。</small></div></details>`;
     const bodyIndex = chat.findLastIndex(m => !m.is_user && !m.is_system);
     const pageHead=`<section class="wjwk-page-head"><div class="wjwk-page-title"><span class="wjwk-eyebrow">${appearanceLabels[appearance]} · 当前词条</span><h1>${esc(power.name)}</h1><p>${esc(guide?.summary||'收录已经获得的力量与成果，追溯每一份际遇。')}</p></div><div class="wjwk-page-meta"><span class="wjwk-status-pill ${power.active?'is-live':'is-paused'}"><i></i>${power.active?'已接入':'已暂停'}</span><span class="wjwk-status-pill">${valid.length} 项长期记录</span>${bodyIndex>=0?`<span class="wjwk-status-pill">正文第 ${bodyIndex+1} 条</span>`:''}</div></section>`;
     const actions=`<section class="wjwk-action-bar" aria-label="主要操作">${pending?btn('player-pending','确认整理结果','wjwk-primary',blocked):btn(archives.length?'review-archives':'player-initial',archives.length?'AI 整理剧情':'AI 整理当前情况','wjwk-primary',!canAI)}${btn('archive-library','查看长期档案','wjwk-secondary')}${more}</section>`;
