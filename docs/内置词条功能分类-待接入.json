@@ -1,0 +1,1625 @@
+{
+  "schemaVersion": 1,
+  "taxonomyId": "builtin-functional-v1",
+  "status": "planned-next-update",
+  "basedOnVersion": "1.6.2",
+  "principles": [
+    "每个主词条仅一个主分类，按原文主要玩法与收益重心归类。",
+    "标签只作功能检索，不表示削减其他权能、强弱评分或操作限制。",
+    "辅助条目独立列为资料，不计作可选金手指；关联不等于自动选择或注入。",
+    "保留太始天与漫漫长路专属入口，不因功能分类改换模块或搬迁档案。",
+    "不改变来源启用状态、条目顺序、正文、身份和现有玩家选择。",
+    "只对已核内置条目建立分类；外部世界书暂不按同名自动归类。"
+  ],
+  "categories": [
+    {
+      "id": "combat",
+      "name": "直接战斗型",
+      "description": "直接获得可用于攻防、控制、行动与战场应对的力量。"
+    },
+    {
+      "id": "growth",
+      "name": "自身成长型",
+      "description": "以自身修炼、生命演化、技艺精进和永久强化为主要玩法。"
+    },
+    {
+      "id": "collection",
+      "name": "收集构筑型",
+      "description": "收集与继承外来性质，强化对象，组合成自己的力量或造物体系。"
+    },
+    {
+      "id": "companions",
+      "name": "伙伴军团型",
+      "description": "以同行关系、成员培养、召唤统御或群体协作为主要入口。"
+    },
+    {
+      "id": "farming",
+      "name": "种田经营型",
+      "description": "发展生命生态、领地文明、产业、势力网络或世界平台。"
+    },
+    {
+      "id": "resources",
+      "name": "资源收益型",
+      "description": "通过奖励、交易、兑换、复制、保全与返还扩大实际所得。"
+    },
+    {
+      "id": "exploration",
+      "name": "探索求知型",
+      "description": "通过旅行、历练、情报、解析、推演和研发打开新的行动路径。"
+    },
+    {
+      "id": "rules",
+      "name": "规则干涉型",
+      "description": "直接改变现实定义、结果、认知、因果、命运或关系规则。"
+    }
+  ],
+  "tags": [
+    "世界经营",
+    "交易兑换",
+    "伙伴培养",
+    "体系构筑",
+    "供能续航",
+    "修炼突破",
+    "共享协作",
+    "关系互动",
+    "召唤军团",
+    "命运幸运",
+    "复制复现",
+    "契约规则",
+    "奖励获取",
+    "情报预警",
+    "成本保全",
+    "战场控制",
+    "战斗成长",
+    "战斗攻防",
+    "探索历练",
+    "收益增幅",
+    "文明治理",
+    "时空因果",
+    "模拟预演",
+    "永久强化",
+    "法术创造",
+    "现实改写",
+    "生产建设",
+    "生命进化",
+    "生态经营",
+    "知识获取",
+    "科研解析",
+    "空间能力",
+    "能力收集",
+    "自动成长",
+    "规则统御",
+    "认知干涉",
+    "造物创造",
+    "造物强化",
+    "防御生存"
+  ],
+  "entries": [
+    {
+      "entryId": "5",
+      "name": "灾祸之城",
+      "sourceHash": "970e1f277c7fa1a7",
+      "category": "combat",
+      "tags": [
+        "战场控制",
+        "战斗攻防"
+      ],
+      "reason": "直接支配战争与灾祸，征服和城域经营作为延伸。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "19",
+      "name": "攻防一体",
+      "sourceHash": "8afbfd59794b9275",
+      "category": "combat",
+      "tags": [
+        "防御生存"
+      ],
+      "reason": "以最强攻击为基准建立全类型防御。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "26",
+      "name": "绝对命中",
+      "sourceHash": "2c5d6f89ba790725",
+      "category": "combat",
+      "tags": [
+        "战斗攻防"
+      ],
+      "reason": "让真实载体准确抵达指定目标，攻击是最直观用法。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "32",
+      "name": "战力倍增",
+      "sourceHash": "9b5cc28d81ba8393",
+      "category": "combat",
+      "tags": [
+        "永久强化",
+        "战斗成长"
+      ],
+      "reason": "直接强化完整战力，并由真实征伐提高倍率。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "33",
+      "name": "密码正确",
+      "sourceHash": "7032cc9ac657f696",
+      "category": "combat",
+      "tags": [
+        "战斗攻防",
+        "战斗成长"
+      ],
+      "reason": "有效密码使战力维度和配套能力整体跃升。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "61",
+      "name": "心灵武装化",
+      "sourceHash": "14a01ee4318e3b16",
+      "category": "combat",
+      "tags": [
+        "战斗攻防",
+        "战斗成长"
+      ],
+      "reason": "以情感意志形成攻防武装，战果持续深化武装。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "76",
+      "name": "原力与光剑与吾同在",
+      "sourceHash": "89a56f6ed8ba0cc0",
+      "category": "combat",
+      "tags": [
+        "战斗攻防",
+        "情报预警"
+      ],
+      "reason": "直接掌握原力与光剑的完整战斗运用。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "89",
+      "name": "我是鬼",
+      "sourceHash": "7a32b4bba40122a9",
+      "category": "combat",
+      "tags": [
+        "防御生存",
+        "战场控制",
+        "生命进化"
+      ],
+      "reason": "以鬼身、鬼域和自身灵异规律直接行动与对抗。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "91",
+      "name": "替身",
+      "sourceHash": "c8fdc86f9f127d07",
+      "category": "combat",
+      "tags": [
+        "共享协作",
+        "战斗攻防"
+      ],
+      "reason": "以本命替身和其专属能力解决行动与战斗问题，并非军团经营。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "92",
+      "name": "帧实力",
+      "sourceHash": "758e11ab6058af9f",
+      "category": "combat",
+      "tags": [
+        "时空因果",
+        "战场控制"
+      ],
+      "reason": "调节行动与变化的节奏以获得直接攻防优势。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "94",
+      "name": "绝对之门",
+      "sourceHash": "aa018e1aa456b1e8",
+      "category": "combat",
+      "tags": [
+        "防御生存",
+        "空间能力"
+      ],
+      "reason": "以门的开合直接护身、阻断与建立通路。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "98",
+      "name": "念气体系",
+      "sourceHash": "c75c567cc014f808",
+      "category": "combat",
+      "tags": [
+        "战斗攻防",
+        "战斗成长"
+      ],
+      "reason": "直接获得护体、外放与感知，并随实际运念成长。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "106",
+      "name": "八风编织",
+      "sourceHash": "426c4c57b6102a13",
+      "category": "combat",
+      "tags": [
+        "战斗攻防",
+        "法术创造",
+        "防御生存"
+      ],
+      "reason": "编织八风直接施展多用途法术，兼具造物与研发。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "9",
+      "name": "本我完满宝诰",
+      "sourceHash": "f182688585d59d71",
+      "category": "growth",
+      "tags": [
+        "供能续航",
+        "体系构筑"
+      ],
+      "reason": "以内修、自足和万法归身为自身根基。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "22",
+      "name": "深蓝",
+      "sourceHash": "d580c24614fb200a",
+      "category": "growth",
+      "tags": [
+        "修炼突破"
+      ],
+      "reason": "将可支配资源转为源质点，推动真实提升。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "24",
+      "name": "天人骨血",
+      "sourceHash": "e14ee03a5f6328a8",
+      "category": "growth",
+      "tags": [
+        "生命进化",
+        "防御生存"
+      ],
+      "reason": "吸纳生命特征和永久适应，持续统合自身。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "30",
+      "name": "模板",
+      "sourceHash": "03f8ad0ef1f4a262",
+      "category": "growth",
+      "tags": [
+        "修炼突破",
+        "战斗成长",
+        "能力收集"
+      ],
+      "reason": "个人位格成长为主，征服模板收藏为辅。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "31",
+      "name": "道途",
+      "sourceHash": "4323c0b7f09ae379",
+      "category": "growth",
+      "tags": [
+        "契约规则",
+        "规则统御",
+        "修炼突破"
+      ],
+      "reason": "以缔约和践行持续提升本质与道途之力。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "34",
+      "name": "完满与破限",
+      "sourceHash": "055ee443f7e4b509",
+      "category": "growth",
+      "tags": [
+        "修炼突破"
+      ],
+      "reason": "使技艺达到绝对完满，再继续突破边界。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "40",
+      "name": "噬恶魔主",
+      "sourceHash": "f8d4fa17c2883d47",
+      "category": "growth",
+      "tags": [
+        "战斗成长",
+        "能力收集"
+      ],
+      "reason": "裁恶斩敌所得成为自身修为与传承资粮。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "42",
+      "name": "大劫主",
+      "sourceHash": "b6ec6a7cba091830",
+      "category": "growth",
+      "tags": [
+        "战斗成长",
+        "时空因果",
+        "修炼突破"
+      ],
+      "reason": "真实推进劫难或自劫，取得自身成长资粮。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "43",
+      "name": "传颂之名",
+      "sourceHash": "fdfbce8d4d4b6d4b",
+      "category": "growth",
+      "tags": [
+        "关系互动",
+        "规则统御"
+      ],
+      "reason": "有效名号转化为自身真实能力与位格。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "47",
+      "name": "人间游戏",
+      "sourceHash": "e00374d9d3486fdf",
+      "category": "growth",
+      "tags": [
+        "修炼突破",
+        "奖励获取"
+      ],
+      "reason": "将现实实践沉淀为等级、技能、职业和成就。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "48",
+      "name": "熟练度状态栏",
+      "sourceHash": "22f4a4f0e1322e10",
+      "category": "growth",
+      "tags": [
+        "修炼突破"
+      ],
+      "reason": "以真实掌握积累技能、特效与破限成果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "51",
+      "name": "人生模拟",
+      "sourceHash": "1db7e53d3e334db3",
+      "category": "growth",
+      "tags": [
+        "模拟预演",
+        "能力收集"
+      ],
+      "reason": "主要收益是模拟人生的实力和天赋继承，情报与预演为辅助。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "64",
+      "name": "武魂",
+      "sourceHash": "5c025d4e7d95de92",
+      "category": "growth",
+      "tags": [
+        "战斗攻防",
+        "自动成长",
+        "体系构筑"
+      ],
+      "reason": "本源武魂持续修炼、反哺并衍生魂技。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "65",
+      "name": "神象镇狱劲",
+      "sourceHash": "82e863bf8fd1f353",
+      "category": "growth",
+      "tags": [
+        "修炼突破",
+        "生命进化"
+      ],
+      "reason": "吞纳资源唤醒微粒，整体强化自身生命体系。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "66",
+      "name": "神圣几何",
+      "sourceHash": "ba5aa866d01fcdfe",
+      "category": "growth",
+      "tags": [
+        "体系构筑",
+        "生命进化"
+      ],
+      "reason": "通过节点和构型的演化持续强化自身。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "77",
+      "name": "进化之炎",
+      "sourceHash": "5adcb4013b536073",
+      "category": "growth",
+      "tags": [
+        "自动成长",
+        "修炼突破",
+        "造物强化"
+      ],
+      "reason": "持续进化自身及所属对象，不以直接攻击为主。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "79",
+      "name": "无龙心法",
+      "sourceHash": "eadd48634d69840f",
+      "category": "growth",
+      "tags": [
+        "供能续航",
+        "法术创造",
+        "修炼突破"
+      ],
+      "reason": "以自生心能推动自身修行、理解与创造。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "85",
+      "name": "恒曜之血",
+      "sourceHash": "e573c910099d7d42",
+      "category": "growth",
+      "tags": [
+        "生命进化",
+        "自动成长",
+        "防御生存"
+      ],
+      "reason": "超人生命通过吸能、适应和岁月持续壮大。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "88",
+      "name": "根源解放",
+      "sourceHash": "d5ecb4dc34daa5ec",
+      "category": "growth",
+      "tags": [
+        "修炼突破",
+        "战斗攻防"
+      ],
+      "reason": "每次解放带来永久整体跃升和道路变化。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "95",
+      "name": "灼魂之焰",
+      "sourceHash": "ddd2b435403b9715",
+      "category": "growth",
+      "tags": [
+        "防御生存",
+        "修炼突破"
+      ],
+      "reason": "由进取之火提升清明、悟性与自我超越潜能。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "96",
+      "name": "明阳阙阴天枢合真正法",
+      "sourceHash": "a5b9793dbfeb4b77",
+      "category": "growth",
+      "tags": [
+        "修炼突破",
+        "契约规则",
+        "防御生存"
+      ],
+      "reason": "以有效双修推动自身与同行者真实成长。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "102",
+      "name": "指数增长",
+      "sourceHash": "448605e63351521e",
+      "category": "growth",
+      "tags": [
+        "自动成长",
+        "永久强化",
+        "修炼突破"
+      ],
+      "reason": "肉体和灵魂双轴指数强化，成长持续兑现。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "113",
+      "name": "绝对掌握",
+      "sourceHash": "94ff3ea8538e8140",
+      "category": "growth",
+      "tags": [
+        "防御生存",
+        "修炼突破"
+      ],
+      "reason": "完整支配自身存在与所得，并深化具体运用。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "118",
+      "name": "绝对适应（新版）",
+      "sourceHash": "fb1f14fb504b3d7f",
+      "category": "growth",
+      "tags": [
+        "防御生存",
+        "生命进化",
+        "现实改写"
+      ],
+      "reason": "以自身适应与补全为入口，最高表现可干涉现实。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "125",
+      "name": "一以贯之",
+      "sourceHash": "80a5508819ef6f8a",
+      "category": "growth",
+      "tags": [
+        "永久强化",
+        "自动成长"
+      ],
+      "reason": "最高属性与合格外源增益扩散为整体成长。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "18",
+      "name": "幻想具现",
+      "sourceHash": "b4f9ed199db8c44b",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "造物创造"
+      ],
+      "reason": "收录幻想原型、具现造物，并发展独有版本。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "21",
+      "name": "力量构筑",
+      "sourceHash": "1c08e790b6d929c2",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "体系构筑"
+      ],
+      "reason": "取得小源，再连接构筑大源体系。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "29",
+      "name": "装备栏",
+      "sourceHash": "33ec258b2768ec97",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "永久强化"
+      ],
+      "reason": "收录装备性能并永久归身、统合调用。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "35",
+      "name": "点石成金",
+      "sourceHash": "d14687c15cdab353",
+      "category": "collection",
+      "tags": [
+        "造物强化",
+        "修炼突破"
+      ],
+      "reason": "推动真实目标发生层级拔擢。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "36",
+      "name": "上位替代",
+      "sourceHash": "b7679e9f75cda9cf",
+      "category": "collection",
+      "tags": [
+        "造物强化"
+      ],
+      "reason": "从高位版本中选择并替代自身或所属对象。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "45",
+      "name": "咨询法",
+      "sourceHash": "04597dd5a11d6e55",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "造物强化",
+        "修炼突破"
+      ],
+      "reason": "逐对象及版本承接特质，再经共鸣深化。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "57",
+      "name": "完美融合",
+      "sourceHash": "08d77347677e93a1",
+      "category": "collection",
+      "tags": [
+        "体系构筑",
+        "造物创造"
+      ],
+      "reason": "将既有材料、力量和生命编织为完整融合产物。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "58",
+      "name": "生命球",
+      "sourceHash": "c4eb21c52f073d3d",
+      "category": "collection",
+      "tags": [
+        "生命进化",
+        "能力收集"
+      ],
+      "reason": "以生命库保存化身道路，提取并融合优长。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "59",
+      "name": "万象神魔图录",
+      "sourceHash": "0d3de1d7b8205bd9",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "召唤军团"
+      ],
+      "reason": "以原型挑战和继承为核心，同时取得长期战将。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "67",
+      "name": "拓印",
+      "sourceHash": "a42db7155cd23a7b",
+      "category": "collection",
+      "tags": [
+        "复制复现",
+        "体系构筑",
+        "永久强化"
+      ],
+      "reason": "将可复现规律收录、叠印并融合调用。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "74",
+      "name": "图书馆",
+      "sourceHash": "c76189879f0fd24f",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "体系构筑",
+        "共享协作"
+      ],
+      "reason": "收集与装备书页构筑战力，并可赐予副本。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "81",
+      "name": "归我所有",
+      "sourceHash": "81a384253d075c41",
+      "category": "collection",
+      "tags": [
+        "战斗成长",
+        "能力收集"
+      ],
+      "reason": "胜利后取得败者长处，积累跨来源能力。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "99",
+      "name": "置物栏",
+      "sourceHash": "b8d35fcd9697b741",
+      "category": "collection",
+      "tags": [
+        "能力收集",
+        "永久强化",
+        "空间能力"
+      ],
+      "reason": "通过收纳取得永久效用，储物是实现这一收益的入口。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "122",
+      "name": "升变之印",
+      "sourceHash": "37bcfcdefb668b9c",
+      "category": "collection",
+      "tags": [
+        "造物强化",
+        "现实改写"
+      ],
+      "reason": "观察可能分支并选择兑现，可持续改变不同目标。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "10",
+      "name": "至高亡灵主宰",
+      "sourceHash": "d9282c7e32618f36",
+      "category": "companions",
+      "tags": [
+        "召唤军团",
+        "伙伴培养",
+        "防御生存"
+      ],
+      "reason": "创造与培养亡灵军势，军团长期积累并反哺自身。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "12",
+      "name": "与共者",
+      "sourceHash": "0bc959dbaddac641",
+      "category": "companions",
+      "tags": [
+        "伙伴培养",
+        "共享协作",
+        "契约规则"
+      ],
+      "reason": "取得可长期同行、独立成长与共享所得的旅伴。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "44",
+      "name": "万灵图鉴",
+      "sourceHash": "859d97e402c399a8",
+      "category": "companions",
+      "tags": [
+        "伙伴培养",
+        "生态经营",
+        "共享协作"
+      ],
+      "reason": "收录与培育万灵，通过生态协作取得成果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "73",
+      "name": "攻略系统",
+      "sourceHash": "a07bd5ee8f3aa1fe",
+      "category": "companions",
+      "tags": [
+        "关系互动",
+        "交易兑换"
+      ],
+      "reason": "围绕多段独立关系成长并取得奖励，以关系玩法作为入口。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "104",
+      "name": "牧群",
+      "sourceHash": "6f6c2161ac62a69d",
+      "category": "companions",
+      "tags": [
+        "召唤军团",
+        "共享协作",
+        "伙伴培养"
+      ],
+      "reason": "成员独立行动，完整贡献汇入本体。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "107",
+      "name": "心智魔方",
+      "sourceHash": "eb2e302d69899c9b",
+      "category": "companions",
+      "tags": [
+        "伙伴培养",
+        "造物创造",
+        "共享协作"
+      ],
+      "reason": "具现独立人格伙伴，发展舰装与协作体系。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "3",
+      "name": "母巢",
+      "sourceHash": "6404f34ccf4441ec",
+      "category": "farming",
+      "tags": [
+        "造物创造",
+        "生态经营",
+        "防御生存"
+      ],
+      "reason": "生命孕育、种群繁衍与生命循环构成主要平台玩法。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "37",
+      "name": "奇迹智子",
+      "sourceHash": "d13672ccba372656",
+      "category": "farming",
+      "tags": [
+        "生产建设",
+        "共享协作"
+      ],
+      "reason": "以持续扩张的智子文明承担研究、建设与生产。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "53",
+      "name": "文明之光系统",
+      "sourceHash": "7373833ff59423b7",
+      "category": "farming",
+      "tags": [
+        "文明治理",
+        "生产建设"
+      ],
+      "reason": "推进治下文明的生产、制度、治理与整体跃迁。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "71",
+      "name": "敕天法统",
+      "sourceHash": "ef97458c884c0c94",
+      "category": "farming",
+      "tags": [
+        "文明治理",
+        "共享协作"
+      ],
+      "reason": "通过职司、受箓者与法统体系持续治理和反哺中枢。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "72",
+      "name": "万物之始",
+      "sourceHash": "6dd78794fe0c91d0",
+      "category": "farming",
+      "tags": [
+        "造物创造",
+        "世界经营"
+      ],
+      "reason": "从始源创生并管理持续衍生谱系，适合长期发展平台。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "86",
+      "name": "战争天网",
+      "sourceHash": "1da5aba6687b21c4",
+      "category": "farming",
+      "tags": [
+        "生产建设",
+        "召唤军团"
+      ],
+      "reason": "工业网络、军团和跨世界据点形成可扩张战争产能。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "93",
+      "name": "太始天（完整版，择一开启））",
+      "sourceHash": "c821baa7caa72331",
+      "category": "farming",
+      "tags": [
+        "世界经营",
+        "文明治理",
+        "永久强化"
+      ],
+      "reason": "世界演化与个人归身相互支撑，保留专属模块入口。",
+      "entryPoint": "dedicated-taishi"
+    },
+    {
+      "entryId": "109",
+      "name": "万物尽头",
+      "sourceHash": "f8caef72632a122a",
+      "category": "farming",
+      "tags": [
+        "生产建设",
+        "生态经营"
+      ],
+      "reason": "经营独属天地，将种源与工艺形成稳定供给链。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "112",
+      "name": "绝对生产力",
+      "sourceHash": "8ae1f2fbd54f5297",
+      "category": "farming",
+      "tags": [
+        "生产建设",
+        "造物创造"
+      ],
+      "reason": "直接取得生产与组织实现能力，将目标化为真实成果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "11",
+      "name": "多倍收获系统",
+      "sourceHash": "6bc41afcb98e7aa4",
+      "category": "resources",
+      "tags": [
+        "收益增幅",
+        "奖励获取"
+      ],
+      "reason": "放大真正取得的正向成果，而非另建战斗体系。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "15",
+      "name": "万界网购",
+      "sourceHash": "93077dbfccd2e22b",
+      "category": "resources",
+      "tags": [
+        "交易兑换",
+        "空间能力"
+      ],
+      "reason": "采购、比价、变现与委托构成主要获取方式。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "17",
+      "name": "分二",
+      "sourceHash": "c01a9149759d5671",
+      "category": "resources",
+      "tags": [
+        "复制复现",
+        "收益增幅",
+        "造物强化"
+      ],
+      "reason": "使既有目标沿选定维度倍增，并可递归取得新增成果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "23",
+      "name": "签到",
+      "sourceHash": "79b114d6ecea08f8",
+      "category": "resources",
+      "tags": [
+        "奖励获取"
+      ],
+      "reason": "将时间、地点与经历转化为额外奖励。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "38",
+      "name": "代价减免",
+      "sourceHash": "1108a8b99c87ee05",
+      "category": "resources",
+      "tags": [
+        "成本保全",
+        "收益增幅"
+      ],
+      "reason": "以更低自身成本取得完整结果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "39",
+      "name": "我全都要",
+      "sourceHash": "9dcb8de032f902a6",
+      "category": "resources",
+      "tags": [
+        "奖励获取",
+        "收益增幅"
+      ],
+      "reason": "保留原本择一的全部正向奖励与配套价值。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "46",
+      "name": "先祖投资人",
+      "sourceHash": "f1854dfa8f17defa",
+      "category": "resources",
+      "tags": [
+        "交易兑换",
+        "文明治理",
+        "时空因果"
+      ],
+      "reason": "向祖史投入，承接当代真实资产、身份和传承。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "60",
+      "name": "自我束缚",
+      "sourceHash": "80913d3c88a78f04",
+      "category": "resources",
+      "tags": [
+        "交易兑换",
+        "契约规则"
+      ],
+      "reason": "以成立的自我限制直接换取正向收益。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "63",
+      "name": "等价交换",
+      "sourceHash": "665d5274f36a03c8",
+      "category": "resources",
+      "tags": [
+        "交易兑换",
+        "现实改写"
+      ],
+      "reason": "选择唯一价值尺度，用既有事物换取明确目标。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "84",
+      "name": "抽奖系统",
+      "sourceHash": "771b866d1f729b47",
+      "category": "resources",
+      "tags": [
+        "奖励获取",
+        "能力收集"
+      ],
+      "reason": "持续扩充破格奇物与恒定特权。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "97",
+      "name": "无限能量",
+      "sourceHash": "9e069af207723dac",
+      "category": "resources",
+      "tags": [
+        "供能续航"
+      ],
+      "reason": "即时满足真实能量需求，并可向外持续供能。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "78",
+      "name": "赋能",
+      "sourceHash": "925d398e77b7f07e",
+      "category": "resources",
+      "tags": [
+        "收益增幅",
+        "成本保全",
+        "修炼突破"
+      ],
+      "reason": "扩大顺境所得、保全逆境损失并形成新优势。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "115",
+      "name": "败家生财",
+      "sourceHash": "3654c39ebd4a972e",
+      "category": "resources",
+      "tags": [
+        "收益增幅",
+        "成本保全",
+        "生产建设"
+      ],
+      "reason": "真实消费与投入产生正常成果之外的财富增长。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "123",
+      "name": "一言为定",
+      "sourceHash": "b3bca7f7c42cc30f",
+      "category": "resources",
+      "tags": [
+        "契约规则",
+        "成本保全"
+      ],
+      "reason": "完成真实约定义务后取得完整报酬与独立补益。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "4",
+      "name": "知识荒野",
+      "sourceHash": "948e4caaf3c1ce86",
+      "category": "exploration",
+      "tags": [
+        "知识获取",
+        "生产建设"
+      ],
+      "reason": "以知识获取、理解与运用为主，造物和规则编辑是其延伸。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "16",
+      "name": "每日情报",
+      "sourceHash": "c5a32d7a6efc3d90",
+      "category": "exploration",
+      "tags": [
+        "情报预警"
+      ],
+      "reason": "持续取得真实信息、预警和可行动线索。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "41",
+      "name": "挂机",
+      "sourceHash": "0ba7218b0379a023",
+      "category": "exploration",
+      "tags": [
+        "探索历练"
+      ],
+      "reason": "独立征伐线长期探索并回流战利和成长。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "69",
+      "name": "第一性原理",
+      "sourceHash": "56f74c41c09dde73",
+      "category": "exploration",
+      "tags": [
+        "科研解析",
+        "生产建设"
+      ],
+      "reason": "解析稳定事物的原理，取得真实操作与重构能力。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "87",
+      "name": "生物计算机",
+      "sourceHash": "c885200c23254e52",
+      "category": "exploration",
+      "tags": [
+        "科研解析",
+        "知识获取"
+      ],
+      "reason": "自身记忆、理解、算力与信息模型持续增强。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "100",
+      "name": "大贤者",
+      "sourceHash": "d6658a3d2ea69c89",
+      "category": "exploration",
+      "tags": [
+        "科研解析",
+        "共享协作"
+      ],
+      "reason": "理解和优化已有体系，创造新理论与能力用法。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "110",
+      "name": "全知档案馆",
+      "sourceHash": "b62e5226142207fc",
+      "category": "exploration",
+      "tags": [
+        "知识获取",
+        "共享协作"
+      ],
+      "reason": "先知晓与选择，再委托将所选方案真实施行。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "117",
+      "name": "信息全知者",
+      "sourceHash": "a7434271cf997f75",
+      "category": "exploration",
+      "tags": [
+        "情报预警",
+        "知识获取",
+        "共享协作"
+      ],
+      "reason": "以准确情报、知识与方法支持实际行动。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "90",
+      "name": "同时穿越",
+      "sourceHash": "26087238570e3c58",
+      "category": "exploration",
+      "tags": [
+        "共享协作",
+        "空间能力"
+      ],
+      "reason": "多个世界的自己同时探索与生活，所得共享并互相协作。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "119",
+      "name": "旅法师",
+      "sourceHash": "b6c58a726d4af080",
+      "category": "exploration",
+      "tags": [
+        "空间能力",
+        "法术创造",
+        "世界经营"
+      ],
+      "reason": "以诸界旅行、联系和术式积累为主要入口。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "124",
+      "name": "诸天投影镜",
+      "sourceHash": "c2940caa6cf31f40",
+      "category": "exploration",
+      "tags": [
+        "探索历练",
+        "奖励获取"
+      ],
+      "reason": "通过诸天人物、传承与历练接触并取得真实所得。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "126",
+      "name": "心渊",
+      "sourceHash": "2d4233e254e306d8",
+      "category": "exploration",
+      "tags": [
+        "探索历练",
+        "体系构筑",
+        "永久强化"
+      ],
+      "reason": "以选择路线、组合祝福和闯关获得永久积累。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "0",
+      "name": "源堡",
+      "sourceHash": "a67bdd2c672ddeb2",
+      "category": "rules",
+      "tags": [
+        "时空因果",
+        "规则统御"
+      ],
+      "reason": "完整诡秘权柄以关系、历史、时空和命运干涉现实，储物不是主功能。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "1",
+      "name": "混沌海",
+      "sourceHash": "2eea49deb90001c0",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "世界经营"
+      ],
+      "reason": "直接认识、空想与塑造现实，领域经营是承载方式。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "2",
+      "name": "永暗之河",
+      "sourceHash": "ead5de60cb943686",
+      "category": "rules",
+      "tags": [
+        "规则统御",
+        "防御生存"
+      ],
+      "reason": "核心是裁定结束与生死归返，亡者社会作为延伸。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "6",
+      "name": "暗影世界",
+      "sourceHash": "f13b71ecb8eed538",
+      "category": "rules",
+      "tags": [
+        "认知干涉",
+        "战场控制",
+        "生命进化"
+      ],
+      "reason": "直接支配欲望、阴影和异常并使其影响现实。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "7",
+      "name": "失序之国",
+      "sourceHash": "7aed93b86c978716",
+      "category": "rules",
+      "tags": [
+        "规则统御",
+        "现实改写"
+      ],
+      "reason": "制定、解释与执行现实规则和身份秩序。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "8",
+      "name": "光之钥",
+      "sourceHash": "4c0d782132f9f9ef",
+      "category": "rules",
+      "tags": [
+        "命运幸运",
+        "时空因果"
+      ],
+      "reason": "观测、选择和重写命运，包含保存与回归。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "25",
+      "name": "如天至福",
+      "sourceHash": "b34265f46411de00",
+      "category": "rules",
+      "tags": [
+        "命运幸运",
+        "防御生存",
+        "奖励获取"
+      ],
+      "reason": "行动与际遇持续获得大成功和逢凶化吉的结果偏向。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "28",
+      "name": "脑洞大爆炸",
+      "sourceHash": "04f17eba2531a7aa",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "认知干涉"
+      ],
+      "reason": "获授权的想法直接确立为现实设定。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "62",
+      "name": "早有先例",
+      "sourceHash": "3bed4a144e51028e",
+      "category": "rules",
+      "tags": [
+        "时空因果",
+        "命运幸运"
+      ],
+      "reason": "以真实先例让对应结果确定复现。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "68",
+      "name": "故事点",
+      "sourceHash": "c66fd315acfe25e7",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "交易兑换",
+        "命运幸运"
+      ],
+      "reason": "以点数购买现实与命运的完整修正结果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "75",
+      "name": "钟灵毓秀",
+      "sourceHash": "3bb9690c316234ca",
+      "category": "rules",
+      "tags": [
+        "关系互动",
+        "防御生存"
+      ],
+      "reason": "周围存在在行动与际遇中持续给予实际让利，不等于收录伙伴。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "82",
+      "name": "+3",
+      "sourceHash": "7768ebfe7e397dae",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "永久强化"
+      ],
+      "reason": "指定属性和单位直接增加现实数值。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "83",
+      "name": "位移",
+      "sourceHash": "1aa2ff05ce75a161",
+      "category": "rules",
+      "tags": [
+        "空间能力",
+        "时空因果",
+        "规则统御"
+      ],
+      "reason": "移动广义位置并重排现实关系，不只是旅行工具。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "101",
+      "name": "以爱之名",
+      "sourceHash": "46d1be884a9fcf14",
+      "category": "rules",
+      "tags": [
+        "关系互动",
+        "防御生存"
+      ],
+      "reason": "影响已见者的珍惜、容让与伤害倾向，不等于军团招募。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "103",
+      "name": "描述改写",
+      "sourceHash": "1cffc14be1dc2859",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "防御生存"
+      ],
+      "reason": "通过描述改变事实定义并保全结果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "105",
+      "name": "质能转换",
+      "sourceHash": "1ebe4208b99f1500",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "战斗攻防",
+        "造物创造"
+      ],
+      "reason": "直接取用和转换真实质能，贯通攻防与造物补给。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "108",
+      "name": "梗真人",
+      "sourceHash": "1827505dad7806a9",
+      "category": "rules",
+      "tags": [
+        "现实改写"
+      ],
+      "reason": "使梗的本次有效含义成为真实优势或事件结果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "111",
+      "name": "蝴蝶效应",
+      "sourceHash": "35cab3a9c209a663",
+      "category": "rules",
+      "tags": [
+        "时空因果",
+        "修炼突破",
+        "交易兑换"
+      ],
+      "reason": "由真实介入与后续余波取得自身收益。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "114",
+      "name": "绝对口胡",
+      "sourceHash": "30463c08cde13e8a",
+      "category": "rules",
+      "tags": [
+        "现实改写"
+      ],
+      "reason": "通过有效说法确立真实能力与结果。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "116",
+      "name": "仙境再现",
+      "sourceHash": "56cc54b9006c7505",
+      "category": "rules",
+      "tags": [
+        "现实改写",
+        "规则统御"
+      ],
+      "reason": "建立新联系，使其成为能力、用途与持续规则。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "120",
+      "name": "知见障",
+      "sourceHash": "45d75a83298a9c77",
+      "category": "rules",
+      "tags": [
+        "认知干涉"
+      ],
+      "reason": "使相关存在自然接受既定事物与认知安排。",
+      "entryPoint": "general-catalog"
+    },
+    {
+      "entryId": "121",
+      "name": "自定义",
+      "sourceHash": "d93f6c8fd6d477d1",
+      "category": "rules",
+      "tags": [
+        "现实改写"
+      ],
+      "reason": "自主指定对象定义、适用范围与持续规则。",
+      "entryPoint": "general-catalog"
+    }
+  ],
+  "auxiliaryEntries": [
+    {
+      "entryId": "13",
+      "name": "万界武库思维链（V2.1）",
+      "sourceHash": "65353480e917d0ca",
+      "kind": "global-rule",
+      "relatedEntryIds": [],
+      "relatedNames": [],
+      "note": "与另一个内置思维链版本择一；是否使用仍沿用玩家选择，分类不自动注入。"
+    },
+    {
+      "entryId": "14",
+      "name": "万界武库通用选项栏",
+      "sourceHash": "c6724dd1e96e9103",
+      "kind": "global-ui-rule",
+      "relatedEntryIds": [],
+      "relatedNames": [],
+      "note": "通用选项规则，不作为独立金手指展示。"
+    },
+    {
+      "entryId": "27",
+      "name": "万界武库思维链（无状态栏和回执版）",
+      "sourceHash": "f30b3df763164a93",
+      "kind": "global-rule",
+      "relatedEntryIds": [],
+      "relatedNames": [],
+      "note": "与V2.1是不同版本选项，不因分类自动同时启用。"
+    },
+    {
+      "entryId": "49",
+      "name": "熟练度状态栏·初始技能",
+      "sourceHash": "d241ad6b2780a659",
+      "kind": "power-reference",
+      "relatedEntryIds": [
+        "48"
+      ],
+      "relatedNames": [
+        "熟练度状态栏"
+      ],
+      "note": "初始技能参考，展示在所属词条资料中，不独立算一个能力。"
+    },
+    {
+      "entryId": "50",
+      "name": "熟练度状态栏·技能特效样式",
+      "sourceHash": "2967037807550fa0",
+      "kind": "power-reference",
+      "relatedEntryIds": [
+        "48"
+      ],
+      "relatedNames": [
+        "熟练度状态栏"
+      ],
+      "note": "技能特效格式参考，沿用玩家原有选取与注入设置。"
+    },
+    {
+      "entryId": "52",
+      "name": "人生模拟·模拟格式",
+      "sourceHash": "44a45075aa3c2495",
+      "kind": "power-reference",
+      "relatedEntryIds": [
+        "51"
+      ],
+      "relatedNames": [
+        "人生模拟"
+      ],
+      "note": "模拟输出格式参考，不作为独立金手指。"
+    },
+    {
+      "entryId": "54",
+      "name": "文明之光系统·文明阶段",
+      "sourceHash": "655207bb34118867",
+      "kind": "power-reference",
+      "relatedEntryIds": [
+        "53"
+      ],
+      "relatedNames": [
+        "文明之光系统"
+      ],
+      "note": "文明阶段说明，关联文明之光系统。"
+    },
+    {
+      "entryId": "55",
+      "name": "文明之光系统·伟大领袖",
+      "sourceHash": "945715e8d7764a16",
+      "kind": "power-reference",
+      "relatedEntryIds": [
+        "53"
+      ],
+      "relatedNames": [
+        "文明之光系统"
+      ],
+      "note": "文明体系的个人收益补充，关联主词条。"
+    },
+    {
+      "entryId": "56",
+      "name": "文明之光系统·辉煌灿烂",
+      "sourceHash": "2c28076054b3ab14",
+      "kind": "power-reference",
+      "relatedEntryIds": [
+        "53"
+      ],
+      "relatedNames": [
+        "文明之光系统"
+      ],
+      "note": "文明繁荣表现补充，关联主词条。"
+    }
+  ],
+  "additionalModules": [
+    {
+      "moduleId": "builtin_mmlc_statistics",
+      "entryId": "mmlc-statistics-v1",
+      "name": "漫漫长路",
+      "category": "farming",
+      "tags": [
+        "修炼突破",
+        "世界经营",
+        "生产建设"
+      ],
+      "entryPoint": "dedicated-mmlc",
+      "reason": "修行、福地、宗门与研究生产组成持续发展的道场；以种田经营为主要选择入口，兼具个人修行。",
+      "sourceRef": "src/mmlc-rulebook.js:MMLC_GAMEPLAY",
+      "sourceHash": "7e549665392b8329"
+    }
+  ]
+}

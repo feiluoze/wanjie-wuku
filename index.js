@@ -37,6 +37,8 @@ import { assertProfileRegistration } from './src/management-profiles.js';
 import { workflowMethods } from './src/workflow.js';
 import { managementMethods } from './src/management.js';
 import { archiveMethods } from './src/archives.js';
+import {recordFrameworkMethods} from './src/record-framework-controller.js';
+import {setRecordFrameworks} from './src/record-frameworks.js';
 import { archiveReviewMethods } from './src/archive-review.js';
 import { archiveMemoryMethods } from './src/archive-memory.js';
 import { playerHomeMethods } from './src/player-home.js';
@@ -196,7 +198,7 @@ export class WukuApp {
     if(this.manualBatchRun)this.manualBatchRun.stopped=true;
     this.aiActivity?.cancel(); this.modelListController?.abort();
   }
-  async query(prompt, snapshot, { task = 'general', taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
+  async query(prompt, snapshot, { task = 'general', retryTransient = false, taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
     assert(!this.destroyed, '插件实例已释放');
     assert(!this.busy, '已有查询进行中');
     const connectionPlan = resolveTaskConnectionPlan(task,getContext(),this.settings,this.apiKey), connection=connectionPlan[0];this.requestSecrets=[this.apiKey,...accountSecrets()];
@@ -233,8 +235,10 @@ export class WukuApp {
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
       const send=async(p,plan)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
+        retryDelays:retryTransient?[8000,20000]:[],
+        onRetry:info=>{this.aiActivity?.phase(`${info.delay/1000}秒后自动重试（第${info.attempt}/${info.limit}次）`);this.runtimeLog?.step(logId,'等待自动重试',info);},
         signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');checkCapture();assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
-        onAttempt:selected=>{this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
+        onAttempt:selected=>{this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.retry>0?'等待自动重试回复':selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
         onFailure:(selected,error)=>this.runtimeLog?.step(logId,'API尝试失败',{task:selected.task,attempt:selected.attempt,kind:error.transportKind||'non-transport',httpStatus:error.httpStatus}),
         onSwitch:info=>this.runtimeLog?.step(logId,'切换备用API',{task:info.from.task,from:info.from.profileName,to:info.to.profileName,kind:info.kind,httpStatus:info.httpStatus})
       });};
@@ -636,6 +640,8 @@ export class WukuApp {
       case 'terminal-cancel': return this.cancelTerminal(data.id);
       case 'adapter-share': return this.shareAdapter();
       case 'adapter-library-use': return this.openLibraryAdapter(data.id);
+      case 'frameworks-open': return this.openRecordFrameworks();
+      case 'frameworks-save': return this.saveRecordFrameworks(data);
       case 'adapter-open': return this.openAdapter();
       case 'adapter-import': return this.importAdapter(data.file);
       case 'adapter-confirm': return this.confirmAdapter();
@@ -743,17 +749,20 @@ export class WukuApp {
       case 'remove-read-book': return this.removeReadBook(data.book);
       case 'import-book': assert(data.file.size <= 16 * 1024 * 1024, '世界书文件超过16MB'); return this.catalog(importBook(JSON.parse(await data.file.text()), data.file.name.replace(/\.json$/i, '')));
       case 'register': {
+        assert(!this.busy&&!this.mainBusy&&!this.committing&&!this.pendingArchiveReview&&!this.archiveReviewJob&&!this.manualBatchRun,'请先完成或放弃当前整理候选，再接入或调整词条');
         const s = snapshot(); const selectedEntry = this.settings.catalog.find(e => e.id === data.values.primary); assert(selectedEntry, '主词条不存在');
         const entry = { ...selectedEntry, id:builtinPowerId(selectedEntry,s.state.powers) };
         const companions = new FormData(data.form).getAll('companion').filter(id => id !== selectedEntry.id).map(id => this.settings.catalog.find(e => e.id === id)).filter(Boolean);
         assertProfileRegistration(entry, companions, s.state.powers);
         const registered = createPower(entry, companions);
+        const frameworkChoice=data.form?.elements?.['framework-selection']?.value==='1'?new FormData(data.form).getAll('record-framework'):undefined;
         await this.store.transact(next => {
           const old = next.powers[registered.id]; if (old) upgradeBuiltinPower(old);
-          if (old) { if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if(old.taishiWorkflow!==undefined)registered.taishiWorkflow=old.taishiWorkflow; if(old.taishiPeople)registered.taishiPeople=clone(old.taishiPeople); if(old.taishiBuild)registered.taishiBuild=clone(old.taishiBuild); if(old.taishiTime)registered.taishiTime=clone(old.taishiTime);if(old.taishiSchedule)registered.taishiSchedule=clone(old.taishiSchedule);if(old.taishiSchedules)registered.taishiSchedules=clone(old.taishiSchedules); if(old.taishiAutonomy!==undefined)registered.taishiAutonomy=old.taishiAutonomy; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
+          if (old) { if(old.recordFrameworks)registered.recordFrameworks=clone(old.recordFrameworks); if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if(old.taishiWorkflow!==undefined)registered.taishiWorkflow=old.taishiWorkflow; if(old.taishiPeople)registered.taishiPeople=clone(old.taishiPeople); if(old.taishiBuild)registered.taishiBuild=clone(old.taishiBuild); if(old.taishiTime)registered.taishiTime=clone(old.taishiTime);if(old.taishiSchedule)registered.taishiSchedule=clone(old.taishiSchedule);if(old.taishiSchedules)registered.taishiSchedules=clone(old.taishiSchedules); if(old.taishiAutonomy!==undefined)registered.taishiAutonomy=old.taishiAutonomy; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
           autoAssociateAdapter(registered,this.associationLibrary());
           next.powers[registered.id] = registered;
           if (!Object.keys(s.state.powers).length) { next.syncCursor = s.ctx.chat.length; next.managementStart = s.ctx.chat.length; next.historyAnchor = s.hashes; }
+          if(frameworkChoice!==undefined)setRecordFrameworks(registered,frameworkChoice);
           this.record(next, old ? `更新接入：${entry.name}` : `接入：${entry.name}`, [`完整正文已登记，规则版本 ${registered.ruleVersion}`, '余额待明确；旧剧情不会自动补发奖励'], 'setup', registered.id);
         }, { captured: { chatKey: s.chatKey, stateId: s.state.id, revision: s.state.revision } });
         this.powerId = registered.id; this.ui.space=powerSpace(registered);this.ui.tab='management';this.ui.closeDialog(); this.refresh();
@@ -944,7 +953,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, mmlcMethods, taishiStructureMethods, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, recordFrameworkMethods, mmlcMethods, taishiStructureMethods, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 

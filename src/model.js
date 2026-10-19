@@ -1,5 +1,5 @@
 import {archiveFormatOptions} from './archive-contract.js';
-import {transportFailure} from './api-fallback.js';
+import {transportFailure,providerFailure,permanentProviderError} from './api-fallback.js';
 import {backendRequestHeaders,independentFetch} from './model-transport.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
 import {customRequestParameters} from './model-parameters.js';
@@ -149,7 +149,13 @@ export class ModelConnection {
         const response = await independentFetch(this.fetchImpl,urls[i], { method: 'POST', headers, signal: controller.signal, body: JSON.stringify({ model: String(settings.model).trim(), temperature: bounded(settings.temperature, 0, 2, GENERATION_DEFAULTS.temperature), max_tokens: Math.round(bounded(settings.maxTokens, 256, OUTPUT_TOKEN_LIMIT, GENERATION_DEFAULTS.maxTokens)), stream: false, ...(settings.model==='deepseek-v4.1-flash-free'?{tool_choice:'none'}:{}), ...thinkingOptions(settings), ...archiveFormatOptions(settings,prompt), ...customParameters, messages: prompt.messages||[{ role: 'system', content: prompt.system }, { role: 'user', content: prompt.user }] }) },backendHeaders);
         // Only route-not-found responses qualify for a path fallback. Never retry 429/5xx or charged generations.
         if ([404, 405].includes(response.status) && i + 1 < urls.length) continue;
-        if (!response.ok) { report({httpStatus:response.status,format:'http-error'}); throw transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status); }
+        if (!response.ok) {
+            let diagnostic={httpStatus:response.status,format:'http-error'};
+            try{if(typeof response.json==='function'){const parsed=parseModelResponse(await response.json(),response.status);diagnostic={...parsed.diagnostic,httpStatus:response.status,format:'http-error'};}}catch{}
+            report(diagnostic);const error=transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status);
+            if(permanentProviderError(diagnostic))error.retryableTransport=false;
+            throw error;
+          }
         let data;
         try { data = await response.json(); } catch {
           if(controller.signal.aborted)throw new Error('cancelled');
@@ -158,7 +164,7 @@ export class ModelConnection {
         }
         const parsed = parseModelResponse(data,response.status ?? 200); report(parsed.diagnostic);
         if(parsed.diagnostic.finish==='length'){const limit=customParameters.max_completion_tokens??customParameters.max_tokens??settings.maxTokens??GENERATION_DEFAULTS.maxTokens;const error=new Error('输出达到接口输出限制（请求上限 '+limit+' tokens）；本次未提交。请在AI连接与方案→高级设置与自动核算→输出上限中提高额度，或缩小本批整理范围');error.requestStage='response';throw error;}
-        if(parsed.error){const error=new Error(parsed.error);error.requestStage='response';throw error;} return parsed.content;
+        if(parsed.error)throw providerFailure(parsed.diagnostic,parsed.error); return parsed.content;
       }
       throw new Error('接口路径不匹配');
     } catch (error) {

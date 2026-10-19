@@ -20,7 +20,7 @@ export function taskConnection(task,settings,apiKey,profiles=[]){
 export function taskConnectionLabel(connection){
   const mode=connection.settings?.mode;
   const model=mode==='st'?'跟随酒馆当前模型':mode==='custom'?String(connection.settings.model||'未填写模型'):'异步模型已关闭';
-  return `${AI_TASKS[connection.task]||'当前任务'} · ${connection.profileName||'当前连接'} · ${model}${connection.attempt>1?' · 备用'+(connection.attempt-1):''}${connection.task==='setup'?' · 单批最长'+requestTimeoutSeconds(connection.settings,connection.task)+'秒，可取消':''}`;
+  return `${AI_TASKS[connection.task]||'当前任务'} · ${connection.profileName||'当前连接'} · ${model}${connection.retry>0?' · 重试'+connection.retry:connection.attempt>1?' · 备用'+((connection.connectionIndex||connection.attempt)-1):''}${connection.task==='setup'?' · 单批最长'+requestTimeoutSeconds(connection.settings,connection.task)+'秒，可取消':''}`;
 }
 
 export function normalizeTaskFallbacks(routes={},profiles=[],primary={}){

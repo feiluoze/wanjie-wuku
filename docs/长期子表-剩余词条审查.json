@@ -1,0 +1,1201 @@
+{
+  "format": "wjwk-remaining-table-audit-v1",
+  "baselineVersion": "1.6.2",
+  "mainPowers": 115,
+  "previousReviewed": 32,
+  "previousDefaults": 38,
+  "previousCompatibility": 69,
+  "unreviewed": 83,
+  "excluded": 64,
+  "dedicated": 1,
+  "selected": 18,
+  "newDefaultTables": 21,
+  "batches": [
+    {
+      "batch": 8,
+      "names": [
+        "至高亡灵主宰",
+        "攻略系统",
+        "奇迹智子"
+      ],
+      "status": "本地实现与针对性检查完成；真实酒馆待验"
+    },
+    {
+      "batch": 9,
+      "names": [
+        "万物尽头",
+        "文明之光系统",
+        "知识荒野"
+      ],
+      "status": "本地实现与针对性检查完成；真实酒馆待验"
+    },
+    {
+      "batch": 10,
+      "names": [
+        "抽奖系统",
+        "置物栏",
+        "完美融合"
+      ],
+      "status": "本地实现与针对性检查完成；真实酒馆待验"
+    },
+    {
+      "batch": 11,
+      "names": [
+        "万象神魔图录",
+        "早有先例",
+        "光之钥"
+      ],
+      "status": "本地实现与针对性检查完成；真实酒馆待验"
+    },
+    {
+      "batch": 12,
+      "names": [
+        "源堡",
+        "混沌海",
+        "永暗之河"
+      ],
+      "status": "本地实现与针对性检查完成；真实酒馆待验"
+    },
+    {
+      "batch": 13,
+      "names": [
+        "暗影世界",
+        "绝对适应（新版）",
+        "生物计算机"
+      ],
+      "status": "本地实现与针对性检查完成；真实酒馆待验"
+    }
+  ],
+  "entries": [
+    {
+      "name": "源堡",
+      "entryId": "0",
+      "sourceHash": "a67bdd2c672ddeb2",
+      "decision": "制作",
+      "batch": 12,
+      "tables": [
+        {
+          "id": "records",
+          "label": "重要历史档案",
+          "reason": "已取得且以后需要重新调用的重要人物、事件与历史信息档案。"
+        }
+      ],
+      "reason": "已取得且以后需要重新调用的重要人物、事件与历史信息档案。",
+      "originalStatusbar": [
+        "源堡·领域总览"
+      ]
+    },
+    {
+      "name": "混沌海",
+      "entryId": "1",
+      "sourceHash": "2eea49deb90001c0",
+      "decision": "制作",
+      "batch": 12,
+      "tables": [
+        {
+          "id": "creations",
+          "label": "重要独立造物",
+          "reason": "已真实成立、以后需要独立调用的重要生命或造物。"
+        }
+      ],
+      "reason": "已真实成立、以后需要独立调用的重要生命或造物。",
+      "originalStatusbar": [
+        "混沌海·领域总览"
+      ]
+    },
+    {
+      "name": "永暗之河",
+      "entryId": "2",
+      "sourceHash": "ead5de60cb943686",
+      "decision": "制作",
+      "batch": 12,
+      "tables": [
+        {
+          "id": "residents",
+          "label": "重要长河居民",
+          "reason": "需独立接续身份、烙印与状态的重要真实居民和亡者。"
+        }
+      ],
+      "reason": "需独立接续身份、烙印与状态的重要真实居民和亡者。",
+      "originalStatusbar": [
+        "永暗之河·领域总览"
+      ]
+    },
+    {
+      "name": "母巢",
+      "entryId": "3",
+      "sourceHash": "6404f34ccf4441ec",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原生命总览已经承接重要生命结构与群体状态；本轮不为普通子体和每次培育额外造册。",
+      "originalStatusbar": [
+        "母巢·生命总览"
+      ]
+    },
+    {
+      "name": "知识荒野",
+      "entryId": "4",
+      "sourceHash": "948e4caaf3c1ce86",
+      "decision": "制作",
+      "batch": 9,
+      "tables": [
+        {
+          "id": "knowledge",
+          "label": "重要知识与文明档案",
+          "reason": "已真实收入、以后仍需调用的重要知识体系及文明记录，保留适用范围与来源。"
+        }
+      ],
+      "reason": "已真实收入、以后仍需调用的重要知识体系及文明记录，保留适用范围与来源。",
+      "originalStatusbar": [
+        "知识荒野·领域总览"
+      ]
+    },
+    {
+      "name": "灾祸之城",
+      "entryId": "5",
+      "sourceHash": "970e1f277c7fa1a7",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "灾厄、征服与回响主要是当前领域状态及所得；暂无必须新增独立长期对象的依据，不把每次灾变列流水。",
+      "originalStatusbar": [
+        "灾祸之城·灾厄总览"
+      ]
+    },
+    {
+      "name": "暗影世界",
+      "entryId": "6",
+      "sourceHash": "f13b71ecb8eed538",
+      "decision": "制作",
+      "batch": 13,
+      "tables": [
+        {
+          "id": "beings",
+          "label": "重要暗影成员",
+          "reason": "已真实归属、以后需独立接续的重要异类和眷属。"
+        }
+      ],
+      "reason": "已真实归属、以后需独立接续的重要异类和眷属。",
+      "originalStatusbar": [
+        "暗影世界·领域总览"
+      ]
+    },
+    {
+      "name": "失序之国",
+      "entryId": "7",
+      "sourceHash": "7aed93b86c978716",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "生效规则、身份和权限应在原规则总览保持一致；另列规则变更表会与当前生效状态重复。",
+      "originalStatusbar": [
+        "失序之国·规则总览"
+      ]
+    },
+    {
+      "name": "光之钥",
+      "entryId": "8",
+      "sourceHash": "4c0d782132f9f9ef",
+      "decision": "制作",
+      "batch": 11,
+      "tables": [
+        {
+          "id": "tracks",
+          "label": "重要历史轨迹",
+          "reason": "已真实存在、被明确保留且有后续回接价值的重要轨迹版本与节点。"
+        }
+      ],
+      "reason": "已真实存在、被明确保留且有后续回接价值的重要轨迹版本与节点。",
+      "originalStatusbar": [
+        "光之钥·命运总览"
+      ]
+    },
+    {
+      "name": "本我完满宝诰",
+      "entryId": "9",
+      "sourceHash": "f182688585d59d71",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "核心是自身完满与持续收益，不具备本轮需要分离的独立对象；沿原文和既有自身成果保存，不凭空新增状态栏。",
+      "originalStatusbar": []
+    },
+    {
+      "name": "至高亡灵主宰",
+      "entryId": "10",
+      "sourceHash": "d9282c7e32618f36",
+      "decision": "制作",
+      "batch": 8,
+      "tables": [
+        {
+          "id": "members",
+          "label": "重要亡灵",
+          "reason": "有独立身份、特殊能力或长期职责，未来需要单独调用的重要亡灵或具名军势。"
+        }
+      ],
+      "reason": "有独立身份、特殊能力或长期职责，未来需要单独调用的重要亡灵或具名军势。",
+      "originalStatusbar": [
+        "亡灵主宰·总览"
+      ]
+    },
+    {
+      "name": "与共者",
+      "entryId": "12",
+      "sourceHash": "0bc959dbaddac641",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "唯一旅伴的身份、能力与经历已由原旅伴记录承接；不再平行复制一份人物表。",
+      "originalStatusbar": [
+        "与共者·旅伴记录"
+      ]
+    },
+    {
+      "name": "分二",
+      "entryId": "17",
+      "sourceHash": "c01a9149759d5671",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "分化方式与当前分体安排由原概览维护，不把每次分合与普通分体当长期独立新人物。",
+      "originalStatusbar": [
+        "分二·当前概览"
+      ]
+    },
+    {
+      "name": "攻防一体",
+      "entryId": "19",
+      "sourceHash": "8afbfd59794b9275",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "核心是自身攻防统一状态与已成性质，原状态足够，无需攻防事件账。",
+      "originalStatusbar": [
+        "攻防一体"
+      ]
+    },
+    {
+      "name": "深蓝",
+      "entryId": "22",
+      "sourceHash": "d580c24614fb200a",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原总览及当前重点已覆盖加点和掌握结果；先维持自身技能事实，不额外拆加点过程与目标阶段流水。",
+      "originalStatusbar": [
+        "深蓝·总览",
+        "当前重点"
+      ]
+    },
+    {
+      "name": "签到",
+      "entryId": "23",
+      "sourceHash": "79b114d6ecea08f8",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "签到进度、近期节点与已有库存足够；不为每日奖励或每个里程碑再建长期收获流水。",
+      "originalStatusbar": [
+        "签到·总览",
+        "最近签到",
+        "近期里程碑"
+      ]
+    },
+    {
+      "name": "如天至福",
+      "entryId": "25",
+      "sourceHash": "b34265f46411de00",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "命运眷顾和当前重要结果可由原概览接续，不把每次好运分别长期登记。",
+      "originalStatusbar": [
+        "如天至福·命运概览"
+      ]
+    },
+    {
+      "name": "绝对命中",
+      "entryId": "26",
+      "sourceHash": "2c5d6f89ba790725",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原在途记录承接尚未结束的命中；已结束的普通攻击无需常驻历史表。",
+      "originalStatusbar": [
+        "绝对命中·在途记录"
+      ]
+    },
+    {
+      "name": "脑洞大爆炸",
+      "entryId": "28",
+      "sourceHash": "04f17eba2531a7aa",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原总览承接当前思路与实际成果，不将灵感和每轮试想批量入库。",
+      "originalStatusbar": [
+        "脑洞大爆炸·总览"
+      ]
+    },
+    {
+      "name": "战力倍增",
+      "entryId": "32",
+      "sourceHash": "9b5cc28d81ba8393",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "本体当前倍增与已得效果属于自身状态，不另建战斗或倍率快照表。",
+      "originalStatusbar": [
+        "战力倍增·总览"
+      ]
+    },
+    {
+      "name": "密码正确",
+      "entryId": "33",
+      "sourceHash": "7032cc9ac657f696",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前有效状态与重要结果原栏可表达，不把每次能力触发长期留档。",
+      "originalStatusbar": [
+        "密码正确·当前状态"
+      ]
+    },
+    {
+      "name": "完满与破限",
+      "entryId": "34",
+      "sourceHash": "055ee443f7e4b509",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原技艺概览承接掌握与破限程度，不将每次锻炼和突破过程拆成独立成果。",
+      "originalStatusbar": [
+        "完满与破限·技艺概览"
+      ]
+    },
+    {
+      "name": "点石成金",
+      "entryId": "35",
+      "sourceHash": "d14687c15cdab353",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前拔擢目标与重要结果先由原拔擢记录接续；目标、序列、状态不再三份平行建档，实际多对象失忆再评估。",
+      "originalStatusbar": [
+        "点石成金·拔擢记录"
+      ]
+    },
+    {
+      "name": "上位替代",
+      "entryId": "36",
+      "sourceHash": "b7679e9f75cda9cf",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前版本、候选与既有根基应关联原记录，不为每个候选和更替阶段永久建档。",
+      "originalStatusbar": [
+        "上位替代·当前记录"
+      ]
+    },
+    {
+      "name": "奇迹智子",
+      "entryId": "37",
+      "sourceHash": "d13672ccba372656",
+      "decision": "制作",
+      "batch": 8,
+      "tables": [
+        {
+          "id": "groups",
+          "label": "重要智子集群",
+          "reason": "需要独立指挥、长期接续关键任务或独有能力的重要集群及个体。"
+        }
+      ],
+      "reason": "需要独立指挥、长期接续关键任务或独有能力的重要集群及个体。",
+      "originalStatusbar": [
+        "奇迹智子·集群总览"
+      ]
+    },
+    {
+      "name": "代价减免",
+      "entryId": "38",
+      "sourceHash": "1108a8b99c87ee05",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "需求、代价与减免结果沿既有规则字段记录即可；没有独立持久实体，不设减免费用账。",
+      "originalStatusbar": []
+    },
+    {
+      "name": "噬恶魔主",
+      "entryId": "40",
+      "sourceHash": "f8d4fa17c2883d47",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身成长、当前恶性与重要所得原状态足够，不按吞噬次数建流水。",
+      "originalStatusbar": [
+        "噬恶魔主·当前状态"
+      ]
+    },
+    {
+      "name": "大劫主",
+      "entryId": "42",
+      "sourceHash": "b6ec6a7cba091830",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身根基与当前劫数由原总览接续，不把每次劫难和反馈拆成持久实体。",
+      "originalStatusbar": [
+        "大劫主·总览"
+      ]
+    },
+    {
+      "name": "传颂之名",
+      "entryId": "43",
+      "sourceHash": "fdfbce8d4d4b6d4b",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "名望、传颂效果与重要变化属于原总览，不复制传播事件和收益流水。",
+      "originalStatusbar": [
+        "传颂之名·总览"
+      ]
+    },
+    {
+      "name": "人生模拟",
+      "entryId": "51",
+      "sourceHash": "1db7e53d3e334db3",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "避免逐轮保留冗长人生与结算；只保留正文确认的永久所得、重要分歧及当前模拟重点于既有记录。",
+      "originalStatusbar": [
+        "人生模拟·总览"
+      ]
+    },
+    {
+      "name": "文明之光系统",
+      "entryId": "53",
+      "sourceHash": "7373833ff59423b7",
+      "decision": "制作",
+      "batch": 9,
+      "tables": [
+        {
+          "id": "communities",
+          "label": "重要文明共同体",
+          "reason": "实际治理且需长期追踪基础、阶段、发展方向与反馈的重要共同体。"
+        }
+      ],
+      "reason": "实际治理且需长期追踪基础、阶段、发展方向与反馈的重要共同体。",
+      "originalStatusbar": [
+        "文明之光系统·总览"
+      ]
+    },
+    {
+      "name": "完美融合",
+      "entryId": "57",
+      "sourceHash": "08d77347677e93a1",
+      "decision": "制作",
+      "batch": 10,
+      "tables": [
+        {
+          "id": "products",
+          "label": "重要融合成果",
+          "reason": "已经实际成立、以后仍需调用的重要融合主体与稳定可用阶段成果。"
+        }
+      ],
+      "reason": "已经实际成立、以后仍需调用的重要融合主体与稳定可用阶段成果。",
+      "originalStatusbar": [
+        "完美融合·当前状态"
+      ]
+    },
+    {
+      "name": "万象神魔图录",
+      "entryId": "59",
+      "sourceHash": "0d3de1d7b8205bd9",
+      "decision": "制作",
+      "batch": 11,
+      "tables": [
+        {
+          "id": "archetypes",
+          "label": "重要原型与图页",
+          "reason": "已实际取得、可后续调用的重要原型及有真实内容的残页。"
+        },
+        {
+          "id": "generals",
+          "label": "重要图录战将",
+          "reason": "有自身人格与能力、需要独立接续的重要真实战将。"
+        }
+      ],
+      "reason": "已实际取得、可后续调用的重要原型及有真实内容的残页。；有自身人格与能力、需要独立接续的重要真实战将。",
+      "originalStatusbar": [
+        "万象神魔图录·总览",
+        "当前征服战"
+      ]
+    },
+    {
+      "name": "心灵武装化",
+      "entryId": "61",
+      "sourceHash": "14a01ee4318e3b16",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原图谱已经表达重要武装与心灵成长，暂不将每个形态和临时显化再拆表。",
+      "originalStatusbar": [
+        "心灵武装·图谱"
+      ]
+    },
+    {
+      "name": "早有先例",
+      "entryId": "62",
+      "sourceHash": "3bed4a144e51028e",
+      "decision": "制作",
+      "batch": 11,
+      "tables": [
+        {
+          "id": "precedent",
+          "label": "重要可援引先例",
+          "reason": "真实发生且以后仍有明确复用价值的重要历史先例及已确认结果。"
+        }
+      ],
+      "reason": "真实发生且以后仍有明确复用价值的重要历史先例及已确认结果。",
+      "originalStatusbar": [
+        "早有先例·先例总览"
+      ]
+    },
+    {
+      "name": "武魂",
+      "entryId": "64",
+      "sourceHash": "5c025d4e7d95de92",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身武魂、能力与当前成长属于原状态，不另建每次显化和修行记录。",
+      "originalStatusbar": [
+        "武魂·当前状态"
+      ]
+    },
+    {
+      "name": "神象镇狱劲",
+      "entryId": "65",
+      "sourceHash": "82e863bf8fd1f353",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原自身总览承接根基、力量及重要技法，不将每次觉醒和能量变化另计账。",
+      "originalStatusbar": [
+        "神象镇狱劲·总览"
+      ]
+    },
+    {
+      "name": "神圣几何",
+      "entryId": "66",
+      "sourceHash": "ba5aa866d01fcdfe",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前构型和节点关系须在原构型一致维护，普通节点、搭建过程与每次重排不逐项长期建档。",
+      "originalStatusbar": [
+        "神圣几何·当前构型"
+      ]
+    },
+    {
+      "name": "故事点",
+      "entryId": "68",
+      "sourceHash": "c66fd315acfe25e7",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "点数、当前改写与意图由原记录及资源账本负责，不增加故事点钱包或每笔收支表。",
+      "originalStatusbar": [
+        "故事点·当前记录"
+      ]
+    },
+    {
+      "name": "第一性原理",
+      "entryId": "69",
+      "sourceHash": "56f74c41c09dde73",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原概览先保留已理解的关键原理和适用边界，不为普通解析问题与问答扩知识流水；确有多项需独立调用再复审。",
+      "originalStatusbar": [
+        "第一性原理·概览"
+      ]
+    },
+    {
+      "name": "敕天法统",
+      "entryId": "71",
+      "sourceHash": "ef97458c884c0c94",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "法统、辖域与重要当前成果属于整体运行状态，原总览先承接；不把每个职位和日常治理动作自动列长期表。",
+      "originalStatusbar": [
+        "敕天法统·总览"
+      ]
+    },
+    {
+      "name": "万物之始",
+      "entryId": "72",
+      "sourceHash": "6dd78794fe0c91d0",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "始源能力与当前持续安排用原概览即可，不以权柄范围大为由给全部可能产物预建表。",
+      "originalStatusbar": [
+        "万物之始·始源概览"
+      ]
+    },
+    {
+      "name": "攻略系统",
+      "entryId": "73",
+      "sourceHash": "a07bd5ee8f3aa1fe",
+      "decision": "制作",
+      "batch": 8,
+      "tables": [
+        {
+          "id": "people",
+          "label": "重要关系人物",
+          "reason": "需要长期接续独立好感、关系经历和已领取阈值的重要真实人物。"
+        }
+      ],
+      "reason": "需要长期接续独立好感、关系经历和已领取阈值的重要真实人物。",
+      "originalStatusbar": [
+        "攻略系统·总览"
+      ]
+    },
+    {
+      "name": "钟灵毓秀",
+      "entryId": "75",
+      "sourceHash": "3bb9690c316234ca",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原重要变化承接实际所得，不给普通环境接触、气运变化分别建档。",
+      "originalStatusbar": [
+        "钟灵毓秀·重要变化"
+      ]
+    },
+    {
+      "name": "原力与光剑与吾同在",
+      "entryId": "76",
+      "sourceHash": "89a56f6ed8ba0cc0",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身原力、光剑与当前修习原状态已覆盖，不增加练习及每次施展表。",
+      "originalStatusbar": [
+        "原力与光剑·当前状态"
+      ]
+    },
+    {
+      "name": "进化之炎",
+      "entryId": "77",
+      "sourceHash": "5adcb4013b536073",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原概览和项目摘要已区分现况与重点，普通优化及阶段进展不重复拆表。",
+      "originalStatusbar": [
+        "进化之炎·当前概览",
+        "项目摘要"
+      ]
+    },
+    {
+      "name": "赋能",
+      "entryId": "78",
+      "sourceHash": "925d398e77b7f07e",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "实际重要赋能与所得沿原记录接续，不将每次赋能动作、待办与收益三套平行保存。",
+      "originalStatusbar": [
+        "赋能·当前记录"
+      ]
+    },
+    {
+      "name": "无龙心法",
+      "entryId": "79",
+      "sourceHash": "eadd48634d69840f",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身掌握与修行成果由原记录保存，不另建每次顿悟与修习流水。",
+      "originalStatusbar": [
+        "无龙心法·当前记录"
+      ]
+    },
+    {
+      "name": "归我所有",
+      "entryId": "81",
+      "sourceHash": "81a384253d075c41",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "重点是实际归属和保留所得，原状态与已有库存维护；不为每次战胜、对手与同一次收益建立多份档案。",
+      "originalStatusbar": [
+        "归我所有·当前状态"
+      ]
+    },
+    {
+      "name": "+3",
+      "entryId": "82",
+      "sourceHash": "7768ebfe7e397dae",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "近期重要强化由原记录承接，同一对象变化不拆成多次加三流水。",
+      "originalStatusbar": [
+        "+3·近期记录"
+      ]
+    },
+    {
+      "name": "位移",
+      "entryId": "83",
+      "sourceHash": "1aa2ff05ce75a161",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原重要现状可保存位置关系与持久影响，普通移动路径不值得长期更新。",
+      "originalStatusbar": [
+        "位移·重要现状"
+      ]
+    },
+    {
+      "name": "抽奖系统",
+      "entryId": "84",
+      "sourceHash": "771b866d1f729b47",
+      "decision": "制作",
+      "batch": 10,
+      "tables": [
+        {
+          "id": "curios",
+          "label": "重要奇物",
+          "reason": "已实际持有、以后需独立调用的重要实体奇物和消耗品批次。"
+        },
+        {
+          "id": "privileges",
+          "label": "恒定特权",
+          "reason": "已真实取得且持续有效的重要恒定特权及其具体成长。"
+        }
+      ],
+      "reason": "已实际持有、以后需独立调用的重要实体奇物和消耗品批次。；已真实取得且持续有效的重要恒定特权及其具体成长。",
+      "originalStatusbar": [
+        "抽奖系统·总览"
+      ]
+    },
+    {
+      "name": "恒曜之血",
+      "entryId": "85",
+      "sourceHash": "e573c910099d7d42",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身生命与已成立的血脉效果原总览足够，不给每次恢复和表现另建记录。",
+      "originalStatusbar": [
+        "恒曜之血·总览"
+      ]
+    },
+    {
+      "name": "生物计算机",
+      "entryId": "87",
+      "sourceHash": "c885200c23254e52",
+      "decision": "制作",
+      "batch": 13,
+      "tables": [
+        {
+          "id": "model",
+          "label": "重要世界模型",
+          "reason": "已实际形成、以后需继续调用的重要世界模型及真实适用范围。"
+        }
+      ],
+      "reason": "已实际形成、以后需继续调用的重要世界模型及真实适用范围。",
+      "originalStatusbar": [
+        "生物计算机·概览"
+      ]
+    },
+    {
+      "name": "根源解放",
+      "entryId": "88",
+      "sourceHash": "d5ecb4dc34daa5ec",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "核心是自身根源状态与已得性质，原总览维护，不以每次解放次数建历史表。",
+      "originalStatusbar": [
+        "根源解放·总览"
+      ]
+    },
+    {
+      "name": "我是鬼",
+      "entryId": "89",
+      "sourceHash": "7a32b4bba40122a9",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身灵异与当前重要安排由原总览承接，不为每次显灵和能力表现扩表。",
+      "originalStatusbar": [
+        "我是鬼·灵异总览"
+      ]
+    },
+    {
+      "name": "替身",
+      "entryId": "91",
+      "sourceHash": "c8fdc86f9f127d07",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原替身状态足够保存主体、能力及变化，普通出场与形态表现不另留档。",
+      "originalStatusbar": [
+        "替身·当前状态"
+      ]
+    },
+    {
+      "name": "帧实力",
+      "entryId": "92",
+      "sourceHash": "758e11ab6058af9f",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前帧序及其持续效果原状态可承接，每帧动作快照不做长期表。",
+      "originalStatusbar": [
+        "帧实力·当前帧序"
+      ]
+    },
+    {
+      "name": "太始天（完整版，择一开启））",
+      "entryId": "93",
+      "sourceHash": "c821baa7caa72331",
+      "decision": "专用结构已覆盖",
+      "batch": null,
+      "tables": [],
+      "reason": "太始天已有11类专用档案结构，不再叠加通用子表。",
+      "originalStatusbar": [
+        "太始天·世界总览"
+      ]
+    },
+    {
+      "name": "绝对之门",
+      "entryId": "94",
+      "sourceHash": "aa018e1aa456b1e8",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原重要门况已承接需要保留的门与联系，普通开关和路径不留流水；确有大量独立长期门再复审。",
+      "originalStatusbar": [
+        "绝对之门·重要门况"
+      ]
+    },
+    {
+      "name": "灼魂之焰",
+      "entryId": "95",
+      "sourceHash": "ddd2b435403b9715",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "核心是自身火焰及实际持久效果，沿原规则和既有成果维护，不凭空增加状态栏或逐次燃烧表。",
+      "originalStatusbar": []
+    },
+    {
+      "name": "明阳阙阴天枢合真正法",
+      "entryId": "96",
+      "sourceHash": "a5b9793dbfeb4b77",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身功法、阴阳状态和持久所得由原概览维护，不细分每轮修行。",
+      "originalStatusbar": [
+        "明阳阙阴天枢合真正法·概览"
+      ]
+    },
+    {
+      "name": "无限能量",
+      "entryId": "97",
+      "sourceHash": "9e069af207723dac",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原持续状态承接供能与当前影响，无需每次能量流转和输出明细。",
+      "originalStatusbar": [
+        "无限能量·持续状态"
+      ]
+    },
+    {
+      "name": "念气体系",
+      "entryId": "98",
+      "sourceHash": "c75c567cc014f808",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身念气、技法与成长原概览足够，不为每次使用和锻炼建表。",
+      "originalStatusbar": [
+        "念气体系·概览"
+      ]
+    },
+    {
+      "name": "置物栏",
+      "entryId": "99",
+      "sourceHash": "b8d35fcd9697b741",
+      "decision": "制作",
+      "batch": 10,
+      "tables": [
+        {
+          "id": "record",
+          "label": "重要物品与归身映射",
+          "reason": "实际收入且需长期保留其原物与永久映射关系的重要物品或明确批次。"
+        }
+      ],
+      "reason": "实际收入且需长期保留其原物与永久映射关系的重要物品或明确批次。",
+      "originalStatusbar": [
+        "置物栏·概览"
+      ]
+    },
+    {
+      "name": "以爱之名",
+      "entryId": "101",
+      "sourceHash": "46d1be884a9fcf14",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原关系概览保留重要羁绊与真实变化即可，不默认将所有关系对象逐人建档；没有独立领取阈值须核对。",
+      "originalStatusbar": [
+        "以爱之名·关系概览"
+      ]
+    },
+    {
+      "name": "指数增长",
+      "entryId": "102",
+      "sourceHash": "448605e63351521e",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原双轴状态与唯一资源账本维护实际增长和兑换，不增加分轴钱包及每轮结算流水。",
+      "originalStatusbar": [
+        "指数增长·双轴总览"
+      ]
+    },
+    {
+      "name": "描述改写",
+      "entryId": "103",
+      "sourceHash": "1cffc14be1dc2859",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前有效描述、持续效果与意图由原总览接续，不将每次措辞修改变成永久历史表。",
+      "originalStatusbar": [
+        "描述改写·总览"
+      ]
+    },
+    {
+      "name": "质能转换",
+      "entryId": "105",
+      "sourceHash": "1ebe4208b99f1500",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原总览和已有库存负责材料、产物及持续安排，不逐次转换记账或重复生成库存。",
+      "originalStatusbar": [
+        "质能转换·总览"
+      ]
+    },
+    {
+      "name": "八风编织",
+      "entryId": "106",
+      "sourceHash": "426c4c57b6102a13",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原魔法总览承接当前重要编织与已得技艺，普通施法、调风不逐项永久保存。",
+      "originalStatusbar": [
+        "八风编织·魔法总览"
+      ]
+    },
+    {
+      "name": "梗真人",
+      "entryId": "108",
+      "sourceHash": "1827505dad7806a9",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原总览保留已成立重要效果和当前梗，不将每次引用、解释或临时玩法长期入库。",
+      "originalStatusbar": [
+        "梗真人·总览"
+      ]
+    },
+    {
+      "name": "万物尽头",
+      "entryId": "109",
+      "sourceHash": "f8caef72632a122a",
+      "decision": "制作",
+      "batch": 9,
+      "tables": [
+        {
+          "id": "lines",
+          "label": "重要生产体系",
+          "reason": "能在以后继续运行、需独立接续条件和供给的重要产线或长期工艺体系。"
+        },
+        {
+          "id": "seeds",
+          "label": "重要种源与样本",
+          "reason": "长期保留、可重复用于繁育或生产的重要种源、繁育群体与样本。"
+        }
+      ],
+      "reason": "能在以后继续运行、需独立接续条件和供给的重要产线或长期工艺体系。；长期保留、可重复用于繁育或生产的重要种源、繁育群体与样本。",
+      "originalStatusbar": [
+        "万物尽头·经营总览"
+      ]
+    },
+    {
+      "name": "全知档案馆",
+      "entryId": "110",
+      "sourceHash": "b62e5226142207fc",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原总览区分回答、委托与实际所得，普通查询不是必须永久收藏的知识；不预建所有问答和委托流水。",
+      "originalStatusbar": [
+        "全知档案馆·馆主总览"
+      ]
+    },
+    {
+      "name": "蝴蝶效应",
+      "entryId": "111",
+      "sourceHash": "35cab3a9c209a663",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前因果安排及资源以原总览和账本为准，不存每步蝴蝶变化与推演分支。",
+      "originalStatusbar": [
+        "蝴蝶效应·因果总览"
+      ]
+    },
+    {
+      "name": "绝对掌握",
+      "entryId": "113",
+      "sourceHash": "94ff3ea8538e8140",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "自身已掌握与当前有效裁定在原总览维护，不将每次确认、改口和变更动作拆流水。",
+      "originalStatusbar": [
+        "绝对掌握·自身总览"
+      ]
+    },
+    {
+      "name": "绝对口胡",
+      "entryId": "114",
+      "sourceHash": "30463c08cde13e8a",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "当前成立叙述、机制及实得成果由原总览统一，不将同一叙述与机制、所得再拆三份对象。",
+      "originalStatusbar": [
+        "绝对口胡·叙述总览"
+      ]
+    },
+    {
+      "name": "仙境再现",
+      "entryId": "116",
+      "sourceHash": "56cc54b9006c7505",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "世界联系、已成结果和持续安排由原世界总览维护，本轮不按每次显现和布置增加永久表。",
+      "originalStatusbar": [
+        "仙境再现·世界总览"
+      ]
+    },
+    {
+      "name": "信息全知者",
+      "entryId": "117",
+      "sourceHash": "a7434271cf997f75",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "重要确认信息和方法沿原认知总览保存，不逐条收藏普通检索结果，也不把查询当已取得权限。",
+      "originalStatusbar": [
+        "信息全知者·认知总览"
+      ]
+    },
+    {
+      "name": "绝对适应（新版）",
+      "entryId": "118",
+      "sourceHash": "fb1f14fb504b3d7f",
+      "decision": "制作",
+      "batch": 13,
+      "tables": [
+        {
+          "id": "resistances",
+          "label": "重要永久适应",
+          "reason": "已经实际成立、以后仍需明确调用的重要适应成果，包括主动形成的适应。"
+        }
+      ],
+      "reason": "已经实际成立、以后仍需明确调用的重要适应成果，包括主动形成的适应。",
+      "originalStatusbar": [
+        "绝对适应·总览"
+      ]
+    },
+    {
+      "name": "知见障",
+      "entryId": "120",
+      "sourceHash": "45d75a83298a9c77",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "生效认知规则、范围和例外应由同一原状态维护，不用追加流水记录替代当前有效规则。",
+      "originalStatusbar": [
+        "知见障·认知安排"
+      ]
+    },
+    {
+      "name": "自定义",
+      "entryId": "121",
+      "sourceHash": "d93f6c8fd6d477d1",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原生效定义与规则是当前事实来源，不另建相互冲突的定义副本和修改历史表。",
+      "originalStatusbar": [
+        "自定义·生效概览"
+      ]
+    },
+    {
+      "name": "诸天投影镜",
+      "entryId": "124",
+      "sourceHash": "c2940caa6cf31f40",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "原镜主总览已覆盖投影、坐标、挑战重点及实际保留所得，不为每次投影挑战自动建档。",
+      "originalStatusbar": [
+        "诸天投影镜·镜主总览"
+      ]
+    },
+    {
+      "name": "一以贯之",
+      "entryId": "125",
+      "sourceHash": "80a5508819ef6f8a",
+      "decision": "本轮排除",
+      "batch": null,
+      "tables": [],
+      "reason": "核心是自身连续性与持久成长，原自身概览足够，不按每轮能力延续建表。",
+      "originalStatusbar": [
+        "一以贯之·自身概览"
+      ]
+    }
+  ],
+  "localResult": {
+    "declarations": 50,
+    "powersWithDefaultTables": 47,
+    "defaultTables": 59,
+    "compatibleCategories": 115,
+    "addedRecordSchemas": 0,
+    "previous32DeclarationsPreserved": true,
+    "allSelectedBatchesComplete": true,
+    "version": "1.6.2",
+    "githubSubmitted": false,
+    "realHostAcceptance": false
+  }
+}

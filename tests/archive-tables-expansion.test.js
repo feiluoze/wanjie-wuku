@@ -40,7 +40,7 @@ test('spirit shadow becomes a formal member in its original identity; peer dupli
  const p=power('万灵图鉴');save(p,[raw('shadows','星萤',{known:'真实接触的夜间感知',relation:'仍在观察'})]);const shadow=rows(p,'shadows')[0];
  let b=batch(p,[raw('members','星萤',{relation:'已认可加入',state:'成员已成立'},{operation:'insert'})]);assert.equal(b.changes.length,0);assert.match(b.issues[0].reason,/原 recordId/);
  save(p,[raw('shadows',shadow.name,{relation:'已明确认可并正式加入正册',result:'正式关系已经成立'},{archiveId:shadow.id,operation:'update'})]);assert.equal(Object.keys(p.archives).length,1);assert.equal(rows(p,'shadows')[0].id,shadow.id);assert.equal(rows(p,'members').length,0);
- const q=power('万灵图鉴');b=batch(q,[raw('shadows','烬灵',{known:'已接触'}),raw('members','烬灵',{relation:'正式关系'}, {operation:'insert'})]);assert.equal(b.changes.length,1);assert.match(b.issues[0].reason,/同时出现在影页/);
+ const q=power('万灵图鉴');b=batch(q,[raw('shadows','烬灵',{known:'已接触'}),raw('members','烬灵',{relation:'正式关系'}, {operation:'insert'})]);assert.equal(b.changes.length,1);assert.match(b.issues[0].reason,/同时出现在互斥分类/);
  save(p,[raw('missions','北岭寻药远行',{members:'星萤与既有队友',goal:'已授权前往北岭寻药',progress:'已经出发',results:'尚未取得药材'},{status:'working'})]);const mission=rows(p,'missions')[0];save(p,[raw('missions',mission.name,{progress:'已经回到领域',results:'正文确认已带回药材，原成员仍在'},{archiveId:mission.id,status:'ended'})]);assert.equal(rows(p,'missions').length,1);assert.equal(rows(p,'shadows').length,1);
 });
 

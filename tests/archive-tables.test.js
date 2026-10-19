@@ -9,9 +9,9 @@ const raw=(recordId,name,details,extra={})=>({type:'record',recordId,name,status
 const local=(p,rows)=>normalizeArchiveBatch({changes:rows},p,[],[],'玩家确认已有事实');
 const save=(p,b)=>applyArchiveChanges(p,b.changes,[],new Map(b.changes.map((c,i)=>[i,c.id])),[]);
 
-test('26 declarations expose 30 independent tables and preserve 53 legacy categories and all existing schemas',()=>{
+test('50 declarations expose 59 independent tables and preserve 115 legacy categories and all existing schemas',()=>{
  assert.equal(ARCHIVE_TABLE_DEFINITIONS.slice(0,9).flatMap(d=>[...d.tables,...d.retiredTables]).length,28);assert.equal(ARCHIVE_TABLE_DEFINITIONS.slice(0,9).flatMap(d=>d.records||[]).length,7);
- assert.equal(ARCHIVE_TABLE_DEFINITIONS.length,26);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.tables).length,30);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.records||[]).length,11);
+ assert.equal(ARCHIVE_TABLE_DEFINITIONS.length,50);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.tables).length,59);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.retiredTables).length,115);assert.equal(ARCHIVE_TABLE_DEFINITIONS.flatMap(d=>d.records||[]).length,11);
  for(const d of ARCHIVE_TABLE_DEFINITIONS){const p=power(d.name),spec=archiveTables(p),cfg=creationConfig(p);assert(spec,d.name);assert.equal(spec.adapter,d.adapter);assert.equal(new Set(cfg.records.map(r=>r.id)).size,cfg.records.length);
   for(const t of spec.tables){assert(t.retain.length>4);assert(t.update.length>8);assert(t.fields.length);assert(!t.fields.some(f=>f.id==='balance'));}
   assert.equal(JSON.parse(archivePrompt(p,[],[],'确认').user).longTermTables.tables.length,spec.tables.length);

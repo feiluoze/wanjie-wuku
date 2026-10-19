@@ -25,7 +25,31 @@ export const TABLE_COMPACTION = {
  '多倍收获系统':{harvest:null,retained:null},
  '心智魔方':{rigging:'partners',prototypes:null},
  '旅法师':{space:null,manifestations:null},
- '一言为定':{}
+ '一言为定':{},
+ '同时穿越':{shared:null,energy:null,items:null,cooperation:null},
+ '战争天网':{infiltration:null,research:null},
+ '牧群':{contributions:'members',reserves:null},
+ '人间游戏':{quest:null,achievement:null,reward:null},
+ '大贤者':{analysis:null,parallel:null,delegation:null},
+ '绝对生产力':{projects:null,products:null},
+ "至高亡灵主宰":{"feedback": null, "domains": null, "undertakings": null},
+ "攻略系统":{"thresholds": "people", "rewards": "people", "points": null, "shop": null},
+ "奇迹智子":{"industry": null, "research": null},
+ "万物尽头":{"areas": null, "stock": null, "flows": null},
+ "文明之光系统":{"projects": "communities", "benefits": "communities"},
+ "知识荒野":{"creations": null, "transmission": null, "domain": null},
+ "抽奖系统":{"schedule": null, "uses": "curios"},
+ "置物栏":{},
+ "完美融合":{"projects": "products", "materials": "products"},
+ "万象神魔图录":{"challenges": "archetypes", "inheritance": "archetypes"},
+ "早有先例":{"invocation": "precedent", "new_history": "precedent"},
+ "光之钥":{"beacons": null, "interventions": null, "cycles": null},
+ "源堡":{"assets": null, "manifestations": null, "arrangements": null},
+ "混沌海":{"results": null, "worlds": null, "arrangements": null},
+ "永暗之河":{"marks": "residents", "kingdom": null, "protections": null},
+ "暗影世界":{"anomalies": "beings", "ecology": null, "arrangements": null},
+ "绝对适应（新版）":{"evolutions": null, "symbiosis": null, "reality": null},
+ "生物计算机":{"knowledge": null, "connection": null, "computation": null}
 };
 export function compactTableDefinition(definition){
  const routes=TABLE_COMPACTION[definition.name]||{};

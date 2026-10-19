@@ -104,7 +104,7 @@ export const playerHomeMethods = {
           if(!sources.length||first&&sources.length<normalizeArchiveAuto(p.archiveAuto).every)break;
           first=false;this.archiveAutoStatus ||= {};this.archiveAutoStatus[powerId]='正在更新';this.refresh();
           try { await this.reviewArchives({silent:true,autoSave:Boolean(p.autoArchiveSave),automatic:true,powerId}); }
-          catch(error){const current=this.contextSnapshot();if(this.playerAutoRunning!==run||current.chatKey!==capture.chatKey||current.state.id!==capture.stateId||error?.name==='AbortError')break;this.archiveAutoStatus[powerId]=`更新暂停：${error.message}`;this.notice(`${p.name}自动更新未完成：${error.message}。可手动重查，失败不会自动重试API。`,true);break;}
+          catch(error){const current=this.contextSnapshot();if(this.playerAutoRunning!==run||current.chatKey!==capture.chatKey||current.state.id!==capture.stateId||error?.name==='AbortError')break;this.archiveAutoStatus[powerId]=`更新暂停：${error.message}`;this.notice(`${p.name}自动更新未完成：${error.message}。有限尝试已结束，可查看运行日志后手动重查。`,true);break;}
           if (this.playerAutoRunning !== run) break;
           if(this.archiveAutoIncomplete?.[powerId]){this.archiveAutoStatus[powerId]='部分楼层待重查，自动整理已暂停';this.archiveAutoIncomplete[powerId]=false;break;}
           if(!p.autoArchiveSave||this.pendingArchiveReview){this.archiveAutoStatus[powerId]=this.pendingArchiveReview?.data?.rawFailures?.length?'等待修复 · 原回复已保留':'等待确认';break;}

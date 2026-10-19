@@ -15,7 +15,7 @@ const wallets=p=>stable({resources:p.resources,assets:p.assets});
 const byName=(p,name)=>Object.values(p.archives).find(r=>r.name===name);
 
 test('batch five adds four long-term object tables with no new schemas; previous pruning and original statusbars remain intact',()=>{
- const previous=ARCHIVE_TABLE_DEFINITIONS.slice(0,23),ds=ARCHIVE_TABLE_DEFINITIONS.slice(23);assert.equal(previous.flatMap(d=>d.tables).length,26);assert.equal(previous.flatMap(d=>d.retiredTables).length,49);assert.equal(ds.length,3);assert.equal(ds.flatMap(d=>d.tables).length,4);assert.equal(ds.flatMap(d=>d.retiredTables).length,4);assert(ds.every(d=>!d.records));
+ const previous=ARCHIVE_TABLE_DEFINITIONS.slice(0,23),ds=ARCHIVE_TABLE_DEFINITIONS.slice(23,26);assert.equal(previous.flatMap(d=>d.tables).length,26);assert.equal(previous.flatMap(d=>d.retiredTables).length,49);assert.equal(ds.length,3);assert.equal(ds.flatMap(d=>d.tables).length,4);assert.equal(ds.flatMap(d=>d.retiredTables).length,4);assert(ds.every(d=>!d.records));
  for(const d of ds){const p=power(d.name),before=stable(p),cfg=creationConfig(p),request=JSON.parse(archivePrompt(p,[],[]).user);for(const q of d.sourceQuotes)assert(p.primaryRules.includes(q),d.name+': '+q);assert.equal(request.originalStatusbar.source,builtinStatusbar(p).block);assert.equal(request.longTermTables.tables.length,d.tables.length);for(const t of d.tables)assert(cfg.records.some(r=>r.id===t.id));for(const t of d.retiredTables)assert(!request.recordSchemas.some(r=>r.id===t.id));assert.equal(stable(p),before);assert.equal(archiveTables({...p,primaryRules:p.primaryRules+'自定义'}),null);}
 });
 
