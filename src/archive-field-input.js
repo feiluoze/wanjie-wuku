@@ -110,6 +110,17 @@ export function prepareArchiveFields(input,types,definition,config){
   for(const [key,value]of Object.entries(raw[section]||{}))add(section,key,value);
  }
  if(extras.length){const target=supplementTarget;const combined=[fields[target],...extras].filter(Boolean).join('\n');if(target&&combined.length<=4000)fields[target]=combined;else for(const value of extras)held.push({section:'details',key:'补充记录',value,code:'overlong_field'});}
+ if(raw.uncertainFields!==undefined){
+  if(!Array.isArray(raw.uncertainFields)||raw.uncertainFields.length>64)throw Error('待核对字段列表无效');
+  for(const conflict of raw.uncertainFields){
+   const section=conflict?.section,entries=section==='fields'?general:section==='details'?specific:[];
+   const id=typeof conflict?.field==='string'?resolve(conflict.field,entries):null;
+   if(!id||['source_profile','time_state'].includes(id)||typeof conflict.reason!=='string'||!conflict.reason.trim()||conflict.reason.length>600)throw Error('待核对字段必须引用已声明栏目并说明具体原因');
+   const target=section==='fields'?fields:details;
+   held.push({section,key:id,value:target[id],code:'source_conflict',reason:conflict.reason.trim()});delete target[id];
+  }
+  delete raw.uncertainFields;
+ }
  if(!definition&&!raw.recordId&&object(raw.details)&&!Object.keys(raw.details).length)delete raw.details;
  return {raw:{...raw,fields,...(definition?{details}:raw.details!==undefined?{details:raw.details}:{})},held};
 }

@@ -128,6 +128,6 @@ export function floorCoverage(data,sources,changes,terminalResults=[],creationRe
   const matches=rows.filter(r=>r?.sourceIndex===s.index);
   const r=matches.length===1?matches[0]:null;
   const reviewed=Boolean(r&&r.status==='reviewed'&&Number.isSafeInteger(r.changeCount)&&r.changeCount===count);
-  return {floor:s.index+1,sourceIndex:s.index,accepted:count,status:reviewed?'reviewed':'uncertain',reason:reviewed?'':'未提供一致的逐层核对结果'};
+  return {floor:s.index+1,sourceIndex:s.index,accepted:count,status:reviewed?'reviewed':'uncertain',reason:reviewed?'':r?.status==='uncertain'&&typeof r.reason==='string'&&r.reason.trim()?r.reason.trim().slice(0,600):'未提供一致的逐层核对结果'};
  });
 }

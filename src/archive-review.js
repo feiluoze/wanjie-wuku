@@ -209,11 +209,13 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  const prepared=prepareArchiveFields({...categorized,type:type||categorized.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition,config);
  assertTableBatchIdentity(power,prepared.raw,linkRows.slice(0,index));
  if(chronological)assertChronologicalTableInsert(power,prepared.raw,linkRows.slice(0,index));
+ if(prepared.held.some(h=>h.code==='source_conflict')){const before=prepared.raw.archiveId?power.archives?.[prepared.raw.archiveId]:findArchiveObject(power,prepared.raw.name,prepared.raw.module);if(before)prepared.raw.status=before.status;}
+ if(prepared.held.some(h=>h.code==='source_conflict')&&!Object.keys(prepared.raw.fields||{}).length&&!Object.keys(prepared.raw.details||{}).length)throw Object.assign(Error('本条字段均待核对：'+prepared.held.map(h=>h.key+'（'+(h.reason||h.code)+'）').join('、')),{fieldCandidate:clone(raw)});
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
  let c;try{c=normalizeArchiveChanges({changes:[linked.raw]},power,sources,chat,playerNote,{playerJoining,state})[0];}catch(e){e.fieldCandidate=clone(raw);throw e;}
  if(linked.pendingLink&&c)c.pendingLinks=[linked.pendingLink];
  if(linked.unresolved)reject('成果',index,raw,Object.assign(Error('组织关联未确定；有效人物字段可单独保存，原关联值保留待本地核对'),{fieldCandidate:clone(raw)}));
- if(prepared.held.length){const error=Object.assign(Error('部分字段待核对：'+prepared.held.map(h=>h.key+'（'+h.code+'）').join('、')+'；有效字段可单独保存'),{fieldCandidate:clone(raw)});reject('成果',index,raw,error);}
+ if(prepared.held.length){const error=Object.assign(Error('部分字段待核对：'+prepared.held.map(h=>h.key+'（'+(h.reason||h.code)+'）').join('、')+'；有效字段可单独保存'),{fieldCandidate:clone(raw)});reject('成果',index,raw,error);}
  return c?{...c,inputIndex:index}:null;},c=>(c.id||c.type+':'+(c.specific?.recordId||'')+':'+nameKey(c.name))+(chronological?':floor:'+c.source.anchor.index:''),c=>stable({status:c.status,patch:c.patch,source:c.source,specific:c.specific,module:c.module,pendingLinks:c.pendingLinks}));
  for(const c of changes)if(c.pendingLinks?.some(link=>!changes.some(target=>target.inputIndex===link.targetInputIndex&&target.specific?.recordId==='organization'))){delete c.pendingLinks;reject('成果',c.inputIndex,data.changes[c.inputIndex],Object.assign(Error('本批关联组织未通过校验；有效字段可单独保存，组织关联留待核对'),{fieldCandidate:clone(data.changes[c.inputIndex])}));}
  const terminalResults=isolate('安排进展',data.terminalResults,24,raw=>normalizeTerminalResults([raw],state,power,sources,chat)[0],c=>c.orderId,c=>stable({...c.progress,at:0}));
@@ -379,7 +381,7 @@ export const archiveReviewMethods = {
     }
     if(options.taishiDraft)protectTaishiDraft(batch,options.taishiDraft);
     if(!playerNote&&!options.taishiEvolution&&!options.taishiTimeEvent){
-      batch.floorReviews=floorCoverage(prepared.data,sources,batch.changes,batch.terminalResults,batch.creationResults).map(row=>batch.blockedFloors.includes(row.sourceIndex)?{...row,status:'uncertain',reason:'本层存在未通过校验的候选'}:row);
+      batch.floorReviews=floorCoverage(prepared.data,sources,batch.changes,batch.terminalResults,batch.creationResults).map(row=>batch.blockedFloors.includes(row.sourceIndex)?{...row,status:'uncertain',reason:row.reason||'本层存在未通过校验的候选'}:row);
       const uncertain=batch.floorReviews.filter(r=>r.status!=='reviewed');
       batch.blockedFloors=[...new Set([...batch.blockedFloors,...uncertain.map(r=>r.sourceIndex)])];
       if(uncertain.length)batch.issues.push({kind:'逐层核对',name:'读取进度',reason:`${uncertain.map(r=>r.floor).join('、')} 层未完成一致的逐层核对，保留待重查；有效候选仍可保存`});

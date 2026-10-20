@@ -3,6 +3,7 @@ import {archiveOrigin} from './archive-origin.js';
 export function archiveInputRecord(r) {
  const item={provenance:archiveOrigin(r),id:r.id,name:r.name,type:r.type,status:r.status,fields:r.fields,...(r.module?{module:r.module}:{}),...(r.ownerPowerId?{ownerPowerId:r.ownerPowerId}:{})};
  if(r.specific)item.specific={adapterId:r.specific.adapterId,recordId:r.specific.recordId,fields:Object.fromEntries(Object.entries(r.specific.fields||{}).filter(([k])=>!['source_profile','time_state'].includes(k)))};
+ if(Number.isSafeInteger(r.source?.anchor?.index))item.lastSourceIndex=r.source.anchor.index;
  item.previousNames=[...new Set((r.history||[]).map(h=>h.name))].filter(n=>n!==r.name).slice(-12);
  return item;
 }

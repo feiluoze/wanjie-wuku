@@ -2,7 +2,7 @@
 // input; only maintained instructions belong to system. No remote preset executes.
 import {ARCHIVE_PROTOCOL_POLICY} from './archive-protocol.js';
 
-export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.3.scope5';
+export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.4.conflicts1';
 const section=(id,body)=>`<${id}>\n${body}\n</${id}>`;
 const taskInstructions=Object.freeze({
  narrative:`只整理当前任务范围内已经成立的变化。先用rules与scopePolicy判断适用性，再逐项读取sources.settlements.facts；<WJWK-settle>是事实主依据，但一份回执可含多个词条，不等于全部属于当前词条。statusSnapshots（含MMLC-archive长期总档）用于核对现状；总档中的旧库存、旧能力和旧经历不是本轮新收益，不重复累加，首次遇到的明确现状可作为存量建档。content仅补充明确事实。无正式结算时允许使用明确叙事证据，不要求正文必须出现词条名称；机制联系仍需成立。opportunities、规划、思考、选项、context、规则示例不证明执行或到账。正文与结算描述同一对象的同一变化时合并为一条，不能重新执行规则或补算收益。`,
@@ -64,8 +64,8 @@ export function archiveResponseContract(payload){
  if(payload.terminalOrders?.length&&!payload.playerNote&&!special)outputs.push('terminalResults');
  if(payload.creationItems?.length&&!payload.playerNote&&!special)outputs.push('creationResults');
  return {
-  outputs,operationScope:{recordIds:(payload.longTermTables?.tables||[]).map(t=>t.id),values:['insert','update','transition'],otherwise:'省略operation；原文状态栏按原身份接续，不能用insert建立重复主记录'},changes:{required:['type','name','status','fields','sourceIndex'],optional:['archiveId','ownerPowerId','quote','ruleQuote',...(payload.longTermTables?['operation']:[]),...(payload.recordSchemas?.length?['recordId','details']:[]),...(payload.moduleKind==='mmlc'?['module']:[]),...(mode==='worldbook'&&payload.moduleKind==='taishi'?['settingRefs']:[])]},
-  floorReviews:[{sourceIndex:'sources.index，内部0基整数',status:'reviewed 或 uncertain',changeCount:'本层实际返回的 changes、terminalResults、creationResults 条目总数'}],
+  outputs,operationScope:{recordIds:(payload.longTermTables?.tables||[]).map(t=>t.id),values:['insert','update','transition'],otherwise:'省略operation；原文状态栏按原身份接续，不能用insert建立重复主记录'},changes:{required:['type','name','status','fields','sourceIndex'],optional:['archiveId','ownerPowerId','quote','ruleQuote','uncertainFields',...(payload.longTermTables?['operation']:[]),...(payload.recordSchemas?.length?['recordId','details']:[]),...(payload.moduleKind==='mmlc'?['module']:[]),...(mode==='worldbook'&&payload.moduleKind==='taishi'?['settingRefs']:[])]},
+  floorReviews:[{sourceIndex:'sources.index，内部0基整数',status:'reviewed 或 uncertain',changeCount:'本层实际返回的 changes、terminalResults、creationResults 条目总数',reason:'uncertain时简述具体未决事实或冲突；不输出思维过程'}],
   policy:'每层必须返回且只返回一条 floorReviews。reviewed 表示已逐项核对，包括明确无新增；遗漏、归属不明、冲突或未完成提取用 uncertain。独立历史事件分别保存，不能用最近状态概括旧事件。fields 只使用 fieldTypes[type] 的字段 ID；recordSchemas 专用字段放 details，不混入 fields。ownerPowerId 填真实所属词条 ID。'
  };
 }
@@ -82,6 +82,8 @@ export function archivePreset(payload,{marker='',domain='',task='',terminal='',c
   ['wjwk_long_term_tables',payload.longTermTables?'长期子表的身份、必要性、禁用和兼容范围以longTermTables为准；只对responseContract.operationScope.recordIds里的分类填写operation=insert/update/transition。沿用原archiveId更新，独立新对象才insert，recordSchemas提供实际列，不发明分类或列。':''],
   ['wjwk_ownership_evidence',mode==='narrative'&&payload.longTermTables?.ownership?.requireLink?'本词条要求新增对象提供连续原文联系：quote须将具体对象或已填地点、来源等事实锚点与当前词条、已有对象或声明机制联系起来；声明机制为'+payload.longTermTables.ownership.mechanisms.join('、')+'。主状态栏沿声明身份接续，不能当成新独立对象。无法证明归属时标uncertain。':''],
   ['wjwk_scope',mode==='narrative'?scope:''],
+  ['wjwk_field_conflicts',mode==='narrative'?`字段冲突隔离：current.lastSourceIndex仅表示整条记录最后一次正文来源（内部0基），不代表所有字段都在该层改变。重查更早的sources时，历史差异不自动证明数值回退，也不能用旧快照覆盖较新现状。明确消耗、损失、重置或更正可以降低数值；不能一律取最大值。若本层变化起点与已知值冲突，且没有明确原因，只搁置受影响字段，继续检查同层独立成果。不要整层返回空changes来掩盖未处理的新事实，不替正文补算差额或累计奖励。
+同一字段混有可靠与冲突内容、无法安全拆分时，保留整个旧字段；独立事实仅在已有合法栏目能准确记录且不重复时提出候选，不能为绕过冲突临时发明表或流水账。changes可附uncertainFields:[{section:"fields或details",field:"声明的字段ID",reason:"具体矛盾"}]，程序会隔离这些字段；保留原候选供核对，同一事实的其他摘要字段也须隔离，不得改写到别处绕过。其余字段仍须通过归属与来源校验。该层floorReviews仍为uncertain，reason说明冲突及未能独立记录的事实；有效候选可单独保存，但不假报整层已核对。无法比较identityOnly记录时同样保留未知。`:'' ],
   ['wjwk_procedure',taskProcedures[mode]||procedure],
   ['wjwk_output',output],
   ['wjwk_wire_check','本次允许的顶层字段只有：'+(payload.responseContract?.outputs||['changes','floorReviews','message']).join('、')+'。每条先定位原archiveId和recordId，再按recordSchemas复制列ID，只填写有证据的变化。语法自检：每个键名必须完整写成双引号键、冒号、值；值内引号写转义，不能把冒号留在键名引号内。空修改结构为{"changes":[],"floorReviews":[],"message":""}；这只是结构示例，有sources仍须逐层报告，不照抄空报告。最终不输出分析或协议之外的字段。'],
