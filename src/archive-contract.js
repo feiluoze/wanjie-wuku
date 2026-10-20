@@ -11,6 +11,7 @@ export function archiveResponseSchema(payload){
  if(payload.moduleKind==='mmlc')common.module={type:'string'};
  if(payload.taskMode==='worldbook')common.settingRefs={type:'array',items:{type:'object',properties:{book:{type:'string'},id:{type:['string','integer']},part:{type:'integer'}},required:['book','id'],additionalProperties:false}};
  common.uncertainFields={type:'array',maxItems:64,items:{type:'object',additionalProperties:false,required:['section','field','reason'],properties:{section:{enum:['fields','details']},field:{type:'string',maxLength:200},reason:{type:'string',maxLength:600}}}};
+ common.staleFields=common.uncertainFields;
  const definitions={},variants=[];
  for(const [type,definition]of Object.entries(ARCHIVE_FIELDS))definitions['fields_'+type]=fields(Object.keys(definition));
  for(const record of payload.recordSchemas||[])definitions['details_'+record.id]=fields((record.fields||[]).map(f=>f.id).filter(id=>!['source_profile','time_state'].includes(id)));

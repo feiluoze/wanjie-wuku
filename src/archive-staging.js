@@ -22,7 +22,7 @@ export function createArchiveStaging(power,{normalize,apply,chat=[],state={}}){
    });
    // Invalid/uncertain floors never influence the next request. Raw proposals
    // still reach final validation and remain available for manual repair.
-   if(!batch.issues.length&&floorCoverage(data,[source],batch.changes,batch.terminalResults,batch.creationResults)[0].status==='reviewed'){
+   if(!batch.issues.length&&floorCoverage(data,[source],batch.changes,batch.terminalResults,batch.creationResults,batch.ignoredChanges)[0].status==='reviewed'){
     const next=clone(working);
     apply(next,batch.changes,[source],new Map(batch.changes.map((c,i)=>[i,c.id])),chat);
     working=next;

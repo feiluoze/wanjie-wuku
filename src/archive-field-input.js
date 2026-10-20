@@ -110,6 +110,16 @@ export function prepareArchiveFields(input,types,definition,config){
   for(const [key,value]of Object.entries(raw[section]||{}))add(section,key,value);
  }
  if(extras.length){const target=supplementTarget;const combined=[fields[target],...extras].filter(Boolean).join('\n');if(target&&combined.length<=4000)fields[target]=combined;else for(const value of extras)held.push({section:'details',key:'补充记录',value,code:'overlong_field'});}
+ if(raw.staleFields!==undefined){
+  if(!Array.isArray(raw.staleFields)||raw.staleFields.length>64)throw Error('过期快照字段列表无效');
+  for(const conflict of raw.staleFields){
+   const section=conflict?.section,entries=section==='fields'?general:section==='details'?specific:[];
+   const id=typeof conflict?.field==='string'?resolve(conflict.field,entries):null;
+   if(!id||['source_profile','time_state'].includes(id)||typeof conflict.reason!=='string'||!conflict.reason.trim()||conflict.reason.length>600)throw Error('过期快照必须引用已声明栏目并说明原因');
+   held.push({section,key:id,value:(section==='fields'?fields:details)[id],code:'stale_snapshot',reason:conflict.reason.trim()});
+  }
+  delete raw.staleFields;
+ }
  if(raw.uncertainFields!==undefined){
   if(!Array.isArray(raw.uncertainFields)||raw.uncertainFields.length>64)throw Error('待核对字段列表无效');
   for(const conflict of raw.uncertainFields){

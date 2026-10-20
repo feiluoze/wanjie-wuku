@@ -12,7 +12,7 @@ export function fieldDiagnostic(raw,types,definition){
    unknownFields:entries.filter(([k])=>!declared.has(k)&&![...declared.values()].includes(k)).slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)})),
    nonTextFields:entries.filter(([,v])=>typeof v!=='string').slice(0,40).map(([k,v])=>({key:safeKey(k),type:valueType(v)}))};
  }
- const allowedTop=new Set(['archiveId','ownerPowerId','type','name','status','fields','details','recordId','sourceIndex','quote','ruleQuote','module','settingRefs','operation']);
+ const allowedTop=new Set(['archiveId','ownerPowerId','type','name','status','fields','details','recordId','sourceIndex','quote','ruleQuote','module','settingRefs','operation','uncertainFields','staleFields']);
  const unexpectedTopFields=Object.keys(raw||{}).filter(k=>!allowedTop.has(k)).map(k=>/^[a-zA-Z_][a-zA-Z0-9_.-]{0,79}$/.test(k)&&!/secret|token|password|key/i.test(k)?k:'[非标准字段名]');
  return {stage:'archive_validation',unexpectedTopFields,...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
 }
@@ -121,13 +121,14 @@ export function assertFactEvidence(quote,content){
  assert(found||!plain(content).includes(needle),'引用仅存在于规划或未选择的后续机会中，不能作为已成立事实归档');
 }
 
-export function floorCoverage(data,sources,changes,terminalResults=[],creationResults=[]){
+export function floorCoverage(data,sources,changes,terminalResults=[],creationResults=[],ignoredChanges=[]){
  const rows=Array.isArray(data.floorReviews)?data.floorReviews:[];
  return sources.map(s=>{
   const count=changes.filter(c=>c.source?.anchor?.index===s.index).length+terminalResults.filter(c=>c.progress?.anchor?.index===s.index).length+creationResults.filter(c=>c.progress?.anchor?.index===s.index).length;
+  const skipped=(ignoredChanges||[]).filter(c=>c.sourceIndex===s.index).length;
   const matches=rows.filter(r=>r?.sourceIndex===s.index);
   const r=matches.length===1?matches[0]:null;
-  const reviewed=Boolean(r&&r.status==='reviewed'&&Number.isSafeInteger(r.changeCount)&&r.changeCount===count);
+  const reviewed=Boolean(r&&r.status==='reviewed'&&Number.isSafeInteger(r.changeCount)&&r.changeCount===count+skipped);
   return {floor:s.index+1,sourceIndex:s.index,accepted:count,status:reviewed?'reviewed':'uncertain',reason:reviewed?'':r?.status==='uncertain'&&typeof r.reason==='string'&&r.reason.trim()?r.reason.trim().slice(0,600):'未提供一致的逐层核对结果'};
  });
 }
