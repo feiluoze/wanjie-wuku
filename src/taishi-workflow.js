@@ -7,7 +7,8 @@ export const TAISHI_STAGE_NAMES=Object.freeze({taishiWorld:'世界核对',taishi
 export const TAISHI_STAGE_ATTEMPTS=3;
 const worldRecords=new Set(['world','inhabitants','development','growth','available','region','organization','event','manifestation']);
 const owns=(role,record)=>role==='taishiWorld'?worldRecords.has(record):['companion','relation'].includes(record);
-const failed=(role,reason,kind='专职任务',name=role)=>({kind,name,role,reason:String(reason).slice(0,500)});
+const failed=(role,reason,kind='专职任务',name=role,sourceIndex)=>({kind,name,role,...(Number.isSafeInteger(sourceIndex)?{sourceIndex}:{}),reason:String(reason).slice(0,500)});
+const wireBudget=(stage,role,onAttempt,onCheckpoint,state)=>({remainingAttempts:TAISHI_STAGE_ATTEMPTS-stage.attempts+1,onExtraAttempt(){assert(stage.attempts<TAISHI_STAGE_ATTEMPTS,'本阶段请求预算已耗尽');stage.attempts++;onAttempt(role,stage.attempts);onCheckpoint(clone(state));}});
 
 // Cache lives in the pending preview only, never in chat data, keys or model profiles.
 // A resumed action invokes exactly one role. The normal validator and commit queue
@@ -29,18 +30,28 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
     check();const stage=state.stages[role],attempts=stage.attempts+1;
     state.stages[role]={status:'failed',attempts,changes:[],issues:[],message:''};const current=state.stages[role];onAttempt(role,attempts);onCheckpoint(clone(state));
     const payload={...input,explainRules:false,terminalOrders:[],creationItems:[],recordSchemas:(input.recordSchemas||[]).filter(r=>owns(role,r.id))};
+    if(input.fillPolicy)payload.fillPolicy={...input.fillPolicy,tables:input.fillPolicy.tables.filter(r=>owns(role,r.recordId))};
+    payload.current=(input.current||[]).map(r=>owns(role,r.recordId)?r:{archiveId:r.archiveId,name:r.name,type:r.type,recordId:r.recordId,identityOnly:true,...(r.details?.world_id?{details:{world_id:r.details.world_id}}:{})});
+    if(role==='taishiPeople'&&!parallel)payload.peerCandidates=clone(state.stages.taishiWorld.changes);
     payload.responseContract=archiveResponseContract(payload);
     payload.specialist={role,recordIds:payload.recordSchemas.map(r=>r.id)};
     try{
-      const data=await invoke({...prompt,archiveSchema:archiveResponseSchema(payload),user:JSON.stringify(payload),system:prompt.system+'\n<wjwk_specialist>\n本轮分工：'+(role==='taishiWorld'?'只处理世界、区域、组织、事件、文明与发展记录。':'只处理人物、眷属与关系记录，保留方向、原因、来源事件、设定细节与认知边界。')+' changes每项必须填写本轮recordSchemas中的recordId；已有对象必须沿用原archiveId和分类。不得返回terminalResults、creationResults或guide。不要处理另一专职角色的记录。floorReviews只统计本角色实际输出，不把另一专职未返回内容算入。\n</wjwk_specialist>'},role);
+      const data=await invoke({...prompt,archiveSchema:archiveResponseSchema(payload),user:JSON.stringify(payload),system:prompt.system+'\n<wjwk_specialist>\n本轮分工：'+(role==='taishiWorld'?'只处理世界、区域、组织、事件、文明与发展记录。':'只处理人物、眷属与关系记录，保留方向、原因、来源事件、设定细节与认知边界。')+' changes每项必须填写本轮recordSchemas中的recordId；已有对象必须沿用原archiveId和分类。不得返回terminalResults、creationResults或guide。不要处理另一专职角色的记录。floorReviews只统计本角色实际输出，不把另一专职未返回内容算入。peerCandidates只是世界阶段尚未保存的候选，可辅助理解；不把它当成正式已登记ID，不捏造新ID。\n</wjwk_specialist>'},role,wireBudget(current,role,onAttempt,onCheckpoint,state));
       check();assert(data&&Array.isArray(data.changes)&&data.changes.length<=64,'返回的变化列表无效');
       for(const row of data.changes){
         const before=row?.archiveId?(input.current||[]).find(r=>(r.archiveId||r.id)===row.archiveId):null;
         if(!row||!owns(role,row.recordId)||before&&(before.recordId||before.specific?.recordId)!==row.recordId){current.issues.push(failed(role,'越过专职分类或改变已有对象分类，已跳过','专职范围',String(row?.name||role).slice(0,200)));continue;}
         current.changes.push(row);
       }
-      current.issues.push(...validateChanges(current.changes,role).map(i=>failed(role,i.reason,'专职校验',i.name)));
+      const validation=validateChanges(current.changes,role),problems=Array.isArray(validation)?validation:validation.issues;
+      current.issues.push(...problems.map(i=>failed(role,i.reason,'专职校验',i.name,i.sourceIndex)));
+      current.acceptedCount=Array.isArray(validation)?current.changes.length:validation.changes.length;
+      current.summaryChanges=Array.isArray(validation)?current.changes:validation.changes.map(c=>({archiveId:c.id,name:c.name,type:c.type,status:c.status,fields:c.patch,recordId:c.specific?.recordId,details:c.specificPatch}));
       current.floorReviews=Array.isArray(data.floorReviews)?data.floorReviews:[];
+      for(const source of input.sources||[]){
+        const reports=current.floorReviews.filter(r=>r?.sourceIndex===source.index),r=reports.length===1?reports[0]:null,count=current.changes.filter(r=>r.sourceIndex===source.index).length;
+        if(!r||r.status!=='reviewed'||!Number.isSafeInteger(r.changeCount)||r.changeCount!==count)current.issues.push(failed(role,r?.reason||'本专职未提供一致的逐层核对结果','逐层核对','第 '+(source.index+1)+' 层',source.index));
+      }
       current.message=String(data.message||'').slice(0,1500);current.status=current.issues.length?'failed':'success';
     }catch(error){check();current.issues.push(failed(role,error.message||'任务失败'));}
     onCheckpoint(clone(state));
@@ -49,7 +60,7 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
     check();const stage=state.stages.taishiSummary,attempts=stage.attempts+1;
     state.stages.taishiSummary={status:'failed',attempts,changes:[],issues:[],message:''};const current=state.stages.taishiSummary;onAttempt('taishiSummary',attempts);onCheckpoint(clone(state));
     try{
-      const result=await invoke(archiveSummaryPreset(TAISHI_ROLES.slice(0,2).flatMap(role=>state.stages[role].changes),TAISHI_ROLES.slice(0,2).map(role=>state.stages[role].message)),'taishiSummary');
+      const result=await invoke(archiveSummaryPreset(TAISHI_ROLES.slice(0,2).flatMap(role=>(state.stages[role].summaryChanges||state.stages[role].changes)),TAISHI_ROLES.slice(0,2).map(role=>state.stages[role].message)),'taishiSummary',wireBudget(current,'taishiSummary',onAttempt,onCheckpoint,state));
       check();assert(typeof result?.message==='string','摘要返回无效，保留原候选');current.message=result.message.slice(0,3000);current.status='success';
     }catch(error){check();current.issues.push(failed('taishiSummary',error.message||'汇总失败'));}
     onCheckpoint(clone(state));
@@ -57,20 +68,20 @@ export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},par
   check();
   if(resume){onStage('单独续跑：'+TAISHI_STAGE_NAMES[retryRole]+'（1次请求）');await (retryRole==='taishiSummary'?summary():specialist(retryRole));}
   else{
-    onStage(parallel?'世界与人物并行核对（2次请求）':'酒馆连接顺序核对世界与人物（2次请求）');
+    onStage(parallel?'世界与人物并行核对（2次请求）':'先核对世界，再更新人物（2次请求）');
     if(parallel)await Promise.all(TAISHI_ROLES.slice(0,2).map(specialist));else for(const role of TAISHI_ROLES.slice(0,2))await specialist(role);
     check();if(TAISHI_ROLES.slice(0,2).every(role=>state.stages[role].status==='success')){onStage('汇总变化（第3次请求）');await summary();}
   }
   check();const changes=TAISHI_ROLES.slice(0,2).flatMap(role=>state.stages[role].changes);
   assert(changes.length<=64,'合并变化超过64项，请缩小读取范围');
-  const issues=TAISHI_ROLES.flatMap(role=>state.stages[role].issues);
-  // A deferred summary is visible and blocks progress until explicitly generated.
-  if(state.stages.taishiSummary.status==='pending')issues.push(failed('taishiSummary','摘要尚未生成；完成专职后可单独生成','等待汇总'));
-  const message=state.stages.taishiSummary.status==='success'?state.stages.taishiSummary.message:TAISHI_ROLES.slice(0,2).map(role=>state.stages[role].message).filter(Boolean).join('；');
+  const issues=TAISHI_ROLES.slice(0,2).flatMap(role=>state.stages[role].issues);
+  const warnings=state.stages.taishiSummary.issues;
+  const counts=TAISHI_ROLES.slice(0,2).map(role=>state.stages[role].acceptedCount??state.stages[role].changes.length);
+  const message=state.stages.taishiSummary.status==='success'?state.stages.taishiSummary.message:`世界 ${counts[0]} 项、人物 ${counts[1]} 项有效候选，尚未保存。${warnings.length?'AI摘要未完成，已使用基础摘要；有效候选可正常保存。':''}`;
   const floorReviews=(input.sources||[]).map(s=>{
     const rows=TAISHI_ROLES.slice(0,2).map(role=>(state.stages[role].floorReviews||[]).filter(r=>r.sourceIndex===s.index));
-    const reviewed=rows.every(r=>r.length===1&&r[0].status==='reviewed'&&Number.isSafeInteger(r[0].changeCount)&&r[0].changeCount>=0);
-    return {sourceIndex:s.index,status:reviewed?'reviewed':'uncertain',changeCount:reviewed?rows.reduce((sum,r)=>sum+r[0].changeCount,0):0};
+    const reviewed=rows.every((r,i)=>r.length===1&&r[0].status==='reviewed'&&Number.isSafeInteger(r[0].changeCount)&&r[0].changeCount===state.stages[TAISHI_ROLES[i]].changes.filter(c=>c.sourceIndex===s.index).length);
+    return {sourceIndex:s.index,status:reviewed?'reviewed':'uncertain',changeCount:changes.filter(c=>c.sourceIndex===s.index).length,...(!reviewed?{reason:TAISHI_ROLES.slice(0,2).map((role,i)=>TAISHI_STAGE_NAMES[role]+'：'+(rows[i][0]?.reason||state.stages[role].issues.find(i=>i.sourceIndex===s.index)?.reason||'本层未完成核对')).join('；').slice(0,600)}:{})};
   });
-  return {changes,message,floorReviews,workflowIssues:issues,workflowState:state};
+  return {changes,message,floorReviews,workflowIssues:issues,workflowWarnings:warnings,workflowState:state};
 }

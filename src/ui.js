@@ -84,6 +84,7 @@ export class WorkbenchUI {
       if (name === 'manage-tab') { this.setManageTab(button.dataset.tab); return; }
       if (name === 'settings-proxy') { const target = this.modal.querySelector(`[data-action="${button.dataset.proxy}"]`); if (target && !target.disabled) target.click(); return; }
       if (name === 'goal-example') { const field = this.panel.querySelector('[data-goal]'); if (field) { field.value = button.dataset.text || ''; this.goal = field.value; field.focus(); field.dispatchEvent(new Event('input', { bubbles: true })); } return; }
+      if(name==='taishi-record-view'){this.taishiRecordView=button.dataset.view==='cards'?'cards':'table';this.render(this.view);return;}
       if(name==='taishi-layout-mode'){this.setTaishiLayout({mode:button.dataset.mode});return;}
       if(name==='taishi-enter-world'){this.setTaishiLayout({mode:'single',worldId:button.dataset.id});return;}
       if(name==='taishi-enter-civilization'){this.taishiSection='civilizations';this.setTaishiLayout({civilizationId:button.dataset.id});return;}

@@ -1,3 +1,7 @@
+import {taishiFillPolicy} from './taishi-fill.js';
+import {isTaishi} from './taishi.js';
+import {selectArchiveInput} from './archive-input.js';
+import {wireArchiveRecord} from './archive-contract.js';
 import {normalizeStatusbarOperation} from './builtin-statusbar.js';
 import {archiveFieldRepairSchema} from './archive-contract.js';
 import {assert,clone,stable,ASYNC_MARKER} from './core.js';
@@ -43,9 +47,12 @@ export function archiveRepairPrompt(pending,power,referencePacket){
  const payload={task:'仅修复失败候选',setupReferences:Boolean(pending.setupReferences),presetId:ARCHIVE_REPAIR_PRESET.id,failed,fieldTypes:ARCHIVE_FIELDS,declaredSchemas:creationConfig(power)?.records||[],worldStructure:power.taishiWorldStructure||null,
  existingIdentities:Object.values(power.archives||{}).filter(r=>failedText.includes(r.id)||r.name?.length>=2&&failedText.includes(r.name)).map(r=>({archiveId:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId})),
  sources:pending.sources.filter(s=>failed.some(i=>i.candidate.sourceIndex===s.index)),playerNote:pending.playerNote||'',referencePacket:referencePacket?.payload||{books:[]}};
+ const related=Object.values(power.archives||{}).filter(r=>failed.some(i=>i.candidate.archiveId===r.id));
+ payload.current=selectArchiveInput(related,failedText,{compact:true}).map(wireArchiveRecord);
+ if(isTaishi(power))payload.fillPolicy=taishiFillPolicy(pending.setupReferences?'worldbook':pending.taishiEvolution?'evolution':pending.taishiDraft?'draft':pending.playerNote?'supplement':'narrative',config?.records||[]);
  const user=JSON.stringify(payload);assert(user.length<=120000,'待修复资料过长，请先保存有效项后再修复');
  const referenceContract=pending.setupReferences?'本次是世界书引用修复；每项 repairs 可额外填写 settingRefs:[{book,id,part}]，仅使用 referencePacket 中的真实引用。':'本次是普通正文修复；每项 repairs 只输出 index、fields、details和可选recordId，必须省略 settingRefs。';
- return {system:ASYNC_MARKER+'\n'+ARCHIVE_REPAIR_PRESET.system+'\n'+referenceContract+'\n每项failed.repairContract是该候选单独的输出约束。已给recordId时必须返回该值，details只能使用该项列出的键；其他分类的描述资料按原标签完整保留到该项fields的描述字段，不能混入details。字段集合不能照搬其他index。',user,archiveSchema:archiveFieldRepairSchema(payload),archiveRepair:true};
+ return {system:ASYNC_MARKER+'\n'+ARCHIVE_REPAIR_PRESET.system+'\n'+referenceContract+'\n每项failed.repairContract是该候选单独的输出约束。current是本次相关已有档案，按fillPolicy保留任务边界。失败的快照或冲突字段应按证据修正，无法确定时省略该字段以保留旧值，不照抄原失败值或虚构补全。已给recordId时必须返回该值，details只能使用该项列出的键；其他分类的描述资料按原标签完整保留到该项fields的描述字段，不能混入details。字段集合不能照搬其他index。',user,archiveSchema:archiveFieldRepairSchema(payload),archiveRepair:true};
 }
 export function applyArchiveRepairResponse(pending,data,power,state={}){
  assert(data&&Array.isArray(data.repairs)&&data.repairs.length<=32,'修复响应须包含repairs数组，最多32项');
@@ -67,6 +74,14 @@ export function applyArchiveRepairResponse(pending,data,power,state={}){
    resolved.recordId=row.recordId||undefined;
   }
   next.changes[row.index]={...resolved,fields:clone(row.fields),details:clone(row.details),...(pending.setupReferences&&row.settingRefs!==undefined?{settingRefs:clone(row.settingRefs)}:{})};
+  // A genuinely changed/omitted repair no longer refers to the old held value.
+  // Unchanged values keep their original hold; no-op repair cannot erase a conflict.
+  const definition=power?creationConfig(power)?.records.find(r=>r.id===original.recordId):null;
+  for(const key of ['uncertainFields','staleFields'])if(Array.isArray(original[key])){
+   const value=(item,h)=>{const label=h.section==='fields'?ARCHIVE_FIELDS[original.type]?.[h.field]:definition?.fields.find(f=>f.id===h.field)?.label;return item[h.section]?.[h.field]??(label?item[h.section]?.[label]:undefined);};
+   const held=original[key].filter(h=>stable(value(original,h))===stable(value(row,h)));
+   if(held.length)next.changes[row.index][key]=held;else delete next.changes[row.index][key];
+  }
   if(power)next.changes[row.index]=normalizeStatusbarOperation(power,next.changes[row.index]);
   if(!resolved.recordId&&!Object.keys(row.details).length)delete next.changes[row.index].details;
   for(const k of ['name','type','ownerPowerId','status','sourceIndex','quote','ruleQuote'])assert(stable(next.changes[row.index][k]??null)===stable(original[k]??null),'修复改变了受保护属性');

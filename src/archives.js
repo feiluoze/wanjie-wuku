@@ -1,3 +1,4 @@
+import {taishiWorldKey,separateTaishiWorlds} from './taishi-fill.js';
 import {archiveResource} from './builtin-resources.js';
 import {separateArchiveTables} from './archive-table-definitions.js';
 import {creationConfig} from './creation-config.js';
@@ -46,8 +47,8 @@ export function sceneArchiveContext(power, chat, query = '') {
 }
 const normalizedName = name => name.normalize('NFKC').replace(/\s/g, '').toLowerCase();
 export const archiveNames = record => [...new Set([record.name, ...(record.history || []).map(r=>r.name)].map(normalizedName))];
-export function findArchiveObject(power, name, module, recordId) {
-  const matches = Object.values(power.archives || {}).filter(r=>archiveNames(r).includes(normalizedName(name))&&(!recordId||!r.specific?.recordId||r.specific.recordId===recordId));
+export function findArchiveObject(power, name, module, recordId, worldId) {
+  const matches = Object.values(power.archives || {}).filter(r=>archiveNames(r).includes(normalizedName(name))&&(!recordId||!r.specific?.recordId||r.specific.recordId===recordId)&&(!isTaishi(power)||!worldId||taishiWorldKey(power,r.specific?.fields)===worldId));
   assert(matches.length <= 1, `「${name}」当前名或旧名对应多个档案；请重新AI整理并明确原archiveId，不会自动合并`);
   const found = matches[0];
   assert(!found || !isMmlc(power) || !module || module===mmlcModule(found), `「${name}」与原档案模块归属不同；请重新AI整理并明确原archiveId，不会另建重复对象`);
@@ -122,7 +123,7 @@ export function saveArchive(power, input, source) {
   const previous = input.id ? power.archives[key(input.id)] : null;
   assert(!input.id || previous, '档案不存在');
   assert(!previous || previous.type === type, '已有档案不能改换类型');
-  if (!previous || normalizedName(previous.name)!==normalizedName(name)) assert(!Object.values(power.archives).some(r => r.id !== previous?.id && archiveNames(r).includes(normalizedName(name)) && !separateArchiveTables(power,input.specific,r.specific) && (!isTaishi(power)||!input.specific?.recordId||!r.specific?.recordId||input.specific.recordId===r.specific.recordId)), '已有同名档案（含旧名档案），请编辑原对象，避免重复统计');
+  if (!previous || normalizedName(previous.name)!==normalizedName(name)) assert(!Object.values(power.archives).some(r => r.id !== previous?.id && archiveNames(r).includes(normalizedName(name)) && !separateArchiveTables(power,input.specific,r.specific) && !separateTaishiWorlds(power,input.specific,r.specific) && (!isTaishi(power)||!input.specific?.recordId||!r.specific?.recordId||input.specific.recordId===r.specific.recordId)), '已有同名档案（含旧名档案），请编辑原对象，避免重复统计');
   assert(previous || Object.keys(power.archives).length < 512, '单词条档案超过512项，请先导出整理');
   const fields = Object.fromEntries(Object.keys(ARCHIVE_FIELDS[type]).map(k => [k, text(input.fields?.[k] || '', 4000).trim()]));
   assert(Object.values(fields).some(Boolean), '请填写至少一项实际情况；未明确的字段可以留空');

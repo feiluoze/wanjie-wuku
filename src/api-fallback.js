@@ -24,10 +24,11 @@ export function retryDelay(ms,signal){
   signal?.addEventListener('abort',abort,{once:true});
  });
 }
-export async function requestWithFallback(plan,request,{signal,check=()=>{},onAttempt=()=>{},onFailure=()=>{},onSwitch=()=>{},retryDelays=[],wait=retryDelay,onRetry=()=>{}}={}){
+export async function requestWithFallback(plan,request,{signal,check=()=>{},onAttempt=()=>{},onFailure=()=>{},onSwitch=()=>{},retryDelays=[],wait=retryDelay,onRetry=()=>{},maxAttempts=Infinity}={}){
  const guard=()=>{if(signal?.aborted)throw new DOMException('查询已取消','AbortError');check();};
  guard();
- const limit=retryDelays.length?Math.min(3,Math.max(plan.length,1+retryDelays.length)):plan.length;
+ if(maxAttempts!==Infinity&&(!Number.isInteger(maxAttempts)||maxAttempts<1||maxAttempts>3))throw Error('请求次数预算无效');
+ const limit=Math.min(maxAttempts,retryDelays.length?Math.min(3,Math.max(plan.length,1+retryDelays.length)):plan.length);
  for(let i=0;i<limit;i++){
   const index=Math.min(i,plan.length-1);if(index<0)break;
   guard();const connection={...plan[index],attempt:i+1,attemptLimit:limit,connectionIndex:index+1,retry:Math.max(0,i-plan.length+1)};onAttempt(connection);

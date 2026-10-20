@@ -2,7 +2,7 @@
 // input; only maintained instructions belong to system. No remote preset executes.
 import {ARCHIVE_PROTOCOL_POLICY} from './archive-protocol.js';
 
-export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.4.stale1';
+export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.5.taishi1';
 const section=(id,body)=>`<${id}>\n${body}\n</${id}>`;
 const taskInstructions=Object.freeze({
  narrative:`只整理当前任务范围内已经成立的变化。先用rules与scopePolicy判断适用性，再逐项读取sources.settlements.facts；<WJWK-settle>是事实主依据，但一份回执可含多个词条，不等于全部属于当前词条。statusSnapshots（含MMLC-archive长期总档）用于核对现状；总档中的旧库存、旧能力和旧经历不是本轮新收益，不重复累加，首次遇到的明确现状可作为存量建档。content仅补充明确事实。无正式结算时允许使用明确叙事证据，不要求正文必须出现词条名称；机制联系仍需成立。opportunities、规划、思考、选项、context、规则示例不证明执行或到账。正文与结算描述同一对象的同一变化时合并为一条，不能重新执行规则或补算收益。`,
@@ -81,6 +81,7 @@ export function archivePreset(payload,{marker='',domain='',task='',terminal='',c
   ['wjwk_original_statusbar',payload.originalStatusbar?'当前主表的表名、栏目、身份和保留规则以originalStatusbar为准；同一总览或具名对象接续原ID。主表不填写operation，不因本轮重查新增副本，不把子表操作权限套到主表。':''],
   ['wjwk_long_term_tables',payload.longTermTables?'长期子表的身份、必要性、禁用和兼容范围以longTermTables为准；只对responseContract.operationScope.recordIds里的分类填写operation=insert/update/transition。沿用原archiveId更新，独立新对象才insert，recordSchemas提供实际列，不发明分类或列。':''],
   ['wjwk_ownership_evidence',mode==='narrative'&&payload.longTermTables?.ownership?.requireLink?'本词条要求新增对象提供连续原文联系：quote须将具体对象或已填地点、来源等事实锚点与当前词条、已有对象或声明机制联系起来；声明机制为'+payload.longTermTables.ownership.mechanisms.join('、')+'。主状态栏沿声明身份接续，不能当成新独立对象。无法证明归属时标uncertain。':''],
+  ['wjwk_taishi_fill',payload.fillPolicy?'太始天填表必须遵守fillPolicy：按对象与真实所属世界复用ID，只填变化列；状态快照、独立历史和原始设定分开。只有tables声明的snapshotFields允许staleFields，重要事件、反哺与长期记忆不能作为过期状态丢弃。任务来源与玩家保护优先于整理便利。':''],
   ['wjwk_scope',mode==='narrative'?scope:''],
   ['wjwk_stale_snapshots',mode==='narrative'?'旧层补查不回写最新状态。已被同一对象较新正文值取代的旧进度、旧库存、旧位置等快照，使用 changes.staleFields:[{section:fields或details,field:栏目ID,reason:为何是过期状态}] 标注，旧值仍放原字段供程序校验；程序确认该栏目确由较新正文更新后自动忽略，不形成冲突。其余字段正常校验。已经完整核对、只剩这些过期快照时 floorReviews.status=reviewed，changeCount仍按原changes条数；不要因历史先后本身标uncertain，不要求玩家逐次确认旧数值。独立奖励、事件、首次发现和遗漏事实不属于过期快照，不标staleFields；同字段混有这些独立事实时先保真核对，无法分离则uncertainFields。来源未知、正文改写或真实矛盾仍uncertain。':''],
   ['wjwk_field_conflicts',mode==='narrative'?`字段冲突隔离：current.lastSourceIndex仅表示整条记录最后一次正文来源（内部0基），不代表所有字段都在该层改变。重查更早的sources时，历史差异不自动证明数值回退，也不能用旧快照覆盖较新现状。明确消耗、损失、重置或更正可以降低数值；不能一律取最大值。若本层变化起点与已知值冲突，且没有明确原因，只搁置受影响字段，继续检查同层独立成果。不要整层返回空changes来掩盖未处理的新事实，不替正文补算差额或累计奖励。

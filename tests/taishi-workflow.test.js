@@ -1,3 +1,4 @@
+import {completeReview} from './review-response-fixture.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -44,7 +45,7 @@ test('cross-specialist writes are rejected and cancelled late returns never prod
 test('basic defaults to one request; opt-in uses three and saves once through existing review queue',async()=>{
   for(const advanced of [false,true]){
     const f=await setup(advanced);const calls=[];const before=clone(f.store.read());
-    f.app.model.request=async(p,{connection})=>{calls.push(connection.task);return JSON.stringify(connection.task==='taishiSummary'?{message:'汇总'}:{changes:[row(connection.task==='taishiPeople'?'companion':'world')]});};
+    f.app.model.request=async(p,{connection})=>{calls.push(connection.task);return completeReview(p,connection.task==='taishiSummary'?{message:'汇总'}:{changes:[row(connection.task==='taishiPeople'?'companion':'world')]});};
     await f.app.reviewArchives();assert.equal(calls.length,advanced?3:1);assert.deepEqual(f.store.read(),before);
     const pending=f.app.pendingArchiveReview;assert.equal(pending.changes.length,advanced?2:1);
     await f.app.commitArchiveReview(pending,new Map(pending.changes.map((c,i)=>[i,c.id])));

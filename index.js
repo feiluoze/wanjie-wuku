@@ -235,22 +235,22 @@ export class WukuApp {
       this.runtimeLog?.step(logId,'携带规则',{rules:carried.filter(p=>typeof p?.fullText==='string').map(p=>({id:p.id,name:p.name,characters:p.fullText.length})),references:reference.summary,referenceCharacters:reference.characters,scope:'插件主动携带的规则与所选参考；不代表酒馆主正文的全部世界书'});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
-      const send=async(p,plan)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
-        retryDelays:retryTransient?[8000,20000]:[],
+      const send=async(p,plan,budget)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
+        retryDelays:retryTransient?[8000,20000]:[],maxAttempts:budget?.remainingAttempts??Infinity,
         onRetry:info=>{this.aiActivity?.phase(`${info.delay/1000}秒后自动重试（第${info.attempt}/${info.limit}次）`);this.runtimeLog?.step(logId,'等待自动重试',info);},
         signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');checkCapture();assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
-        onAttempt:selected=>{this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.retry>0?'等待自动重试回复':selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
+        onAttempt:selected=>{if(selected.attempt>1)budget?.onExtraAttempt();this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.retry>0?'等待自动重试回复':selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},
         onFailure:(selected,error)=>this.runtimeLog?.step(logId,'API尝试失败',{task:selected.task,attempt:selected.attempt,kind:error.transportKind||'non-transport',httpStatus:error.httpStatus}),
         onSwitch:info=>this.runtimeLog?.step(logId,'切换备用API',{task:info.from.task,from:info.from.profileName,to:info.to.profileName,kind:info.kind,httpStatus:info.httpStatus})
       });};
-      const invoke=async(p,role)=>{
+      const invoke=async(p,role,budget)=>{
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         checkCapture();
         const selected=roleConnections?.[role]||connection;
         this.aiActivity?.connection(selected);
         this.runtimeLog?.step(logId,'专职请求',{task:role,profile:selected.profileName,model:selected.settings.model||'酒馆当前连接'});
         this.runtimeLog?.capture(logId,'专职请求 '+role,p);
-        const reply=await send(p,rolePlans?.[role]||connectionPlan);
+        const reply=await send(p,rolePlans?.[role]||connectionPlan,budget);
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         checkCapture();
         this.runtimeLog?.capture(logId,'专职返回 '+role,reply);
@@ -260,7 +260,7 @@ export class WukuApp {
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
       requestStage='response';rawResponse=raw;
       if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
-      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:!workflowRetryRole&&!TAISHI_ROLES.slice(0,2).some(role=>rolePlans[role].some(c=>c.settings.mode==='st')),resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
+      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:false,resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');

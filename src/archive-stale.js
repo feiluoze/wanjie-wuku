@@ -1,3 +1,4 @@
+import {taishiSnapshotField} from './taishi-fill.js';
 import {archiveContextCurrent} from './archives.js';
 import {tableForRecord} from './archive-tables.js';
 
@@ -18,6 +19,7 @@ export function fieldSourceIndex(record,section,field){
 
 export function maySkipStaleField(power,record,sourceIndex,field,chat){
  if(!record||!Number.isSafeInteger(sourceIndex)||sourceIndex<0||!archiveContextCurrent(record,chat)||tableForRecord(power,record)?.kind==='event')return false;
+ if(taishiSnapshotField(record,field.section,field.key)===false)return false;
  const newer=fieldSourceIndex(record,field.section,field.key);
  return newer!==null&&newer>sourceIndex;
 }

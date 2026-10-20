@@ -1,4 +1,20 @@
 /* Original workbench styling. Host theme colors are read as values only. */
+/* Taishi tables are read-only projections of the archive, with stacked rows on phones. */
+.wjwk .wjwk-taishi-view-switch{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0}
+.wjwk .wjwk-taishi-view-switch [aria-pressed="true"]{border-color:var(--wk-cyan);background:var(--wk-soft)!important}
+.wjwk .wjwk-taishi-table-wrap{max-width:100%;min-width:0}
+.wjwk .wjwk-taishi-table{width:100%;table-layout:fixed;border-collapse:collapse;background:var(--wk-card);border:1px solid var(--wk-line)}
+.wjwk .wjwk-taishi-table caption{text-align:left;padding:10px;color:var(--wk-muted)}
+.wjwk .wjwk-taishi-table th,.wjwk .wjwk-taishi-table td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid var(--wk-line);overflow-wrap:anywhere}
+.wjwk .wjwk-taishi-table th:first-child{width:23%}.wjwk .wjwk-taishi-table th:nth-child(2){width:45%}
+.wjwk .wjwk-taishi-table small{display:block}.wjwk .wjwk-taishi-table p{margin:0 0 6px}
+.wjwk .wjwk-taishi-table td button{white-space:normal;min-height:36px}
+@media(max-width:640px){
+ .wjwk .wjwk-taishi-table,.wjwk .wjwk-taishi-table caption,.wjwk .wjwk-taishi-table tbody,.wjwk .wjwk-taishi-table tr,.wjwk .wjwk-taishi-table th,.wjwk .wjwk-taishi-table td{display:block;width:100%!important}
+ .wjwk .wjwk-taishi-table thead{display:none}.wjwk .wjwk-taishi-table tr{border-bottom:2px solid var(--wk-line)}
+ .wjwk .wjwk-taishi-table th,.wjwk .wjwk-taishi-table td{border:0;padding:8px 12px}
+ .wjwk .wjwk-taishi-table td[data-label]::before{content:attr(data-label);display:block;font-size:12px;color:var(--wk-muted);margin-bottom:4px}
+}
 .wjwk {
   --wk-bg:#181e27; --wk-text:#e8edf2; --wk-source-accent:#87cfc5;
   --wk-card:color-mix(in srgb,var(--wk-bg) 94%,var(--wk-text));

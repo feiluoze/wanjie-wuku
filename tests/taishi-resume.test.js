@@ -37,9 +37,9 @@ test('summary failure retries only summary and cannot inject facts or rewards',a
 });
 
 test('invalid candidate schema marks its specialist failed and can be replaced by retry',async()=>{
-  const f=await setup();f.app.model.request=async(p,{connection})=>{const role=connection.task;f.calls.push(role);return JSON.stringify({changes:[role==='taishiWorld'?{...row(role),status:'invalid'}:row(role)]});};
+  const f=await setup();f.app.model.request=async(p,{connection})=>{const role=connection.task;f.calls.push(role);return completeReview(p,{changes:[role==='taishiWorld'?{...row(role),status:'invalid'}:row(role)]});};
   await f.app.reviewArchives();assert.equal(pending(f).data.workflowState.stages.taishiWorld.status,'failed');assert.equal(pending(f).data.workflowState.stages.taishiPeople.status,'success');assert.equal(f.calls.length,2);
-  f.app.model.request=async(p,{connection})=>{f.calls.push(connection.task);return JSON.stringify({changes:[row(connection.task)]});};
+  f.app.model.request=async(p,{connection})=>{f.calls.push(connection.task);return completeReview(p,{changes:[row(connection.task)]});};
   await f.app.retryTaishiWorkflow('taishiWorld');assert.equal(f.calls.length,3);assert.equal(pending(f).changes.length,2);assert(!pending(f).issues.some(i=>i.role==='taishiWorld'));assert.equal(pending(f).data.workflowState.stages.taishiWorld.attempts,2);
 });
 
