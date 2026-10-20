@@ -44,5 +44,5 @@ export function taishiTableRows(records){
  return records.map(r=>({id:r.id,name:r.name,status:r.status,recordId:r.specific?.recordId||'',
   label:r.specific?.label||'其他档案',
   facts:Object.entries(r.specific?.fields||r.fields||{}).filter(([k,v])=>v&&!k.endsWith('_id')&&!['source_profile','time_state','world'].includes(k)).map(([id,value])=>({id,label:r.specific?.labels?.[id]||id,value:String(value)})),
-  source:r.source?.type==='story'&&Number.isSafeInteger(r.source.anchor?.index)?'正文第 '+(r.source.anchor.index+1)+' 层':/自主发展/.test(r.source?.note||'')?'已采用发展候选':/世界书|设定底稿/.test(r.source?.note||'')?'世界书底稿':'玩家确认记录'}));
+  source:/自主发展|发展候选/.test(r.source?.note||'')?'已采用发展候选':/草案/.test(r.source?.note||'')?'已采用设定草案':/世界书|设定底稿/.test(r.source?.note||'')?'世界书底稿':r.source?.type==='story'&&Number.isSafeInteger(r.source.anchor?.index)?'正文第 '+(r.source.anchor.index+1)+' 层':'玩家确认记录'}));
 }

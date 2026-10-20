@@ -11,6 +11,7 @@ import {ModelConnection} from '../src/model.js';
 import {emptyPromptLibrary,importPromptPreset} from '../src/prompt-presets.js';
 import {validateState,stable} from '../src/core.js';
 import {archiveInputRecord} from '../src/archive-input.js';
+import {fieldSourceIndex} from '../src/archive-stale.js';
 import {completeReview} from './review-response-fixture.js';
 import {archiveRepairPrompt,applyArchiveRepairResponse} from '../src/archive-repair.js';
 
@@ -84,6 +85,10 @@ test('advanced task presets are applied to each real model request without repla
 test('table and current overview are projections of one archive and do not reveal embedded source documents',async()=>{
  const f=await setup();f.world.specific.fields.source_profile='PRIVATE_REFERENCE';const before=stable(f.p),rows=taishiTableRows([f.world]);assert(!JSON.stringify(rows).includes('PRIVATE_REFERENCE'));assert.equal(rows[0].facts.find(f=>f.id==='overview').value,'群岛文明');assert.equal(stable(f.p),before);
  f.world.specific.fields.overview='议会文明';assert.equal(taishiTableRows([f.world])[0].facts.find(f=>f.id==='overview').value,'议会文明');
+});
+test('adopted development linked to a story-time floor never masquerades as extracted narrative evidence',async()=>{
+ const f=await setup();f.world.source={type:'story',anchor:{index:8},note:'玩家采用正文历时的发展候选（AI创作）'};
+ assert.equal(taishiTableRows([f.world])[0].source,'已采用发展候选');assert.equal(fieldSourceIndex(f.world,'details','overview'),null);
 });
 test('repair carries the same source contract and releases only actually corrected held values',async()=>{
  const f=await setup(),raw={archiveId:f.world.id,name:f.world.name,type:'environment',status:'active',recordId:'world',fields:{conditions:'矛盾旧值'},details:{overview:'旧概况'},sourceIndex:-1,uncertainFields:[{section:'fields',field:'conditions',reason:'与当前记录不一致'}]};

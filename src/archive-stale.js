@@ -10,7 +10,7 @@ export function fieldSourceIndex(record,section,field){
   if(row.source?.type==='manual'||row.source?.contextReset===true){previous=undefined;origin=null;}
   const value=section==='details'?row.specific?.fields?.[field]:row.fields?.[field];
   if(value!==previous){
-   origin=row.source?.type==='story'&&Number.isSafeInteger(row.source.anchor?.index)?row.source.anchor.index:null;
+   origin=row.source?.type==='story'&&!/自主发展|发展候选|草案/.test(row.source.note||'')&&Number.isSafeInteger(row.source.anchor?.index)?row.source.anchor.index:null;
    previous=value;
   }
  }
