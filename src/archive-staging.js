@@ -1,4 +1,5 @@
 import {clone,assert} from './primitives.js';
+import {isTaishi} from './taishi.js';
 import {floorCoverage} from './archive-protocol.js';
 // Isolated per-run overlay. Local provisional IDs never reach a model or disk.
 export function createArchiveStaging(power,{normalize,apply,chat=[],state={}}){
@@ -22,7 +23,7 @@ export function createArchiveStaging(power,{normalize,apply,chat=[],state={}}){
    });
    // Invalid/uncertain floors never influence the next request. Raw proposals
    // still reach final validation and remain available for manual repair.
-   if(!batch.issues.length&&floorCoverage(data,[source],batch.changes,batch.terminalResults,batch.creationResults,batch.ignoredChanges)[0].status==='reviewed'){
+   if(!batch.issues.length&&(!isTaishi(working)||floorCoverage(data,[source],batch.changes,batch.terminalResults,batch.creationResults,batch.ignoredChanges,{required:true})[0].status==='reviewed')){
     const next=clone(working);
     apply(next,batch.changes,[source],new Map(batch.changes.map((c,i)=>[i,c.id])),chat);
     working=next;

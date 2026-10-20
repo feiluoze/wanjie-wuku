@@ -30,10 +30,10 @@ test('MMLC long-term archives are current snapshots and cannot clear known facts
  assert.doesNotThrow(()=>assertFactEvidence('旧库存：灵材十份',source));
  const f=fixture();f.ctx.chat[0].mes=source;const prompt=archivePrompt(f.power,archiveSources(f.ctx.chat,f.state,f.power),f.ctx.chat),input=JSON.parse(prompt.user);assert.deepEqual(input.sources[0].statusSnapshots,parts.statusSnapshots);assert.doesNotMatch(input.sources[0].content,/旧库存/);assert.match(prompt.system,/总档.*旧库存/);
 });
-test('prompt uses structured evidence and requires floor acknowledgements without changing old anchors',()=>{
+test('prompt uses structured evidence and does not require floor reports for ordinary powers',()=>{
  const f=fixture();f.ctx.chat[0].mes+='<story_driver>规划不应发送</story_driver><WJWK-settle>实际取得甲成果</WJWK-settle>';
  const sources=archiveSources(f.ctx.chat,f.state,f.power),stamp=stable(sources),p=JSON.parse(archivePrompt(f.power,sources,f.ctx.chat).user);
- assert.doesNotMatch(JSON.stringify(p.sources),/规划不应发送/);assert.match(p.sources[0].settlements[0].facts,/甲成果/);assert.ok(p.responseContract.floorReviews);assert.equal(stable(sources),stamp);
+ assert.doesNotMatch(JSON.stringify(p.sources),/规划不应发送/);assert.match(p.sources[0].settlements[0].facts,/甲成果/);assert.equal(p.responseContract.floorReviews,undefined);assert.equal(stable(sources),stamp);
  const old=saveArchive(f.power,{type:'record',name:'已有档案',status:'active',fields:{description:'玩家确认'}},archiveSource(f.ctx.chat,'已有记录'));assert.equal(archiveCurrent(old,f.ctx.chat),true);
 });
 test('all declared adapters accept dedicated IDs and Chinese labels in the correct namespace',()=>{
@@ -69,16 +69,16 @@ test('all ordinary powers reject explicitly foreign protocol headings even with 
  assert.equal(foreignArchiveOwner({name:'乙系统物资交付',ownerPowerId:a.id},a,state),null); // Display prefixes do not establish ownership.
  assert.equal(foreignArchiveOwner({name:'甲系统的乙系统研究',quote:'【甲系统】自身研究'},a,state),null);
 });
-test('last-floor-only response keeps earlier floors unreviewed and does not delete old facts',()=>{
+test('missing floor reports do not block valid changes or force re-reading earlier floors',()=>{
  const f=fixture();f.ctx.chat.push({is_user:true,mes:'继续'},{is_user:false,mes:'第二件工具已交付。'});
  const sources=archiveSources(f.ctx.chat,f.state,f.power),raw={type:'record',name:'第二件工具',status:'active',fields:{description:'已交付'},sourceIndex:2};
  const changes=normalizeArchiveChanges({changes:[raw]},f.power,sources,f.ctx.chat),report=floorCoverage({floorReviews:[{sourceIndex:2,status:'reviewed',changeCount:1}]},sources,changes);
- assert.deepEqual(report.map(r=>r.status),['uncertain','reviewed']);
- const before=stable(f.power.resources);applyArchiveChanges(f.power,changes,sources,new Map([[0,null]]),f.ctx.chat,{blockedFloors:new Set(report.filter(r=>r.status==='uncertain').map(r=>r.sourceIndex))});
- assert.deepEqual(f.power.archiveReviewed.map(r=>r.index),[2]);assert.deepEqual(archiveSources(f.ctx.chat,f.state,f.power).map(r=>r.index),[0]);assert.equal(stable(f.power.resources),before);validateState(f.state);
+ assert.deepEqual(report.map(r=>r.status),['reviewed','reviewed']);
+ const before=stable(f.power.resources);applyArchiveChanges(f.power,changes,sources,new Map([[0,null]]),f.ctx.chat);
+ assert.deepEqual(f.power.archiveReviewed.map(r=>r.index),[0,2]);assert.equal(stable(f.power.resources),before);validateState(f.state);
 });
-test('explicit no-change acknowledgement is required; wrong counts and duplicate floor reports remain pending',()=>{
- const sources=[{index:3,content:'普通叙事'}];assert.equal(floorCoverage({changes:[]},sources,[])[0].status,'uncertain');
+test('missing floor reports are accepted; inconsistent optional reports are diagnostic only',()=>{
+ const sources=[{index:3,content:'普通叙事'}];assert.equal(floorCoverage({changes:[]},sources,[])[0].status,'reviewed');
  for(const rows of [[{sourceIndex:3,status:'reviewed',changeCount:1}],[{sourceIndex:3,status:'reviewed',changeCount:0},{sourceIndex:3,status:'reviewed',changeCount:0}]])assert.equal(floorCoverage({floorReviews:rows},sources,[])[0].status,'uncertain');
  assert.equal(floorCoverage({floorReviews:[{sourceIndex:3,status:'reviewed',changeCount:0}]},sources,[])[0].status,'reviewed');
 });
@@ -106,12 +106,12 @@ test('declared adapters retain valid generic facts without guessing a dedicated 
  const good=normalizeArchiveBatch({changes:[valid]},p,archiveSources(f.ctx.chat,f.state,p),f.ctx.chat,'',f.state,{strictProtocol:true});
  assert.equal(good.issues.length,0);assert.equal(good.changes[0].specific.fields.state,'已部署');
 });
-test('partial automatic review stops after one call, saves valid facts and retains missing floors',async()=>{
+test('partial automatic review saves valid facts without a floor-report gate',async()=>{
  const f=fixture();f.ctx.chat.push({is_user:false,mes:'另一个已完成事实。'});f.app.settings.mode='st';
  await f.store.transact(s=>Object.assign(s.powers[f.power.id],{autoArchiveReview:true,autoArchiveSave:true,autoArchiveStart:0}));
- let calls=0;f.app.model.request=async()=>{calls++;return JSON.stringify({changes:[{type:'record',name:'新事实',status:'active',fields:{description:'已完成'},sourceIndex:1}],floorReviews:[{sourceIndex:1,status:'reviewed',changeCount:1}]});};
+ let calls=0;f.app.model.request=async()=>{calls++;return JSON.stringify({changes:[{type:'record',name:'新事实',status:'active',fields:{description:'已完成'},sourceIndex:1}]});};
  f.app.schedulePlayerReview('normal');clearTimeout(f.app.playerReviewTimer);f.app.playerReviewTimer=null;await f.app.runPlayerReview();
- assert.equal(calls,1);const p=f.store.read().powers[f.power.id];assert.deepEqual(p.archiveReviewed.map(r=>r.index),[]);assert.equal(Object.keys(p.archives).length,1);assert.match(f.app.archiveAutoStatus[f.power.id],/暂停/);
+ assert(calls>=1);const p=f.store.read().powers[f.power.id];assert(Object.values(p.archives).some(r=>r.name==='新事实'));assert.match(f.app.archiveAutoStatus[f.power.id],/已保存/);
 });
 test('default diagnostics export counts and codes without character names or quoted prose',()=>{
  const log=new RuntimeLog({storage:null});const ticket=log.begin('测试');

@@ -15,7 +15,7 @@ import {assertTaishiClaims,assertRelation,findRelation} from './taishi-relations
 import {createArchiveBatch,archiveBatchSources,advanceArchiveBatch} from './archive-batch.js';
 import {resolveTaishiLinks} from './taishi-links.js';
 import {reviewHistory} from './archive-history.js';
-import {archiveTablePolicy,archiveTables,tableTarget,archiveWriteCounts,assertChronologicalTableInsert,assertTableBatchIdentity} from './archive-tables.js';
+import {archiveTablePolicy,archiveTables,tableTarget,archiveWriteCounts,assertTableBatchIdentity} from './archive-tables.js';
 import {createArchiveStaging} from './archive-staging.js';
 import {selectArchiveInput,selectBuildArchiveInput,inputCharacterBreakdown} from './archive-input.js';
 import {assertTaishiOwnership} from './taishi-ownership.js';
@@ -30,7 +30,7 @@ import {peoplePolicy,filterPeopleBatch,retainDraftPeople,protectPeopleIdentity} 
 import {taishiDraftInstruction,protectTaishiDraft} from './taishi-draft.js';
 import {ownershipContext,foreignArchiveOwner,assertArchiveOwnership} from './archive-ownership.js';
 import { readerReport } from './archive-reader.js';
-import {evidenceParts,canonicalFields,fieldDiagnostic,floorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
+import {evidenceParts,canonicalFields,fieldDiagnostic,reviewFloorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
 import { journalSnapshot, saveArchiveUndo } from './archive-journal.js';
 import { creationConfig } from './creation-config.js';
 import { normalizeSpecific } from './specialized-records.js';
@@ -104,7 +104,7 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
   if(['wuku.harvest','wuku.cost_reduction','wuku.all_rewards','wuku.exponential','wuku.mass_energy','wuku.story_points'].includes(creationConfig(power)?.id))payload.settlementPolicy='仅整理正文明确事实，不执行规则中的自动结算。每次独立事件使用稳定名称和已有archiveId；回执与正文描述同一事件只保存一次。原始收获、实际最终结果、已交付及剩余待兑现分别记录；补交更新原权益，不重建整份奖励。原始成本和实际付出分别保存，不以节省额入账。余额快照不是收入，不自动修改插件资源账本；负余额依正文保留。规则倍率、公式、每日额度不是本轮已发生事实，不按电脑时间发放。永久成长、临时强化、货币与节点分别核对；同份源量的当前承载不能重复当库存。缺少实际结果或规则自相矛盾时留空并在message说明，禁止自行选择更大倍率或推算余额。旧通用档案保留，不自动拆分或删除。';
   payload.sources=sources.map(s=>{const parts=evidenceParts(s.content);return {...s,content:parts.body,settlements:parts.settlements,statusSnapshots:parts.statusSnapshots,floor:s.index+1};});
   payload.context=context.map(s=>({...s,content:evidenceParts(s.content).body}));
-  payload.readingPolicy='逐层核对 sources，不能只处理最后一层。settlements.facts 是本轮正式结算的主要依据；statusSnapshots（含MMLC-archive长期总档）只核对现状；旧存量不作为本轮新收益重复累加，首次出现的明确现状可作为存量建档；content 是补充叙事。opportunities 是未选择的机会，不是行动或到账。每项先判定所属金手指，不按出现位置推断归属。跨楼层同一对象沿用 ID；较新的状态更新不抹除旧的独立成果，重复记载不重复建档。快照遗漏不等于明确删除，前后冲突标 uncertain，不擅自选最新或更大值。无结算时可使用明确叙事事实；无法确定则保留待核对。';
+  payload.readingPolicy='初始化与每次更新都把主状态栏和所有已启用子表一起核对：该建档就建档，有变化就更新，无变化保留。settlements.facts 是本轮正式结算的主要依据；statusSnapshots（含MMLC-archive长期总档）只核对现状；旧存量不作为本轮新收益重复累加，首次出现的明确现状可作为存量建档；content 是补充叙事。opportunities 是未选择的机会，不是行动或到账。每项先判定所属金手指，不按出现位置推断归属。跨楼层同一对象沿用 ID；较新的状态更新不抹除旧的独立成果，重复记载不重复建档。快照遗漏不等于明确删除，前后冲突保留待核对，不擅自选最新或更大值。无结算时可使用明确叙事事实。缺少详细属性时先建立基础记录，明细留空，不能因此不记。';
   payload.taskMode=taishiDraft?'draft':taishiEvolution?'evolution':setupReferences?'worldbook':playerNote?'supplement':'narrative';
   payload.moduleKind=isTaishi(power)?'taishi':isMmlc(power)?'mmlc':'wuku';
   payload.limits={changes:creationConfig(power)?.id==='wuku.precedent'?256:64,fieldCharacters:4000,terminalResults:24,creationResults:24};
@@ -144,7 +144,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     if(!Object.hasOwn(ARCHIVE_TYPES,raw.type)&&raw.recordId&&raw.type===raw.recordId&&creationConfig(power)?.records.some(r=>r.id===raw.recordId))raw={...raw,type:'record'};
     raw=normalizeStatusbarOperation(power,raw);
     const suppliedName=text(raw.name,200).trim();
-    const mainStatus=statusbarTarget(power,raw);if(mainStatus)raw={...raw,name:mainStatus.name,fields:{description:'原文状态栏：'+mainStatus.name},...(mainStatus.before?{archiveId:mainStatus.before.id}:{})};
+    const mainStatus=statusbarTarget(power,raw);if(mainStatus)raw={...raw,name:mainStatus.name,type:'record',fields:{description:'原文状态栏：'+mainStatus.name},...(mainStatus.before?{archiveId:mainStatus.before.id}:{})};
     const table=tableTarget(power,raw);if(table)raw={...raw,name:table.name,...(table.before?{archiveId:table.before.id}:{})};
     let type = raw.type; const name = text(raw.name, 200).trim();
     assert(Object.hasOwn(ARCHIVE_TYPES, type) && name, '档案类型或名称无效');
@@ -156,6 +156,7 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
       raw={...raw,fields:{...raw.fields,conditions:raw.fields.description}};delete raw.fields.description;
     }
     if(isTaishi(power)&&before?.type==='environment'&&['world','region'].includes(raw.recordId))type=before.type;
+    const suppliedFields=Boolean(raw.fields&&typeof raw.fields==='object'&&Object.keys(raw.fields).length);
     try{raw=canonicalFields({...raw,type:before?.type||type},ARCHIVE_FIELDS,creationConfig(power)?.records.find(r=>r.id===raw.recordId));}
     catch(error){if(before&&before.type!==type)throw Error(`「${before.name}」AI分类与原档案不符，且字段不兼容：${error.message}`);throw error;}
     if (before && before.type !== type) {
@@ -167,7 +168,14 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     assert(!isMmlc(power) || MMLC_MODULES.some(m => m.id === module), '漫漫长路模块归属无效');
     assert(!recovery||raw.status!==undefined,'旧分支状态失效，请从当前正文重新确认状态');
     const status = raw.status ?? before?.status; assert(Object.hasOwn(ARCHIVE_STATUS, status), '请区分计划、进行中和已建立状态');
-    assert(raw.fields && typeof raw.fields === 'object' && !Array.isArray(raw.fields) && Object.keys(raw.fields).length && Object.keys(raw.fields).every(k => Object.hasOwn(ARCHIVE_FIELDS[type], k)), '档案字段无效');
+    // A base table record may contain only a confirmed object name and evidence.
+    // Detailed columns stay empty until the story supplies them.
+    if (table?.before && !suppliedFields) raw = { ...raw, fields: {} };
+    if (table && (!raw.fields || typeof raw.fields !== 'object' || !Object.keys(raw.fields).length)) {
+      const baseField = Object.keys(ARCHIVE_FIELDS[type] || {})[0];
+      raw = { ...raw, fields: table.before || !baseField ? {} : { [baseField]: text(raw.quote, 4000).trim() || name } };
+    }
+    assert(raw.fields && typeof raw.fields === 'object' && !Array.isArray(raw.fields) && Object.keys(raw.fields).every(k => Object.hasOwn(ARCHIVE_FIELDS[type], k)) && (table || Object.keys(raw.fields).length), '档案字段无效');
     const patch = Object.fromEntries(Object.entries(raw.fields).map(([k, v]) => [k, text(v, 4000).trim()]));
     const evidence = resolveArchiveEvidence(raw.sourceIndex, text(raw.quote ?? '', 4000), sources, playerNote);
     const { manual, source, quote, index: sourceIndex } = evidence, ruleQuote = text(raw.ruleQuote ?? '', 1200);
@@ -211,7 +219,6 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  const type=definition&&unwrapped.type===definition.id&&!Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?'record':Object.hasOwn(ARCHIVE_TYPES,unwrapped.type)?unwrapped.type:unwrapped.type==='种群'?'population':Object.entries(ARCHIVE_TYPES).find(([,label])=>label===unwrapped.type)?.[0];
  const prepared=prepareArchiveFields({...categorized,type:type||categorized.type,...(definition?{recordId:definition.id}:{})},ARCHIVE_FIELDS,definition,config);
  assertTableBatchIdentity(power,prepared.raw,linkRows.slice(0,index));
- if(chronological)assertChronologicalTableInsert(power,prepared.raw,linkRows.slice(0,index));
  if(prepared.held.some(h=>h.code==='source_conflict')){const before=prepared.raw.archiveId?power.archives?.[prepared.raw.archiveId]:findArchiveObject(power,prepared.raw.name,prepared.raw.module);if(before)prepared.raw.status=before.status;}
  if(prepared.held.some(h=>h.code==='source_conflict')&&!Object.keys(prepared.raw.fields||{}).length&&!Object.keys(prepared.raw.details||{}).length)throw Object.assign(Error('本条字段均待核对：'+prepared.held.map(h=>h.key+'（'+(h.reason||h.code)+'）').join('、')),{fieldCandidate:clone(raw)});
  const linked=isTaishi(power)?prepareOrganizationLink(prepared.raw,power,linkRows):{raw:prepared.raw};
@@ -230,7 +237,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  if(linked.pendingLink&&c)c.pendingLinks=[linked.pendingLink];
  if(linked.unresolved)reject('成果',index,raw,Object.assign(Error('组织关联未确定；有效人物字段可单独保存，原关联值保留待本地核对'),{fieldCandidate:clone(raw)}));
  const unresolved=prepared.held.filter(h=>h.code!=='stale_snapshot');
- if(unresolved.length){const error=Object.assign(Error('部分字段待核对：'+unresolved.map(h=>h.key+'（'+(h.reason||h.code)+'）').join('、')+'；有效字段可单独保存'),{fieldCandidate:clone(raw)});reject('成果',index,raw,error);}
+ if(unresolved.length){const error=Object.assign(Error('部分字段待核对：'+unresolved.map(h=>h.key+'（'+(h.reason||h.code)+'）').join('、')+'；有效字段可单独保存'),{fieldCandidate:clone(raw)});reject('成果',index,raw,error);if(unresolved.some(h=>h.section==='details'&&['unknown_field','non_text_field','overlong_field'].includes(h.code))&&!Object.keys(prepared.raw.details||{}).length)return null;}
  return c?{...c,inputIndex:index}:null;},c=>(c.id||c.type+':'+(c.specific?.recordId||'')+':'+nameKey(c.name))+(chronological?':floor:'+c.source.anchor.index:''),c=>stable({status:c.status,patch:c.patch,source:c.source,specific:c.specific,module:c.module,pendingLinks:c.pendingLinks}));
  for(const c of changes)if(c.pendingLinks?.some(link=>!changes.some(target=>target.inputIndex===link.targetInputIndex&&target.specific?.recordId==='organization'))){delete c.pendingLinks;reject('成果',c.inputIndex,data.changes[c.inputIndex],Object.assign(Error('本批关联组织未通过校验；有效字段可单独保存，组织关联留待核对'),{fieldCandidate:clone(data.changes[c.inputIndex])}));}
  const terminalResults=isolate('安排进展',data.terminalResults,24,raw=>normalizeTerminalResults([raw],state,power,sources,chat)[0],c=>c.orderId,c=>stable({...c.progress,at:0}));
@@ -395,13 +402,7 @@ export const archiveReviewMethods = {
       for(const c of batch.changes)c.source={type:'story',note:'AI 自主发展候选，经玩家确认采用；按剧情时间 #'+options.taishiScheduleEvent.id,quote:'剧情时间：'+options.taishiScheduleEvent.from.raw+' → '+options.taishiScheduleEvent.to.raw,anchor:clone(options.taishiScheduleEvent.to.anchor),anchors:[clone(options.taishiScheduleEvent.from.anchor),clone(options.taishiScheduleEvent.to.anchor)]};
     }
     if(options.taishiDraft)protectTaishiDraft(batch,options.taishiDraft);
-    if(!playerNote&&!options.taishiEvolution&&!options.taishiTimeEvent){
-      batch.floorReviews=floorCoverage(prepared.data,sources,batch.changes,batch.terminalResults,batch.creationResults,batch.ignoredChanges).map(row=>batch.blockedFloors.includes(row.sourceIndex)?{...row,status:'uncertain',reason:row.reason||'本层存在未通过校验的候选'}:row);
-      const uncertain=batch.floorReviews.filter(r=>r.status!=='reviewed');
-      batch.blockedFloors=[...new Set([...batch.blockedFloors,...uncertain.map(r=>r.sourceIndex)])];
-      if(uncertain.length)batch.issues.push({kind:'逐层核对',name:'读取进度',reason:`${uncertain.map(r=>r.floor).join('、')} 层未完成一致的逐层核对，保留待重查；有效候选仍可保存`});
-      this.runtimeLog?.step(result.logId,'逐层核对',{floors:batch.floorReviews.map(({floor,accepted,status})=>({floor,accepted,status}))});
-    }
+    if(!playerNote&&!options.taishiEvolution&&!options.taishiTimeEvent)reviewFloorCoverage(batch,prepared.data,sources,{required:isTaishi(power)});
     if(options.setupReferences){
       protectTaishiBaseline(batch,power.taishiWorldStructure?.worldId);
       const names=(this.referenceLast?.books||[]).map(b=>b.name).join('、');
@@ -485,9 +486,10 @@ export const archiveReviewMethods = {
     // Retain source/reference failures outside the raw-field normalizer.
     const extra=(pending.issues||[]).filter(i=>i.kind!=='成果'&&i.kind!=='逐层核对'&&i.diagnostic?.stage!=='reference_validation'&&!(recovered&&i.rawResponseFailure&&recovered.sourceIndexes.has(i.sourceIndex)));
     batch.issues.push(...extra);
-    const coverage=floorCoverage(structured.data,pending.sources,batch.changes,batch.terminalResults,batch.creationResults,batch.ignoredChanges);
-    batch.blockedFloors=[...new Set([...batch.blockedFloors,...coverage.filter(r=>r.status!=='reviewed').map(r=>r.sourceIndex)])];
-    batch.floorReviews=coverage.map(r=>batch.blockedFloors.includes(r.sourceIndex)?{...r,status:'uncertain'}:r);
+    // Missing per-floor reports are not a save gate. Actual request/reference
+    // failures still block the affected source until it is checked.
+    batch.blockedFloors=[...new Set([...batch.blockedFloors,...batch.issues.flatMap(i=>Number.isSafeInteger(i.sourceIndex)?[i.sourceIndex]:pending.sources.map(s=>s.index))])];
+    if(!pending.playerNote&&!pending.taishiEvolution&&!pending.taishiTimeEvent)reviewFloorCoverage(batch,structured.data,pending.sources,{required:isTaishi(power)});
     // Only publish after validation. Persisted archives and batch cursor are untouched.
     const noImprovement=batch.changes.length<=pending.changes.length&&batch.issues.length>=pending.issues.length;
     Object.assign(pending,batch,{data:structured.data,guide:repairedGuide,readOnly:!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!repairedGuide});
@@ -553,9 +555,8 @@ export const archiveReviewMethods = {
     pending.changes=pending.changes.filter(c=>c.inputIndex!==issue.index);pending.changes.push(change);
     pending.data.changes[issue.index]=fixed;
     pending.issues=pending.issues.filter((i,n)=>n!==Number(data.index)&&i.kind!=='逐层核对');
-    const coverage=floorCoverage(pending.data,pending.sources,pending.changes,pending.terminalResults,pending.creationResults,pending.ignoredChanges);
-    pending.blockedFloors=[...new Set([...pending.issues.flatMap(i=>pending.sources.some(s=>s.index===i.sourceIndex)?[i.sourceIndex]:pending.sources.map(s=>s.index)),...coverage.filter(r=>r.status!=='reviewed').map(r=>r.sourceIndex)])];
-    pending.floorReviews=coverage.map(row=>pending.blockedFloors.includes(row.sourceIndex)?{...row,status:'uncertain'}:row);
+    pending.blockedFloors=[...new Set(pending.issues.flatMap(i=>pending.sources.some(s=>s.index===i.sourceIndex)?[i.sourceIndex]:pending.sources.map(s=>s.index)))];
+    if(!pending.playerNote&&!pending.taishiEvolution&&!pending.taishiTimeEvent)reviewFloorCoverage(pending,pending.data,pending.sources,{required:isTaishi(power)});
     pending.readOnly=false;this.saveReviewCheckpoint(pending);this.ui.showArchiveReview(pending,power,snapshot.ctx.chat);
     this.notice('本地字段修正已通过，确认后保存；未调用AI。');
   },
@@ -580,9 +581,9 @@ export const archiveReviewMethods = {
     pending.data.changes[index]=fixed;
     pending.issues.splice(Number(data.index),1);pending.issues=pending.issues.filter(i=>i.kind!=='逐层核对');
     const blocked=new Set();for(const i of pending.issues){if(Number.isSafeInteger(i.sourceIndex)&&pending.sources.some(s=>s.index===i.sourceIndex))blocked.add(i.sourceIndex);else for(const source of pending.sources)blocked.add(source.index);}
-    pending.floorReviews=floorCoverage(pending.data,pending.sources,pending.changes,pending.terminalResults,pending.creationResults,pending.ignoredChanges).map(row=>blocked.has(row.sourceIndex)?{...row,status:'uncertain'}:row);
-    for(const row of pending.floorReviews)if(row.status!=='reviewed')blocked.add(row.sourceIndex);
-    pending.blockedFloors=[...blocked];pending.readOnly=false;this.saveReviewCheckpoint(pending);
+    pending.blockedFloors=[...blocked];
+    if(!pending.playerNote&&!pending.taishiEvolution&&!pending.taishiTimeEvent)reviewFloorCoverage(pending,pending.data,pending.sources,{required:isTaishi(power)});
+    pending.readOnly=false;this.saveReviewCheckpoint(pending);
     this.ui.showArchiveReview(pending,power,snapshot.ctx.chat);this.notice('字段已修正，尚未写入档案；请核对后接受更新。');
   },
   async applyArchiveReview(data) {

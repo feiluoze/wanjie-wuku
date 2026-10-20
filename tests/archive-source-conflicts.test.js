@@ -47,7 +47,7 @@ test('prompt exposes source chronology, field isolation and optional diagnostics
  const prompt=archivePrompt(f.power,f.sources,f.ctx.chat);assert.match(prompt.system,/不能一律取最大值/);assert.match(prompt.system,/同一字段混有可靠与冲突内容/);
  assert(prompt.archiveSchema.properties.floorReviews.items.properties.reason);
  assert(prompt.archiveSchema.properties.changes.items.anyOf.every(v=>v.properties.uncertainFields));
- const missing=floorCoverage({floorReviews:[{sourceIndex:1,status:'reviewed',changeCount:2,reason:'不能覆盖数量校验'}]},f.sources,[])[0];assert.equal(missing.status,'uncertain');assert.equal(missing.reason,'未提供一致的逐层核对结果');
+ const missing=floorCoverage({floorReviews:[{sourceIndex:1,status:'reviewed',changeCount:2,reason:'不能覆盖数量校验'}]},f.sources,[])[0];assert.equal(missing.status,'uncertain');assert.equal(missing.reason,'逐层报告与候选数量不一致（仅诊断，不阻止保存）');
 });
 test('real review controller preserves uncertainty through confirmation and does not mark the conflicted floor read',async()=>{
  const f=setup();await f.store.transact(s=>{s.powers[f.power.id]=structuredClone(f.power);});f.app.refresh();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};

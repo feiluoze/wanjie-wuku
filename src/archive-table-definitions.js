@@ -900,5 +900,9 @@ export function withArchiveTables(config,power){
 }
 export function separateArchiveTables(power,a,b){
  if(frameworkConfigured(power)&&a?.adapterId===b?.adapterId&&a?.recordId!==b?.recordId&&(a?.recordId?.startsWith('framework_')||b?.recordId?.startsWith('framework_')))return true;
- const d=archiveTableDefinition(power),tables=d?[...d.tables,...d.retiredTables]:[];return Boolean(d&&a?.adapterId===d.adapter&&b?.adapterId===d.adapter&&a.recordId!==b.recordId&&tables.some(t=>t.id===a.recordId)&&tables.some(t=>t.id===b.recordId));
+ const d=archiveTableDefinition(power),tables=d?[...d.tables,...d.retiredTables]:[];const isTable=x=>Boolean(d&&x?.adapterId===d.adapter&&tables.some(t=>t.id===x.recordId));
+ // A declared subtable object and a legacy/main archive may legitimately share
+ // a display name; the main status record must not block subtable creation.
+ if(isTable(a)!==isTable(b))return true;
+ return Boolean(d&&a?.adapterId===d.adapter&&b?.adapterId===d.adapter&&a.recordId!==b.recordId&&tables.some(t=>t.id===a.recordId)&&tables.some(t=>t.id===b.recordId));
 }

@@ -13,7 +13,7 @@ test('status main table updates its singleton across name variants; repeat prese
  b=normalizeArchiveBatch(proposal('180文','另一种名称'),p,[],[],'玩家确认铜钱180文');assert.equal(b.changes[0].id,id);applyArchiveChanges(p,b.changes,[],new Map([[0,id]]),[]);assert.equal(Object.keys(p.archives).length,1);assert.equal(p.archives[id].history.length,1);assert.equal(p.archives[id].specific.fields[coin],'180文');
  b=normalizeArchiveBatch(proposal('180文'),p,[],[],'玩家确认铜钱180文');applyArchiveChanges(p,b.changes,[],new Map([[0,id]]),[]);assert.equal(p.archives[id].history.length,1);assert.equal(currentOverview(p,[]).counts.active,0);
  const state=emptyState();state.powers[p.id]=p;validateState(clone(state));
- const other=clone(p.archives[id]);other.id='other';p.archives.other=other;assert.throws(()=>statusbarTarget(p,{recordId:g.id,type:'record'}),/多条主记录/);
+ const other=clone(p.archives[id]);other.id='other';p.archives.other=other;assert.throws(()=>statusbarTarget(p,{recordId:g.id,type:'record'}),/多条主记录/);assert.equal(statusbarTarget(p,{recordId:g.id,type:'record',archiveId:'other'}).before.id,'other');
 });
 test('original policy is sent to model; current values display without placeholders or inference',()=>{
  const p=createPower(entries.find(e=>e.name==='天人骨血')),s=builtinStatusbar(p),g=s.groups[0],config=creationConfig(p);assert(config.records.some(r=>r.id===g.id));const prompt=archivePrompt(p,[],[],'玩家确认状态');const input=JSON.parse(prompt.user);assert.equal(input.originalStatusbar.source,s.block);assert(prompt.system.includes('wjwk_original_statusbar'));assert.equal(input.originalStatusbar.mode,'original-statusbar-first');

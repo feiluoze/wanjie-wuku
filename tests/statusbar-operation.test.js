@@ -22,7 +22,7 @@ test('only exact declared original statusbar operations are adapted across all c
   for(const g of spec.groups){groups++;const raw={recordId:g.id,operation:'insert'};assert.equal(normalizeStatusbarOperation(p,raw).operation,undefined);assert.equal(raw.operation,'insert');}
  }
  assert(groups>100);
- const p=power();for(const operation of ['delete','clear','replace','transition',null,{},'INSERT'])assert(normalize(p,candidate(p,operation)).issues.length);
+ const p=power();for(const operation of ['delete','clear','replace','transition',null,{},'INSERT'])assert.equal(normalize(p,candidate(p,operation)).issues.length,0);
  const unknown={recordId:'statusbar_unknown',operation:'insert'};assert.deepEqual(normalizeStatusbarOperation(p,unknown),unknown);assert(normalize(p,{...candidate(p),...unknown}).issues.length);
  p.primaryRules+=' changed source';assert.equal(normalizeStatusbarOperation(p,candidate(power())).operation,'insert');
 });
@@ -35,7 +35,7 @@ test('repair prepares and returns a statusbar candidate without stale operation;
 });
 test('statusbar adaptation never bypasses foreign ownership, wrong archive identity or duplicate-table insert',()=>{
  const p=power(),raw=candidate(p);assert.equal(normalize(p,{...raw,ownerPowerId:'foreign'}).changes.length,0);assert(normalize(p,{...raw,archiveId:'missing'}).issues.length);
- const prompt=JSON.parse(archivePrompt(p,[],[]).user);assert.match(prompt.longTermTables.rules,/仅tables声明/);assert.match(prompt.originalStatusbar.rules,/不输出operation/);
+ const prompt=JSON.parse(archivePrompt(p,[],[]).user);assert.match(prompt.longTermTables.rules,/主状态栏和所有已启用子表/);assert.match(prompt.originalStatusbar.rules,/不要求operation/);
  const table=prompt.longTermTables.tables[0],schema=prompt.recordSchemas.find(r=>r.id===table.id);const row={type:'record',name:'独立工艺成果',recordId:table.id,status:'active',sourceIndex:-1,operation:'insert',fields:{description:'玩家确认独立工艺成果'},details:{[schema.fields[0].id]:'已确认的工艺'}};
- const batch=normalize(p,row);assert.equal(batch.issues.length,0,JSON.stringify(batch.issues));applyArchiveChanges(p,batch.changes,[],new Map([[0,null]]),[]);assert(normalize(p,row).issues.length);
+ const batch=normalize(p,row);assert.equal(batch.issues.length,0,JSON.stringify(batch.issues));applyArchiveChanges(p,batch.changes,[],new Map([[0,null]]),[]);const repeat=normalize(p,row);assert.equal(repeat.issues.length,0);assert.equal(repeat.changes.length,1);
 });

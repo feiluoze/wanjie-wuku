@@ -15,7 +15,7 @@ test('ordinary preset routes instructions to system and keeps private source dat
  assert.equal(input.preset.id,ARCHIVE_PRESET_ID);assert.equal(input.preset.mode,'narrative');
  assert.deepEqual(input.preset.groups.slice(0,3),['wjwk_role','wjwk_task','wjwk_background']);assert(prompt.system.indexOf('<wjwk_procedure>')<prompt.system.indexOf('<wjwk_output>'));
  assert.doesNotMatch(prompt.system,/PRIVATE_RULE_MARKER|PRIVATE_STORY_MARKER/);assert.match(input.sources[0].settlements[0].facts,/工具已交付/);assert.doesNotMatch(input.sources[0].settlements[0].facts,/远行/);assert.match(input.sources[0].settlements[0].opportunities,/远行/);assert.deepEqual(input.sources[0].statusSnapshots,['技能：熟练']);
- assert(input.responseContract.outputs.includes('floorReviews'));assert(!input.responseContract.outputs.includes('terminalResults'));assert.equal(stable(f.power),before);
+ assert(!input.responseContract.outputs.includes('floorReviews'));assert(!input.responseContract.outputs.includes('terminalResults'));assert.match(prompt.system,/主状态栏和所有已启用子表/);assert.equal(stable(f.power),before);
 });
 
 test('declared generic response can retain multiple achievement types without extra invented keys',()=>{
@@ -86,7 +86,7 @@ test('generic mechanism scope precedes extraction and does not treat storage cat
  assert.match(prompt.system,/只写ownerPowerId也不证明归属/);
  assert.match(prompt.system,/分类缺失与归属缺失是两回事/);
  assert.match(prompt.system,/不要求玩家亲自获得收益/);
- assert.match(prompt.system,/已确认在本任务范围内/);
+ assert.match(prompt.system,/已确认存在且需要长期接续/);
  assert(prompt.system.indexOf('<wjwk_scope>')<prompt.system.indexOf('<wjwk_procedure>'));
  // Preserve evidence for the model to distinguish ordinary skill/tool use from actual receipt.
  assert.match(input.sources[0].settlements[0].facts,/普通学习掌握语言/);

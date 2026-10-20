@@ -16,7 +16,7 @@ export function fieldDiagnostic(raw,types,definition){
  const unexpectedTopFields=Object.keys(raw||{}).filter(k=>!allowedTop.has(k)).map(k=>/^[a-zA-Z_][a-zA-Z0-9_.-]{0,79}$/.test(k)&&!/secret|token|password|key/i.test(k)?k:'[非标准字段名]');
  return {stage:'archive_validation',unexpectedTopFields,...(Object.hasOwn(types,raw?.type)?{type:raw.type}:{}),...(definition?{recordId:definition.id}:{}),sections};
 }
-export const ARCHIVE_PROTOCOL_POLICY='按输入的 responseContract 返回 floorReviews，逐层核对，不得只检查最后一层。每层只返回一个 {sourceIndex:内部0基整数,status:"reviewed"或"uncertain",changeCount:本层返回的变化与进展总数}；漏查、冲突或归属不明为 uncertain，明确没有变化也必须报告。优先提取 sources.settlements.facts，再用 statusSnapshots（含MMLC-archive长期总档）核对当前快照；总档存量不等于本轮新增，不重复发放或累加；content 仅补充叙事。opportunities 不代表玩家已选择、执行或到账。较新快照遗漏不代表删除旧成果；跨层重复不再次建档。已有记录复用 ID，各独立历史事件逐条保存。通用 fields 只能使用 fieldTypes[type] 的 ID；专用字段必须使用 recordSchemas 对应 recordId，并放在 details。优先使用适合该事实的专用分类；已确认在本任务范围内但无法可靠映射时可用合法通用类型，不猜recordId；通用分类不接收归属不明或其他词条成果。已有专用对象继续沿用原分类。每项明确 ownerPowerId，协作不转移归属。插件只归档已有事实，不执行结算。';
+export const ARCHIVE_PROTOCOL_POLICY='按 responseContract 返回 changes 与 message；普通武库不再要求逐层完整性报告。初始化与每次更新都把主状态栏和所有已启用子表一起核对：已确认存在且需要长期接续的对象就建档，有变化就更新，无变化保留；缺少详细属性、身份列或本轮数值增长时先建立基础记录，明细留空，不能因此跳过。主表已有概括不等于子表已建档。只有正文明确没有该对象或事实时才省略。优先提取 sources.settlements.facts，再用 statusSnapshots（含MMLC-archive长期总档）核对当前快照；总档存量不等于本轮新增，不重复发放或累加；content 仅补充叙事。opportunities 不代表玩家已选择、执行或到账。较新快照遗漏不代表删除旧成果；跨层重复不再次建档。已有记录复用 ID，独立历史事件逐条保存。通用 fields 只能使用 fieldTypes[type] 的 ID；专用字段使用 recordSchemas 对应 recordId，并放在 details，未写列留空。每项明确 ownerPowerId，协作不转移归属。插件只归档已有事实，不执行结算。';
 
 export function evidenceParts(content){
  const clean=withoutThoughts(content).replace(/<(story_driver|combat_driver|acg_think)\b[^>]*>[\s\S]*?(?:<\/\1\s*>|$)/gi,'');
@@ -121,14 +121,25 @@ export function assertFactEvidence(quote,content){
  assert(found||!plain(content).includes(needle),'引用仅存在于规划或未选择的后续机会中，不能作为已成立事实归档');
 }
 
-export function floorCoverage(data,sources,changes,terminalResults=[],creationResults=[],ignoredChanges=[]){
+export function floorCoverage(data,sources,changes,terminalResults=[],creationResults=[],ignoredChanges=[],{required=false}={}){
  const rows=Array.isArray(data.floorReviews)?data.floorReviews:[];
  return sources.map(s=>{
   const count=changes.filter(c=>c.source?.anchor?.index===s.index).length+terminalResults.filter(c=>c.progress?.anchor?.index===s.index).length+creationResults.filter(c=>c.progress?.anchor?.index===s.index).length;
   const skipped=(ignoredChanges||[]).filter(c=>c.sourceIndex===s.index).length;
   const matches=rows.filter(r=>r?.sourceIndex===s.index);
   const r=matches.length===1?matches[0]:null;
-  const reviewed=Boolean(r&&r.status==='reviewed'&&Number.isSafeInteger(r.changeCount)&&r.changeCount===count+skipped);
-  return {floor:s.index+1,sourceIndex:s.index,accepted:count,status:reviewed?'reviewed':'uncertain',reason:reviewed?'':r?.status==='uncertain'&&typeof r.reason==='string'&&r.reason.trim()?r.reason.trim().slice(0,600):'未提供一致的逐层核对结果'};
+  // Reporting is optional for ordinary Wuku reviews. Missing reports do not
+  // block saving; duplicate or inconsistent reports are only diagnostics.
+  const reviewed=matches.length>1?false:!r?!required:Boolean(r.status==='reviewed'&&Number.isSafeInteger(r.changeCount)&&r.changeCount===count+skipped);
+  return {floor:s.index+1,sourceIndex:s.index,accepted:count,status:reviewed?'reviewed':'uncertain',reason:reviewed?'':r?.status==='uncertain'&&typeof r.reason==='string'&&r.reason.trim()?r.reason.trim().slice(0,600):'逐层报告与候选数量不一致（仅诊断，不阻止保存）'};
  });
+}
+
+export function reviewFloorCoverage(batch,data,sources,{required=false}={}){
+ batch.floorReviews=floorCoverage(data,sources,batch.changes,batch.terminalResults,batch.creationResults,batch.ignoredChanges,{required});
+ batch.issues=batch.issues.filter(i=>i.kind!=='逐层核对');
+ if(!required)return;
+ const incomplete=batch.floorReviews.filter(r=>r.status!=='reviewed');
+ batch.blockedFloors=[...new Set([...batch.blockedFloors,...incomplete.map(r=>r.sourceIndex)])];
+ for(const row of incomplete)batch.issues.push({kind:'逐层核对',name:'读取进度',sourceIndex:row.sourceIndex,reason:'第 '+row.floor+' 层尚未完成核对：'+row.reason});
 }

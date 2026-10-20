@@ -18,12 +18,12 @@ export function archiveResponseSchema(payload){
  for(const type of Object.keys(ARCHIVE_FIELDS)){
   const base={...common,type:{const:type},fields:{$ref:'#/$defs/fields_'+type}};
   const selection=payload.longTermTables?.selection,legacyIds=selection?(payload.current||[]).filter(r=>!r.recordId&&r.type===type&&selection.enabled.includes(legacyFrameworkForType(type))).map(r=>r.archiveId).filter(Boolean):[];
-  if(!selection||legacyIds.length)variants.push({type:'object',additionalProperties:false,required:['type','name','status','fields','sourceIndex',...(selection?['archiveId']:[])],properties:{...base,...(selection?{archiveId:{enum:legacyIds}}:{})}});
-  for(const record of payload.recordSchemas||[]){const isTable=payload.longTermTables?.tables.some(t=>t.id===record.id);variants.push({type:'object',additionalProperties:false,required:['type','name','status','fields','sourceIndex','recordId','details',...(isTable?['operation']:[])],properties:{...base,...(isTable?{operation:{enum:['insert','update','transition']}}:{}),recordId:{const:record.id},details:{$ref:'#/$defs/details_'+record.id}}});}
+  if(!selection||legacyIds.length)variants.push({type:'object',additionalProperties:false,required:['type','name','status','sourceIndex',...(selection?['archiveId']:[])],properties:{...base,...(selection?{archiveId:{enum:legacyIds}}:{})}});
+  for(const record of payload.recordSchemas||[]){const isTable=payload.longTermTables?.tables.some(t=>t.id===record.id);variants.push({type:'object',additionalProperties:false,required:['type','name','status','sourceIndex','recordId'],properties:{...base,...(isTable?{operation:{enum:['insert','update','transition']}}:{}),recordId:{const:record.id},details:{$ref:'#/$defs/details_'+record.id}}});}
  }
  const properties={changes:{type:'array',maxItems:variants.length?payload.limits?.changes||64:0,items:variants.length?{anyOf:variants}:{type:'object',additionalProperties:false}},floorReviews:{type:'array',items:{type:'object',additionalProperties:false,required:['sourceIndex','status','changeCount'],properties:{sourceIndex:{type:'integer'},status:{enum:['reviewed','uncertain']},changeCount:{type:'integer',minimum:0},reason:{type:'string',maxLength:600}}}},message:{type:'string'}};
  for(const key of ['guide','terminalResults','creationResults'])if(payload.responseContract?.outputs?.includes(key))properties[key]=key==='guide'?{type:'object'}:{type:'array',items:{type:'object'}};
- return {$defs:definitions,type:'object',additionalProperties:false,required:['changes','floorReviews','message'],properties};
+ return {$defs:definitions,type:'object',additionalProperties:false,required:['changes',...(payload.moduleKind==='taishi'?['floorReviews']:[]),'message'],properties};
 }
 export function archiveFormatOptions(settings,prompt){
  if(!prompt.archiveSchema)return {};

@@ -27,15 +27,22 @@ for(const d of ARCHIVE_TABLE_DEFINITIONS)for(const t of [...d.tables,...d.retire
  let b=local(p,[raw(t.id,name,{...identity,[field]:'已有明确依据'},{operation:t.updateOnly?undefined:'insert'})]);assert.deepEqual(b.issues,[]);save(p,b);const r=Object.values(p.archives)[0],id=r.id;
  b=local(p,[raw(t.id,r.name,{[field]:'本次已确认深化'},{archiveId:id,operation:'update'})]);assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,1);assert.equal(p.archives[id].history.length,1);
  const before=clone(p.archives);save(p,b);assert.equal(p.archives[id].history.length,1);assert.equal(stable(p.resources),wallet);
- assert.throws(()=>tableTarget(p,{recordId:t.id,name:r.name,operation:'insert'}),/已有对象/);
+ if(t.identityFields?.length)assert.throws(()=>tableTarget(p,{recordId:t.id,name:r.name,operation:'insert'}),/已有对象/);else assert.equal(tableTarget(p,{recordId:t.id,name:r.name,operation:'insert'}).before.id,id);
  b=local(p,[raw(t.id,r.name,{[field]:'本次已确认深化'},{archiveId:id,operation:'transition',status:'ended'})]);assert.deepEqual(b.issues,[]);const saved=save(p,b);assert.equal(p.archives[id].status,'ended');assert.equal(archiveWriteCounts(before,saved,1).ended,1);
  const state=emptyState();state.powers[p.id]=p;validateState(clone(state));
 });
 
+test('subtable base record can be created from name and evidence only, then receive details later',()=>{
+ const p=power('万界网购');
+ let b=local(p,[{type:'record',recordId:'orders',name:'北门铁剑订单',status:'active',sourceIndex:-1,quote:'北门铁剑订单已经交付。'}]);
+ assert.deepEqual(b.issues,[]);save(p,b);const r=Object.values(p.archives)[0];assert.equal(r.name,'北门铁剑订单');assert.equal(r.specific.recordId,'orders');assert.deepEqual(r.specific.fields,{});assert.equal(r.fields.description,'北门铁剑订单已经交付。');
+ b=local(p,[{type:'record',recordId:'orders',name:r.name,status:'active',archiveId:r.id,sourceIndex:-1,details:{progress:'已确认完成'}}]);
+ assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,1);assert.equal(p.archives[r.id].fields.description,'北门铁剑订单已经交付。');assert.equal(p.archives[r.id].specific.fields.progress,'已确认完成');
+});
 test('independent orders remain separate; exact title updates, singleton slots and classification boundaries are enforced',()=>{
  const p=power('万界网购');let b=local(p,[raw('orders','铁剑订单·北门首购',{item:'铁剑一柄'}),raw('orders','铁剑订单·北门再购',{item:'铁剑一柄'})]);assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,2);
  const r=Object.values(p.archives)[0];assert.throws(()=>tableTarget(p,{recordId:'assets',archiveId:r.id,name:r.name,operation:'update'}),/同一分类/);
- assert.throws(()=>tableTarget(p,{recordId:'orders',name:'不存在',operation:'update'}),/唯一原对象/);assert.throws(()=>tableTarget(p,{recordId:'orders',name:'坏操作',operation:'delete'}),/不允许删除/);
+ assert.equal(tableTarget(p,{recordId:'orders',name:'不存在',operation:'update'}).before,null);assert.throws(()=>tableTarget(p,{recordId:'orders',name:'坏操作',operation:'delete'}),/不允许删除/);
  assert.throws(()=>tableTarget(p,{recordId:'orders',name:'订单与交付',operation:'insert'}),/具体对象/);
  const seal=power('升变之印');b=local(seal,[raw('slot','孵化任务甲',{task:'已开始甲任务'})]);save(seal,b);b=local(seal,[raw('slot','任意新的标题',{progress:'本次已有进展'})]);assert.equal(b.changes[0].id,Object.keys(seal.archives)[0]);save(seal,b);assert.equal(Object.keys(seal.archives).length,1);
 });
@@ -43,8 +50,8 @@ test('independent orders remain separate; exact title updates, singleton slots a
 test('ambiguous names never merge; old generic rows stay intact; different declared tables may share an object name',()=>{
  const p=power('天人骨血');let b=local(p,[raw('life_features','骨甲',{effect:'已经纳入骨甲'}),raw('life_structures','骨甲',{effect:'已形成统合骨甲'})]);assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,2);
  const old=saveArchive(p,{type:'record',name:'旧通用生命特征',status:'active',fields:{description:'旧档保留'}},archiveSource([],'保留旧来源'));const snapshot=stable(old);
- b=local(p,[raw('life_features',old.name,{effect:'改写旧档'},{operation:'insert'})]);assert(b.issues.length);assert.equal(stable(p.archives[old.id]),snapshot);
- const r=Object.values(p.archives).find(r=>r.specific?.recordId==='life_features');p.archives.copy={...clone(r),id:'copy'};assert.throws(()=>tableTarget(p,{recordId:'life_features',name:r.name,operation:'update'}),/多份/);
+ b=local(p,[raw('life_features',old.name,{effect:'建立子表基础档'},{operation:'insert'})]);assert.equal(b.issues.length,0);save(p,b);assert.equal(stable(p.archives[old.id]),snapshot);assert(Object.values(p.archives).some(r=>r.specific?.recordId==='life_features'&&r.name===old.name));
+ const r=Object.values(p.archives).find(r=>r.specific?.recordId==='life_features');p.archives.copy={...clone(r),id:'copy'};assert.throws(()=>tableTarget(p,{recordId:'life_features',name:r.name,operation:'update'}),/多份/);assert.equal(tableTarget(p,{recordId:'life_features',name:r.name,archiveId:r.id,operation:'update'}).before.id,r.id);
 });
 
 function historyFixture(){
@@ -71,19 +78,21 @@ test('real review controller sends the working view, keeps the preview isolated 
  const result=await f.app.commitArchiveReview(pending,new Map(pending.changes.map((c,i)=>[i,c.id]))),saved=f.store.read().powers[p.id];assert.equal(Object.keys(saved.archives).length,1);assert.equal(Object.values(saved.archives)[0].specific.fields.change,'耐热范围扩展');assert.equal(result.counts.objects,1);assert.equal(result.counts.operations,2);assert.equal(f.replacementCount,0);
 });
 
-test('invalid/uncertain floor and cancellation cannot affect the official archive or leak a working copy into another run',async()=>{
- for(const mode of ['invalid','missing-report','wrong-count','duplicate-report','uncertain']){
-  const {p,state,chat,sources}=historyFixture(),initial=stable(p),stage=createArchiveStaging(p,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat,state});
-  const data={changes:[raw('life_features','耐热鳞甲',mode==='invalid'?{unknown:'错误列'}:{effect:'能够抵御烈火'},{sourceIndex:0,quote:sources[0].content})],floorReviews:mode==='missing-report'?[]:[{sourceIndex:0,status:mode==='uncertain'?'uncertain':'reviewed',changeCount:mode==='wrong-count'?7:1}]};if(mode==='duplicate-report')data.floorReviews.push({...data.floorReviews[0]});
-  stage.accept(data,sources[0]);assert.equal(Object.keys(stage.power.archives||{}).length,0,mode);assert.equal(stable(p),initial);assert.equal(Object.keys(createArchiveStaging(p,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat,state}).power.archives||{}).length,0);
+test('missing floor reports no longer block a valid staging candidate; invalid fields still do',async()=>{
+ for(const mode of ['missing-report','wrong-count','duplicate-report','uncertain']){
+  const {p,state,chat,sources}=historyFixture(),stage=createArchiveStaging(p,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat,state});
+  const data={changes:[raw('life_features','耐热鳞甲',{effect:'能够抵御烈火'},{sourceIndex:0,quote:sources[0].content})],floorReviews:mode==='missing-report'?[]:[{sourceIndex:0,status:mode==='uncertain'?'uncertain':'reviewed',changeCount:mode==='wrong-count'?7:1}]};if(mode==='duplicate-report')data.floorReviews.push({...data.floorReviews[0]});
+  stage.accept(data,sources[0]);assert.equal(Object.keys(stage.power.archives||{}).length,1,mode);
  }
- const {p,state,chat,sources}=historyFixture(),initial=stable(p),stage=createArchiveStaging(p,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat,state});let stop=false;
- await assert.rejects(reviewHistory(sources,async s=>({data:{changes:[raw('life_features','耐热鳞甲',{effect:'能够抵御烈火'},{sourceIndex:s.index,quote:s.content})],floorReviews:[{sourceIndex:s.index,status:'reviewed',changeCount:1}]}}),{stage:(data,s)=>{const result=stage.accept(data,s);stop=true;return result;},check:()=>{if(stop)throw new DOMException('取消','AbortError');}}),{name:'AbortError'});assert.equal(stable(p),initial);
+ const {p,state,chat,sources}=historyFixture(),initial=stable(p),stage=createArchiveStaging(p,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat,state});
+ stage.accept({changes:[raw('life_features','耐热鳞甲',{unknown:'错误列'},{sourceIndex:0,quote:sources[0].content})]},sources[0]);assert.equal(Object.keys(stage.power.archives||{}).length,0);assert.equal(stable(p),initial);
+ const other=createArchiveStaging(p,{normalize:normalizeArchiveBatch,apply:applyArchiveChanges,chat,state});let stop=false;
+ await assert.rejects(reviewHistory(sources,async s=>({data:{changes:[raw('life_features','耐热鳞甲',{effect:'能够抵御烈火'},{sourceIndex:s.index,quote:s.content})]}}),{stage:(data,s)=>{const result=other.accept(data,s);stop=true;return result;},check:()=>{if(stop)throw new DOMException('取消','AbortError');}}),{name:'AbortError'});assert.equal(stable(p),initial);
 });
 
-test('late insert of an earlier proposed object is rejected even in final chronological validation',()=>{
+test('later source can update the same table object without an archiveId or chronological gate',()=>{
  const {p,state,chat,sources}=historyFixture(),data={changes:sources.map(s=>raw('life_features','耐热鳞甲',{effect:'已经取得'},{operation:'insert',sourceIndex:s.index,quote:s.content}))};
- const b=normalizeArchiveBatch(data,p,sources,chat,'',state,{chronological:true});assert.equal(b.changes.length,1);assert.equal(b.issues.length,1);assert.match(b.issues[0].reason,/前层/);
+ const b=normalizeArchiveBatch(data,p,sources,chat,'',state,{chronological:true});assert.equal(b.changes.length,2);assert.equal(b.issues.length,0);
 });
 
 test('event tables stay queryable but do not auto-inject repeated receipt memory; explicit memory remains available',()=>{

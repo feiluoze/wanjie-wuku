@@ -28,22 +28,24 @@ export function tableTarget(power,raw){
  const matches=table.kind==='singleton'?rows:rows.filter(r=>names(r).includes(key(raw.name))||sameIdentity(r.specific.fields,raw.details,table));
  const explicit=raw.archiveId?power.archives?.[raw.archiveId]:null;
  assert(!raw.archiveId||explicit?.specific?.adapterId===spec.adapter&&explicit.specific.recordId===table.id,'子表更新必须指向同一分类中的原档案');
- assert(table.kind!=='singleton'||matches.length<=1,'单行子表已有多份记录，请先核对，不能自动合并');
- assert(explicit||matches.length<=1,'名称对应多份长期档案，请明确原 archiveId，不会猜测合并');
- const before=explicit||matches[0]||null;
- if(spec.frameworkSelection&&!before){
-  const shared=[...spec.tables,...spec.retiredTables].filter(t=>t.frameworkId&&t.frameworkId===table.frameworkId).map(t=>t.id);
-  assert(!Object.values(power.archives||{}).some(r=>r.specific?.adapterId===spec.adapter&&r.specific.recordId!==table.id&&(shared.includes(r.specific.recordId)||table.id.startsWith('framework_')||r.specific.recordId.startsWith('framework_'))&&names(r).includes(key(raw.name))),'同一对象已在其他原分类登记；沿用原档案，不新建通用副本。确实同名的独立对象请明确来源或类型');
+ // Names can resolve a unique row, but recency cannot establish identity.
+ const identified=fullIdentity(raw.details,table)?matches.filter(r=>sameIdentity(r.specific.fields,raw.details,table)):[];
+ assert(explicit||matches.length<=1||identified.length===1,'名称对应多份长期档案，请明确原 archiveId 或唯一身份；其他有效候选仍可保存');
+ const before=explicit||identified[0]||matches[0]||null;
+ assert(!table.updateOnly||before||raw.operation===undefined,'该分类已收拢，不再新增独立记录；已有旧档仍可按名称或identity更新');
+ if(before)for(const id of table.identityFields||[]){const value=identityValue(raw.details,id,table),old=before.specific?.fields?.[id];assert(value===undefined||!old||key(value)===key(old),'已有档案的身份列不能被另一对象或版本覆盖；不同版本请使用独立名称新增，纠错请手动核对');}
+ const identityKeys=new Set((table.identityFields||[]).flatMap(id=>[id,table.fields.find(f=>f.id===id)?.label]).filter(Boolean));
+ const hasAnyIdentity=Boolean(identityKeys.size&&Object.keys(raw.details||{}).some(k=>identityKeys.has(k)));
+ if(!before&&raw.operation==='insert'&&hasAnyIdentity)assert(fullIdentity(raw.details,table),'新建版本档案必须明确对象名称、来源与具体版本，不能用同名代替身份');
+ if(before&&raw.operation==='insert'&&table.identityFields?.length)assert(false,'已有对象；请沿用原 archiveId 或原 recordId 更新，不能重复新建');
+ if(!before){
+  if(spec.frameworkSelection&&table.frameworkId){
+   const shared=[...spec.tables,...spec.retiredTables].filter(t=>t.frameworkId&&t.frameworkId===table.frameworkId).map(t=>t.id);
+   assert(!Object.values(power.archives||{}).some(r=>r.specific?.adapterId===spec.adapter&&r.specific.recordId!==table.id&&shared.includes(r.specific.recordId)&&names(r).includes(key(raw.name))),'同一对象已在其他原分类登记；沿用原档案，不新建通用副本。确实同名的独立对象请明确来源或类型');
+  }
+  if(table.exclusiveWith?.length)assert(!Object.values(power.archives||{}).some(r=>r.specific?.adapterId===spec.adapter&&table.exclusiveWith.includes(r.specific.recordId)&&names(r).includes(key(raw.name))),'同一对象已在关联分类中登记；请沿用原 recordId 和 archiveId，不能重复建档');
+  assert(table.kind==='singleton'||key(raw.name)!==key(table.label),'新增名称应是具体对象或独立事件，不能只写子表标题');
  }
- assert(!table.updateOnly||before||raw.operation===undefined,'该分类已收拢，不再新增独立记录；请把明细写入对应主对象的相关进展，当前状态写入原文状态栏。已有旧记录仍可沿原 archiveId 更新');
- if(before)for(const id of table.identityFields||[]){const value=identityValue(raw.details,id,table),old=before.specific.fields[id];assert(value===undefined||!old||key(value)===key(old),'已有档案的身份列不能被另一对象或版本覆盖；不同版本请使用独立名称新增，纠错请手动核对');}
- if(!before&&raw.operation==='insert'&&table.identityFields?.length)assert(fullIdentity(raw.details,table),'新建版本档案必须明确对象名称、来源与具体版本，不能用同名代替身份');
- if(!before&&table.exclusiveWith?.length)assert(!Object.values(power.archives||{}).some(r=>r.specific?.adapterId===spec.adapter&&table.exclusiveWith.includes(r.specific.recordId)&&names(r).includes(key(raw.name))),'同一对象已在关联分类中登记；请沿用其 archiveId 和原 recordId 更新，不能重复建档');
- if(!before)assert(!Object.values(power.archives||{}).some(r=>!r.specific&&[r.name,...(r.history||[]).map(h=>h.name)].some(n=>key(n)===key(raw.name))),'同名旧通用档案已存在；请先核对身份，不自动迁移或建立副本');
- assert(before||table.kind==='singleton'||key(raw.name)!==key(table.label),'新增名称应是具体对象或独立事件，不能只写子表标题');
- assert(raw.operation!=='insert'||!before,'insert 指向了已有对象；应沿用 archiveId 更新，不能重复新建');
- assert(!['update','transition'].includes(raw.operation)||before,'update/transition 没有唯一原对象；请明确 archiveId 或先新增');
- assert(raw.operation!=='transition'||raw.status&&raw.status!==before.status,'transition 必须有明确的状态变化，不能当作重复结算');
  return {table,before,name:before?.name||(table.kind==='singleton'?table.singletonName||table.label:raw.name)};
 }
 export function assertTableBatchIdentity(power,raw,previous){
@@ -61,13 +63,13 @@ export function assertChronologicalTableInsert(power,raw,previous){
 export function archiveTablePolicy(power){
  const spec=archiveTables(power);if(!spec)return null;
  return {version:2,sourceHash:spec.hash,tables:spec.tables,...(spec.ownership?{ownership:spec.ownership}:{}),...(spec.frameworkSelection?{selection:frameworkSelectionPolicy(power,spec),nativePolicies:spec.nativePolicies}:{}),
-  fillDecision:{firstRecord:'先查current身份目录。tables允许的独立长期对象已由本次sources或明确玩家核对确认，且尚无对应独立档案时，使用insert。事实早已成立、没有本轮数值增长、原主表曾经提过，都不等于子表已有档案；首次记录不要求先有archiveId。',existingRecord:'已有同一对象时沿原archiveId更新真正新增或改变的字段。未提及字段保留；同一事实重复提及且无变化时省略。',summaryVsDetail:'主表负责整体状态和重点摘要，子表负责其声明范围内的独立对象详情。不能仅因主表有概括就漏掉应独立维护的对象；已有子表则沿原档更新，不另建通用副本，不自动迁移或清空旧主表。',noChange:'没有符合范围的实际对象、信息不足、纯设想、普通日常动作或已完整记录且无变化时不新增。判断重要性依据表的retain和后续用途，不要求本轮再获得一次。'},
-  writeScope:spec.tables.length?'仅向 tables 列出的已启用子表新增；consolidation 分类只更新已有旧档。':'本词条没有默认独立子表；新事实按 originalStatusbar 的原文栏目更新，不以通用成果、事件或新分类重建已撤下的统计。兼容分类只更新已有旧档。',
-  consolidation:spec.retiredTables.map(t=>({recordId:t.id,target:t.detailTarget||'原文状态栏',...(t.disabled?{disabled:true}:{}),existingRows:t.disabled?'框架未启用，仅保留查询与手动编辑，不自动更新。':'只更新已有原档，禁止新增；不自动迁移、合并或删除'})),
-  detailPolicy:'只为有独立身份、必须跨回合单独更新的对象建档。训练、配置、过程、已得收益等依consolidation进入对象的related_details或原状态栏；同一事实只存一处，主表只摘要引用。主对象尚未成立时，候选与计划留在原文状态栏，不为容纳明细而虚构已得对象。related_details保留未改变的重要事实，不复制整份快照；没有明确主要对象时报告待核对，不猜测归属。',
+  fillDecision:{firstRecord:'已确认存在且需要长期接续的独立对象，即使没有详细属性、没有身份列或本轮没有数值增长，也先用名称与成立依据建立基础记录，未知列留空；首次记录不要求先有archiveId，以后有明确描述再补同一条。',existingRecord:'已有同一对象时按名称、archiveId或已有身份接续，只补变化字段；未提及字段保留，同一事实重复提及且无变化时省略，没有变化不重复写。',summaryVsDetail:'主状态栏和所有已启用子表一起核对。主表有概括不等于子表已建档，不能用主表长清单代替子表明细；已有子表继续更新，不因主表已记录、表为空或缺明细而跳过。',noChange:'只有正文明确没有该对象或事实时才省略。缺详细属性、缺身份列、主表提过、表为空、本轮无数值增长都不是跳过理由。'},
+  writeScope:spec.tables.length?'向 tables 列出的已启用子表建档或更新。':'本词条没有默认独立子表；新事实按 originalStatusbar 的原文栏目更新。',
+  consolidation:spec.retiredTables.map(t=>({recordId:t.id,target:t.detailTarget||'原文状态栏',...(t.disabled?{disabled:true}:{}),existingRows:t.disabled?'框架未启用，仅保留查询与手动编辑。':'旧档保留，可按名称或身份继续接续。'})),
+  detailPolicy:'有独立对象就先建档，明细未知留空。训练、配置、过程等可先写基础事实，不必等到完整属性齐全；不虚构未出现的对象或细节。主表只保留整体现状与对象引用，子表保存独立对象。',
   ...(spec.boundaries?{boundaries:spec.boundaries}:{}),...(spec.sourceQuotes?{sourceQuotes:spec.sourceQuotes}:{}),
-  operations:{insert:'新独立对象或事件；明确事实依据，不重复已有对象。',update:'沿用原 archiveId，只给发生变化的列；省略列保持，不写整段快照。',transition:'原对象确实转入另一状态；不代表再次到账。'},
-  rules:'原文状态栏为主表，子表仅展开需要后续调用、持续约束、未完成事项或重要独立结算。严格按各表 retain/update 及 boundaries 判断；普通细节不逐次入表，但原文明确要求的独立进展仍更新对应对象。同一长期对象名称稳定，阶段名变化沿用 archiveId；不同订单、投资、支出不可因同商品或同币种合并。identityFields 为明确身份列，新建时完整填写，更新不得换成其他版本；exclusiveWith 表示同一生命跨这些分类仍只留一个身份，不自动换类。名称不能只写分类标题。已有通用档案不自动迁移或删改，身份歧义报告 uncertain。仅tables声明的长期子表项优先填写operation；originalStatusbar主状态栏和其他记录不填写operation；无变化返回 changes:[]。禁止删除、清空整表、补算奖励、创建第二份余额；规则示例不属于实得。ended 只来自明确结束，未提及不等于结束。子表与主表不要复制同一份长清单。event 表用于追溯，默认不自动注入正文；玩家仍可单独选为记忆。'};
+  operations:{insert:'新独立对象或事件；有明确依据即可，明细可空。',update:'已有对象补变化列；省略列保持。',transition:'对象确实转入另一状态；不代表再次到账。'},
+  rules:'主状态栏和所有已启用子表在初始化与每次更新时一起核对。该建档就建档，有变化就更新，无变化保留。基础记录只要求具体名称与成立依据，详细列未知留空；不能因缺明细、缺身份列、主表已有概括或子表为空而跳过。已有对象按名称、archiveId或已有身份接续，不重复建档；不覆盖未变化数据，不编造对象或数值。operation可省略，程序自动判断接续。禁止删除、清空整表、补算奖励、创建第二份余额；规则示例不属于实得。ended只来自明确结束，未提及不等于结束。'};
 }
 export function archiveWriteCounts(before,saved,selectedCount= saved.length){
  const final=[...new Map(saved.map(r=>[r.id,r])).values()];
