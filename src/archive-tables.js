@@ -61,7 +61,8 @@ export function assertChronologicalTableInsert(power,raw,previous){
 export function archiveTablePolicy(power){
  const spec=archiveTables(power);if(!spec)return null;
  return {version:2,sourceHash:spec.hash,tables:spec.tables,...(spec.ownership?{ownership:spec.ownership}:{}),...(spec.frameworkSelection?{selection:frameworkSelectionPolicy(power,spec),nativePolicies:spec.nativePolicies}:{}),
-  writeScope:spec.tables.length?'仅向 tables 列出的默认分类新增；consolidation 分类只更新已有旧档。':'本词条没有默认独立子表；新事实按 originalStatusbar 的原文栏目更新，不以通用成果、事件或新分类重建已撤下的统计。兼容分类只更新已有旧档。',
+  fillDecision:{firstRecord:'先查current身份目录。tables允许的独立长期对象已由本次sources或明确玩家核对确认，且尚无对应独立档案时，使用insert。事实早已成立、没有本轮数值增长、原主表曾经提过，都不等于子表已有档案；首次记录不要求先有archiveId。',existingRecord:'已有同一对象时沿原archiveId更新真正新增或改变的字段。未提及字段保留；同一事实重复提及且无变化时省略。',summaryVsDetail:'主表负责整体状态和重点摘要，子表负责其声明范围内的独立对象详情。不能仅因主表有概括就漏掉应独立维护的对象；已有子表则沿原档更新，不另建通用副本，不自动迁移或清空旧主表。',noChange:'没有符合范围的实际对象、信息不足、纯设想、普通日常动作或已完整记录且无变化时不新增。判断重要性依据表的retain和后续用途，不要求本轮再获得一次。'},
+  writeScope:spec.tables.length?'仅向 tables 列出的已启用子表新增；consolidation 分类只更新已有旧档。':'本词条没有默认独立子表；新事实按 originalStatusbar 的原文栏目更新，不以通用成果、事件或新分类重建已撤下的统计。兼容分类只更新已有旧档。',
   consolidation:spec.retiredTables.map(t=>({recordId:t.id,target:t.detailTarget||'原文状态栏',...(t.disabled?{disabled:true}:{}),existingRows:t.disabled?'框架未启用，仅保留查询与手动编辑，不自动更新。':'只更新已有原档，禁止新增；不自动迁移、合并或删除'})),
   detailPolicy:'只为有独立身份、必须跨回合单独更新的对象建档。训练、配置、过程、已得收益等依consolidation进入对象的related_details或原状态栏；同一事实只存一处，主表只摘要引用。主对象尚未成立时，候选与计划留在原文状态栏，不为容纳明细而虚构已得对象。related_details保留未改变的重要事实，不复制整份快照；没有明确主要对象时报告待核对，不猜测归属。',
   ...(spec.boundaries?{boundaries:spec.boundaries}:{}),...(spec.sourceQuotes?{sourceQuotes:spec.sourceQuotes}:{}),

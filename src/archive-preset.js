@@ -2,7 +2,7 @@
 // input; only maintained instructions belong to system. No remote preset executes.
 import {ARCHIVE_PROTOCOL_POLICY} from './archive-protocol.js';
 
-export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.5.taishi1';
+export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.6.tables1';
 const section=(id,body)=>`<${id}>\n${body}\n</${id}>`;
 const taskInstructions=Object.freeze({
  narrative:`只整理当前任务范围内已经成立的变化。先用rules与scopePolicy判断适用性，再逐项读取sources.settlements.facts；<WJWK-settle>是事实主依据，但一份回执可含多个词条，不等于全部属于当前词条。statusSnapshots（含MMLC-archive长期总档）用于核对现状；总档中的旧库存、旧能力和旧经历不是本轮新收益，不重复累加，首次遇到的明确现状可作为存量建档。content仅补充明确事实。无正式结算时允许使用明确叙事证据，不要求正文必须出现词条名称；机制联系仍需成立。opportunities、规划、思考、选项、context、规则示例不证明执行或到账。正文与结算描述同一对象的同一变化时合并为一条，不能重新执行规则或补算收益。`,
@@ -79,7 +79,7 @@ export function archivePreset(payload,{marker='',domain='',task='',terminal='',c
   ['wjwk_domain',domain],
   ['wjwk_task_boundary',task],
   ['wjwk_original_statusbar',payload.originalStatusbar?'当前主表的表名、栏目、身份和保留规则以originalStatusbar为准；同一总览或具名对象接续原ID。主表不填写operation，不因本轮重查新增副本，不把子表操作权限套到主表。':''],
-  ['wjwk_long_term_tables',payload.longTermTables?'长期子表的身份、必要性、禁用和兼容范围以longTermTables为准；只对responseContract.operationScope.recordIds里的分类填写operation=insert/update/transition。沿用原archiveId更新，独立新对象才insert，recordSchemas提供实际列，不发明分类或列。':''],
+  ['wjwk_long_term_tables',payload.longTermTables?'长期子表的身份、必要性、禁用和兼容范围以longTermTables为准；只对responseContract.operationScope.recordIds里的分类填写operation=insert/update/transition。沿用原archiveId更新，独立新对象才insert，recordSchemas提供实际列，不发明分类或列。按longTermTables.fillDecision区分首次建档、已有档案更新与确无变化。“已有事实”不等于“已有子表档案”；尚无独立档案而本次正文确认成立的长期对象可以insert，不要求先有archiveId或本轮数值增长。逐一核对启用子表的retain：有独立身份、符合保留范围且有正文依据的长期对象，优先填写对应专属子表；主状态栏只保留当前概况与对象引用，不能用主表长清单代替子表明细。不因表为空就跳过，也不为填满每张表编造对象；没有符合条件的事实则不写。':''],
   ['wjwk_ownership_evidence',mode==='narrative'&&payload.longTermTables?.ownership?.requireLink?'本词条要求新增对象提供连续原文联系：quote须将具体对象或已填地点、来源等事实锚点与当前词条、已有对象或声明机制联系起来；声明机制为'+payload.longTermTables.ownership.mechanisms.join('、')+'。主状态栏沿声明身份接续，不能当成新独立对象。无法证明归属时标uncertain。':''],
   ['wjwk_taishi_fill',payload.fillPolicy?'太始天填表必须遵守fillPolicy：按对象与真实所属世界复用ID，只填变化列；状态快照、独立历史和原始设定分开。只有tables声明的snapshotFields允许staleFields，重要事件、反哺与长期记忆不能作为过期状态丢弃。任务来源与玩家保护优先于整理便利。':''],
   ['wjwk_scope',mode==='narrative'?scope:''],

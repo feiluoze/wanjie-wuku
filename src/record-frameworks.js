@@ -71,7 +71,7 @@ export function selectedTableDefinition(power,config,original){
  const enabled=power.recordFrameworks.enabled,chosen=id=>enabled.includes(id),existing=original||{name:power.name,hash:hash(power.primaryRules??power.rules),adapter:config.id,tables:[],retiredTables:[]};
  const nativeTables=existing.tables.map(t=>({...t,frameworkId:nativeFramework(existing,t.id)}));
  const tables=nativeTables.filter(t=>chosen(t.frameworkId));
- for(const f of RECORD_FRAMEWORKS)if(chosen(f.id)&&!tables.some(t=>t.frameworkId===f.id))tables.push({id:f.recordId,frameworkId:f.id,kind:'entity',retain:f.hint,update:'同一重要对象沿原archiveId仅更新真实变化；未提及保持，普通日常不建流水。'});
+ for(const f of RECORD_FRAMEWORKS)if(chosen(f.id)&&!tables.some(t=>t.frameworkId===f.id))tables.push({id:f.recordId,frameworkId:f.id,kind:'entity',retain:f.hint,update:'首次建档：当前正文确认了符合本表范围的长期对象、且尚无对应独立档案时，用insert建立记录。已有对象沿原archiveId更新新事实；同一事实重复提及才保持，不按日常动作另建流水。'});
  const activeIds=new Set(tables.map(t=>t.id));
  const retiredTables=config.records.filter(r=>!r.id.startsWith('statusbar_')&&!activeIds.has(r.id)).map(r=>{
   const old=existing.retiredTables.find(t=>t.id===r.id)||nativeTables.find(t=>t.id===r.id);
