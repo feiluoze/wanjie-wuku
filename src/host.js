@@ -1,4 +1,5 @@
 import { GENERATION_DEFAULTS, upgradeTimeoutDefaults } from './preferences.js';
+import {emptyPromptLibrary,validatePromptLibrary} from './prompt-presets.js';
 import { CONNECTION_FIELDS, themeId, connectionValues } from './preferences.js';
 import { MODULE_ID, ASYNC_MARKER, STATE_MARKER, assert, text, buildInjection, clone, emptyState, hash, stable, uid, validateState, stripVariableReceipts } from './core.js';
 import { hasVariableReceipt, hasStatusReceipt } from './receipt.js';
@@ -78,6 +79,8 @@ export async function saveSettings(value, ctx = getContext(), apiKey = getApiKey
   else delete clean.connectionProfiles;
   if(latest.taskRoutes!==undefined)clean.taskRoutes=clone(latest.taskRoutes);
   if(latest.taskFallbacks!==undefined)clean.taskFallbacks=clone(latest.taskFallbacks);
+  if(latest.promptPresetLibrary!==undefined)clean.promptPresetLibrary=clone(latest.promptPresetLibrary);
+  else delete clean.promptPresetLibrary;
   clean.theme=themeId(clean.theme);
   clean.apiKey=String(apiKey||'').trim();persistAccountSettings(clean,ctx);
 }
@@ -106,6 +109,12 @@ export function applyConnectionProfile(id,ctx=getContext()) {
   persistAccountSettings(clean,ctx);
 }
 export function accountSecrets(ctx=getContext()){const s=savedSettings(ctx);return [s.apiKey,...(s.connectionProfiles||[]).map(p=>p.apiKey)].filter(Boolean);}
+export function getPromptPresetLibrary(ctx=getContext()){return clone(savedSettings(ctx).promptPresetLibrary||emptyPromptLibrary());}
+export function savePromptPresetLibrary(value,ctx=getContext()){
+ const current=savedSettings(ctx),before=current.promptPresetLibrary||emptyPromptLibrary();
+ assert(value.revision===before.revision,'预设库已在另一窗口更新，请重新打开后修改');
+ const next=validatePromptLibrary(value);next.revision++;persistAccountSettings({...clone(current),promptPresetLibrary:next},ctx);return clone(next);
+}
 export function resolveTaskConnection(task,ctx=getContext(),settings=getSettings(ctx),apiKey=getApiKey(ctx)){return taskConnection(task,settings,apiKey,savedSettings(ctx).connectionProfiles||[]);}
 export function resolveTaskConnectionPlan(task,ctx=getContext(),settings=getSettings(ctx),apiKey=getApiKey(ctx)){return taskConnectionPlan(task,settings,apiKey,savedSettings(ctx).connectionProfiles||[]);}
 export function saveTaskRoutes(routes,ctx=getContext(),fallbacks){const clean=clone(savedSettings(ctx)),profiles=getConnectionProfiles(ctx);clean.taskRoutes=normalizeTaskRoutes(routes,profiles);clean.taskFallbacks=normalizeTaskFallbacks(fallbacks??clean.taskFallbacks??{},profiles,clean.taskRoutes);persistAccountSettings(clean,ctx);}

@@ -1,4 +1,5 @@
 import {archiveFormatOptions} from './archive-contract.js';
+import {composePromptPreset} from './prompt-presets.js';
 import {transportFailure,providerFailure,permanentProviderError} from './api-fallback.js';
 import {backendRequestHeaders,independentFetch} from './model-transport.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
@@ -117,6 +118,12 @@ export class ModelConnection {
     const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_completion_tokens??customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',requestedReasoningSplit:customParameters.reasoning_split??thinkingOptions(diagnosticSettings).reasoning_split??null,requestedReasoningEffort:customParameters.reasoning_effort??thinkingOptions(diagnosticSettings).reasoning_effort??null,requestedResponseFormat:customParameters.response_format?.type??archiveFormatOptions(diagnosticSettings,prompt).response_format?.type??'prompt-only',customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
     const settings = clone(connection?.settings || this.settings());diagnosticSettings=settings;
     assert(settings.mode !== 'off', '异步模型已关闭；可在连接设置中自行启用');
+    if(settings.promptPresetLibrary?.routes?.[connection?.task||'general']){
+      const ctxNames=this.context?.();
+      prompt=composePromptPreset(prompt,settings,connection?.task||'general',{user:ctxNames?.name1||'玩家',char:ctxNames?.name2||'角色'});
+      const id=settings.promptPresetLibrary.routes[connection?.task||'general'];
+      try{onResponse({format:'prompt-preset',promptPresetId:id,promptMessages:prompt.messages.length,promptCharacters:prompt.messages.reduce((n,m)=>n+m.content.length,0)});}catch{ /* Diagnostics never alter requests. */ }
+    }
     const seconds = requestTimeoutSeconds(settings, connection?.task);
     if (settings.mode === 'st') {
       assert(!this.rawPending, '上一笔酒馆请求仍在结束中，请稍后再试');

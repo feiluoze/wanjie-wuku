@@ -1,4 +1,5 @@
 import {resourceBalanceAllowed} from './src/core.js';
+import {promptPresetMethods} from './src/prompt-preset-ui.js';
 import {archiveRequestScope} from './src/archive-input.js';
 import {databasePromptTrial,DATABASE_PROMPT_TRIAL_ID} from './src/database-prompt-trial.js';
 import {reviewCheckpointMethods,encodeCheckpoint} from './src/review-checkpoint.js';
@@ -598,6 +599,18 @@ export class WukuApp {
     if (['save-baseline', 'save-balances', 'register', 'toggle-power', 'delete-power', 'confirm-delete-power', 'confirm-rebase'].includes(name)) assert(!(this.store.read().roleWrites || []).some(w => w.status === 'pending'), '请先处理待完成的角色写回，再修改武库事实');
     const snapshot = () => this.contextSnapshot(), power = () => this.store.read().powers[this.powerId];
     switch (name) {
+      case 'prompt-presets': return this.openPromptPresets();
+      case 'prompt-preset-import': return this.importUserPromptPreset(data.file);
+      case 'prompt-preset-installed': return this.importInstalledPromptPreset(data.values?.installedPreset);
+      case 'prompt-preset-edit': return this.editPromptPreset(data.id);
+      case 'prompt-preset-save': return this.saveUserPromptPreset();
+      case 'prompt-preset-preview': return this.previewPromptPreset();
+      case 'prompt-preset-up': return this.movePromptPresetBlock(data,-1);
+      case 'prompt-preset-down': return this.movePromptPresetBlock(data,1);
+      case 'prompt-preset-routes': return this.savePromptPresetRoutes(data.values||{});
+      case 'prompt-preset-delete': return this.confirmPromptPresetDelete(data.id);
+      case 'prompt-preset-delete-confirm': return this.deleteUserPromptPreset(data.id);
+      case 'prompt-preset-export': return this.exportUserPromptPreset(data.id);
       case 'asset-remove':
       case 'asset-restore': {
         const s=this.ensureStable();assert(!this.busy,'请等待当前任务完成');const p=s.state.powers[this.powerId];assert(p?.active,'请先选择当前词条');
@@ -953,7 +966,7 @@ export class WukuApp {
   }
 }
 
-Object.assign(WukuApp.prototype, recordFrameworkMethods, mmlcMethods, taishiStructureMethods, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
+Object.assign(WukuApp.prototype, promptPresetMethods, recordFrameworkMethods, mmlcMethods, taishiStructureMethods, taishiCivilizationMethods, reviewCheckpointMethods, taishiScheduleMethods, taishiControlMethods, archiveBranchMethods, spaceMethods, aiWorldbookMethods, narrativeMethods, managementMethods, workflowMethods, archiveMethods, archiveToolMethods, archiveReviewMethods, archiveMemoryMethods, playerHomeMethods, terminalMethods, creationMethods, adapterMethods, adapterLibraryMethods);
 
 installAIActivity(WukuApp.prototype);
 
