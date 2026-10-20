@@ -32,14 +32,23 @@ export function settledOwnership(content,powerName,objectName,worldName=''){
  const alias=String(powerName||'').split(/[（(]/)[0].trim(),name=String(objectName||'').trim();
  if(!alias||!name)return false;
  return evidenceParts(content).settlements.some(receipt=>{let inherited=[];return receipt.facts.split(/\r?\n/).some(line=>{
-  const markers=protocolOwners(line,[alias]);
-  if(markers.length)inherited=markers;
+  const markers=receiptScopeOwners(line,[alias]);
+  if(markers.length||receiptItemStart(line))inherited=markers;
   const owners=markers.length?markers:inherited;
   const owner=owners.length?owners.every(marker=>marker===alias):line.includes(alias);
   return owner&&line.includes(name)&&(!worldName||line.includes(worldName))
    &&!/(?:尚未|未曾|未能|没有|计划|准备|拟将|如果|可能|预计)/.test(line)
-   &&/(?:成功|已生效|已到账|已交付|已完成|已建立|已取得|已获得|已结算|已暂存|已延期|资格已保留)/.test(line);
+   &&/(?:成功|已生效|已到账|已入账|已归档|已交付|已完成|已建立|已取得|已获得|已结算|已暂存|已延期|资格已保留)/.test(line);
  });});
+}
+// Each numbered receipt item starts a new scope. Its leading owner marker
+// must not inherit the previous power, including powers absent from this task.
+// Ordinary bracketed items later in a sentence remain object names.
+const receiptItemStart=line=>/^\s*\d+[.、．)]\s*/.test(line);
+function receiptScopeOwners(line,known){
+ const owners=protocolOwners(line,known);
+ const heading=String(line).match(/^\s*\d+[.、．)]\s*【([^】·]+)(?:·[^】]*)?】/);
+ return [...new Set([...(heading?[heading[1].trim()]:[]),...owners])];
 }
 
 // Qualified protocol headings carry ownership; ordinary bracketed place/item
@@ -53,7 +62,7 @@ export function sourceOwnership(content,quote,known=[]){
  const matches=[];
  for(const block of blocks){let offset=0;while(offset<block.length){const at=block.indexOf(quote,offset);if(at<0)break;
    const prefix=block.slice(0,at),lines=prefix.split(/\r?\n/);let owners=[];
-   for(const line of lines){const found=protocolOwners(line,known);if(found.length)owners=found;}
+   for(const line of lines){const found=receiptScopeOwners(line,known);if(found.length||receiptItemStart(line))owners=found;}
    matches.push(owners);offset=at+quote.length;
  }}
  // The same quote in two differently owned receipts is ambiguous, not current.
