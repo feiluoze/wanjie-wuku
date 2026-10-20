@@ -22,7 +22,7 @@ test('one update can create the main status row and a base subtable record toget
  applyArchiveChanges(p,batch.changes,[],new Map([[0,null],[1,null]]),[]);
  const rows=Object.values(p.archives);assert.equal(rows.length,2);
  const main=rows.find(r=>r.specific?.recordId===status.id),base=rows.find(r=>r.specific?.recordId===table.id);
- assert(main.specific.fields[status.fields[0].id].includes('北门钥匙'));assert.equal(base.name,'北门探索记录');assert.deepEqual(base.specific.fields,{});assert.equal(base.fields.description,'源堡记录了一次北门探索，尚未展开细节。');
+ assert(main.specific.fields[status.fields[0].id].includes('北门钥匙'));assert.equal(base.name,'北门探索记录');assert.deepEqual(base.specific.fields,{});assert.equal(base.fields.description,'');assert.equal(base.source.quote,'源堡记录了一次北门探索，尚未展开细节。');
 
  const update={changes:[
   {type:'record',name:status.title,status:'active',recordId:status.id,sourceIndex:-1,details:{[status.fields[1].id]:'北门探索已进入长期记录。'}},

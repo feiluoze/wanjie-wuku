@@ -170,10 +170,9 @@ export function normalizeArchiveChanges(data, power, sources, chat, playerNote =
     const status = raw.status ?? before?.status; assert(Object.hasOwn(ARCHIVE_STATUS, status), '请区分计划、进行中和已建立状态');
     // A base table record may contain only a confirmed object name and evidence.
     // Detailed columns stay empty until the story supplies them.
-    if (table?.before && !suppliedFields) raw = { ...raw, fields: {} };
+    if (table && !suppliedFields) raw = { ...raw, fields: {} };
     if (table && (!raw.fields || typeof raw.fields !== 'object' || !Object.keys(raw.fields).length)) {
-      const baseField = Object.keys(ARCHIVE_FIELDS[type] || {})[0];
-      raw = { ...raw, fields: table.before || !baseField ? {} : { [baseField]: text(raw.quote, 4000).trim() || name } };
+      raw = { ...raw, fields: {} };
     }
     assert(raw.fields && typeof raw.fields === 'object' && !Array.isArray(raw.fields) && Object.keys(raw.fields).every(k => Object.hasOwn(ARCHIVE_FIELDS[type], k)) && (table || Object.keys(raw.fields).length), '档案字段无效');
     const patch = Object.fromEntries(Object.entries(raw.fields).map(([k, v]) => [k, text(v, 4000).trim()]));

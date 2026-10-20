@@ -35,9 +35,9 @@ for(const d of ARCHIVE_TABLE_DEFINITIONS)for(const t of [...d.tables,...d.retire
 test('subtable base record can be created from name and evidence only, then receive details later',()=>{
  const p=power('万界网购');
  let b=local(p,[{type:'record',recordId:'orders',name:'北门铁剑订单',status:'active',sourceIndex:-1,quote:'北门铁剑订单已经交付。'}]);
- assert.deepEqual(b.issues,[]);save(p,b);const r=Object.values(p.archives)[0];assert.equal(r.name,'北门铁剑订单');assert.equal(r.specific.recordId,'orders');assert.deepEqual(r.specific.fields,{});assert.equal(r.fields.description,'北门铁剑订单已经交付。');
+ assert.deepEqual(b.issues,[]);save(p,b);const r=Object.values(p.archives)[0];assert.equal(r.name,'北门铁剑订单');assert.equal(r.specific.recordId,'orders');assert.deepEqual(r.specific.fields,{});assert.equal(r.fields.description,'');assert.equal(r.source.quote,'北门铁剑订单已经交付。');
  b=local(p,[{type:'record',recordId:'orders',name:r.name,status:'active',archiveId:r.id,sourceIndex:-1,details:{progress:'已确认完成'}}]);
- assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,1);assert.equal(p.archives[r.id].fields.description,'北门铁剑订单已经交付。');assert.equal(p.archives[r.id].specific.fields.progress,'已确认完成');
+ assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,1);assert.equal(p.archives[r.id].fields.description,'');assert.equal(p.archives[r.id].specific.fields.progress,'已确认完成');
 });
 test('independent orders remain separate; exact title updates, singleton slots and classification boundaries are enforced',()=>{
  const p=power('万界网购');let b=local(p,[raw('orders','铁剑订单·北门首购',{item:'铁剑一柄'}),raw('orders','铁剑订单·北门再购',{item:'铁剑一柄'})]);assert.deepEqual(b.issues,[]);save(p,b);assert.equal(Object.keys(p.archives).length,2);

@@ -27,6 +27,15 @@ export const ARCHIVE_FIELDS = Object.freeze({
   bond: { participants: '关联人物', terms: '已成立条款', obligations: '双方义务', condition: '履行情况', limits: '条件与限制' },
   record: { description: '当前完整情况', limits: '条件与限制' },
 });
+// Display/context cleanup only. Original fields, evidence and history stay stored.
+export function archiveDisplayFields(record){
+ const fields={...record.fields},birth=record.history?.[0]||record;
+ if(!birth.specific||birth.specific.recordId.startsWith('statusbar_')||Object.values(birth.specific.fields||{}).some(Boolean))return fields;
+ const first=Object.keys(ARCHIVE_FIELDS[birth.type]||{})[0],values=Object.entries(birth.fields||{}).filter(([,v])=>v),quote=String(birth.source?.quote||'').trim();
+ const legacyList=quote.length>30&&quote.includes(birth.name)&&/[：:]/.test(quote)&&/[、，,；;]/.test(quote);
+ if(values.length===1&&values[0][0]===first&&values[0][1]===quote&&fields[first]===quote&&legacyList)delete fields[first];
+ return fields;
+}
 export const isMotherNest = power => /母巢/.test(power?.name || '');
 export function archivePanel(power) {
   if (isMotherNest(power)) return { title: '母巢概览', defaultType: 'population' };
@@ -39,7 +48,7 @@ export function sceneArchiveContext(power, chat, query = '') {
   const q = query.normalize('NFKC').toLowerCase(), items = []; let used = 0;
   const score = r => q.includes(r.name.normalize('NFKC').toLowerCase()) ? 2 : r.fields.location && q.includes(r.fields.location.toLowerCase()) ? 1 : 0;
   for (const r of [...scoped].sort((a, b) => score(b) - score(a) || b.updatedAt - a.updatedAt || a.id.localeCompare(b.id))) {
-    const item = scope?taishiProjection(r):{ id: r.id, name: r.name, type: r.type, status: r.status, fields: clone(r.fields),...(r.specific?{specific:clone(r.specific)}:{}) }, size = JSON.stringify(item).length;
+    const item = scope?taishiProjection(r):{ id: r.id, name: r.name, type: r.type, status: r.status, fields: archiveDisplayFields(r),...(r.specific?{specific:clone(r.specific)}:{}) }, size = JSON.stringify(item).length;
     if (items.length >= 24 || used + size > 16000) continue;
     items.push(item); used += size;
   }
@@ -126,7 +135,7 @@ export function saveArchive(power, input, source) {
   if (!previous || normalizedName(previous.name)!==normalizedName(name)) assert(!Object.values(power.archives).some(r => r.id !== previous?.id && archiveNames(r).includes(normalizedName(name)) && !separateArchiveTables(power,input.specific,r.specific) && !separateTaishiWorlds(power,input.specific,r.specific) && (!isTaishi(power)||!input.specific?.recordId||!r.specific?.recordId||input.specific.recordId===r.specific.recordId)), '已有同名档案（含旧名档案），请编辑原对象，避免重复统计');
   assert(previous || Object.keys(power.archives).length < 512, '单词条档案超过512项，请先导出整理');
   const fields = Object.fromEntries(Object.keys(ARCHIVE_FIELDS[type]).map(k => [k, text(input.fields?.[k] || '', 4000).trim()]));
-  assert(Object.values(fields).some(Boolean), '请填写至少一项实际情况；未明确的字段可以留空');
+  assert(Object.values(fields).some(Boolean)||(input.specific??previous?.specific)&&!(input.specific??previous.specific).recordId.startsWith('statusbar_'), '请填写至少一项实际情况；专用对象可先保留名称、状态与来源，明细留空');
   const at = Date.now(), id = previous?.id || uid('archive');
   const module = isMmlc(power) ? input.module ?? mmlcModule(previous || { type, name }) : undefined;
   assert(!module || MMLC_MODULES.some(m => m.id === module), '漫漫长路模块归属无效');

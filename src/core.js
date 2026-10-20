@@ -491,7 +491,7 @@ export function validateState(data) {
         if (row.module !== undefined) assert(isMmlc(p) && MMLC_MODULES.some(m => m.id === row.module), '统计模块归属无效');
         assert(row.id === archiveId && ['population', 'environment', 'facility', 'research', 'member', 'skill', 'bond', 'record'].includes(row.type) && row.type === r.type && ['active', 'planned', 'working', 'ended'].includes(row.status), '经营档案身份或状态无效');
         assert(text(row.name, 200).trim() && Number.isSafeInteger(row.updatedAt) && row.updatedAt >= 0, '经营档案名称或时间无效');
-        assert(row.fields && typeof row.fields === 'object' && !Array.isArray(row.fields) && Object.keys(row.fields).length <= 10 && Object.values(row.fields).some(Boolean), '经营档案缺少实际内容');
+        assert(row.fields && typeof row.fields === 'object' && !Array.isArray(row.fields) && Object.keys(row.fields).length <= 10 && (Object.values(row.fields).some(Boolean)||row.specific&&!row.specific.recordId.startsWith('statusbar_')), '经营档案缺少实际内容');
         for (const [field, value] of Object.entries(row.fields)) { key(field); text(value, 4000); }
         assert(['manual', 'story'].includes(row.source?.type) && text(row.source.note, 600).trim(), '经营档案缺少人工核对来源');
         assert(row.source.contextReset===undefined||typeof row.source.contextReset==='boolean','档案重核标记无效');

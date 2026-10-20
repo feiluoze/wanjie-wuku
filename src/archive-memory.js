@@ -9,7 +9,7 @@ import { specificRows } from './specialized-records.js';
 import { currentOverview, overviewHighlights } from './current-overview.js';
 import { TERMINAL_PROGRESS, terminalDeliveryCurrent, terminalProgressCurrent } from './terminal-results.js';
 import { assert, clone, hash, stable, text, uid, storyText, chatHashes } from './core.js';
-import { ARCHIVE_TYPES, ARCHIVE_STATUS, ARCHIVE_FIELDS, archiveCurrent, archiveContextCurrent } from './archives.js';
+import { ARCHIVE_TYPES, ARCHIVE_STATUS, ARCHIVE_FIELDS, archiveDisplayFields, archiveCurrent, archiveContextCurrent } from './archives.js';
 import { getContext } from './host.js';
 
 // Missing settings belong to legacy chats; preserve their previous opt-in behavior.
@@ -68,7 +68,7 @@ export function memoryPlan(state, chat, query = '', config = state.archiveMemory
       const item=candidates.find(c=>c.id===id);if(item)item.feedback={id,signature:change.signature};continue;
     }
     const auto = channelAuto && tableForRecord(p,r)?.kind!=='event' && r.status !== 'ended' && (Boolean(scope)||phrases.some(s=>q.includes(s))||linkedMatches.has(id));
-    add(id,r.name,p,selection,auto,archiveContextCurrent(r,chat),q.includes(normalize(r.name))?2:1,{...(scope?{发送分区:channel}:{}),金手指:p.name,对象:r.name,类型:r.specific?.label||ARCHIVE_TYPES[r.type],...(projection.provenance?{资料性质:projection.provenance}:{}),...(projection.informationBoundary?{信息边界:projection.informationBoundary}:{}),...(projection.specific?{专用统计:Object.fromEntries(specificRows(projection).map(f=>[f.label,f.value]))}:{}),状态:ARCHIVE_STATUS[r.status],情况:Object.fromEntries(Object.entries(projection.fields).filter(([,v])=>v).map(([k,v])=>[ARCHIVE_FIELDS[r.type][k]||k,v])),来源:r.source.type==='story'?`正文第${r.source.anchor.index+1}条／回复${r.source.anchor.swipeId+1}，玩家确认`:'玩家手工核对'});
+    add(id,r.name,p,selection,auto,archiveContextCurrent(r,chat),q.includes(normalize(r.name))?2:1,{...(scope?{发送分区:channel}:{}),金手指:p.name,对象:r.name,类型:r.specific?.label||ARCHIVE_TYPES[r.type],...(projection.provenance?{资料性质:projection.provenance}:{}),...(projection.informationBoundary?{信息边界:projection.informationBoundary}:{}),...(projection.specific?{专用统计:Object.fromEntries(specificRows(projection).map(f=>[f.label,f.value]))}:{}),状态:ARCHIVE_STATUS[r.status],情况:Object.fromEntries(Object.entries(archiveDisplayFields(projection)).filter(([,v])=>v).map(([k,v])=>[ARCHIVE_FIELDS[r.type][k]||k,v])),来源:r.source.type==='story'?`正文第${r.source.anchor.index+1}条／回复${r.source.anchor.swipeId+1}，玩家确认`:'玩家手工核对'});
   }
   for (const o of state.terminalOrders || []) {
     const p=state.powers[o.powerId];if(!p)continue;
