@@ -10,7 +10,7 @@ import {receiptStatus} from './receipt-status.js';
 import {taishiStructureUI} from './taishi-structure-ui.js';
 import {taishiLayoutUIMethods,taishiFieldControl,layoutTitles} from './taishi-layout-ui.js';
 import {worldSchedules} from './taishi-schedule.js';
-import {designAside} from './workbench-design.js';
+import {designAside,manualAttentionCount} from './workbench-design.js';
 import {MMLC_RULEBOOK} from './mmlc-rulebook.js';
 import {taishiControlUI} from './taishi-control-ui.js';
 import {MODULE_NAMES} from './module-backup.js';
@@ -73,6 +73,7 @@ export class WorkbenchUI {
     this.root = document.createElement('div'); this.root.className = 'wjwk'; this.root.id = 'wjwk-root';
     this.root.innerHTML = `<button type="button" class="wjwk-fab" data-action="toggle" title="万界武库（可拖动）" aria-label="打开万界武库">${icon('arsenal')}<span>武库</span></button><button type="button" data-action="minimize-fab" class="wjwk-fab-fold" aria-label="将悬浮按钮收起到边缘">收起</button><button type="button" data-action="restore-fab" class="wjwk-edge-tab" hidden aria-label="恢复万界武库">武库 ‹</button><section class="wjwk-window" hidden aria-label="万界武库操作台"></section><div class="wjwk-modal" hidden></div><aside class="wjwk-ai-activity" hidden aria-label="武库 AI 任务状态"><div class="wjwk-ai-heading"><strong data-ai-title></strong><span data-ai-time aria-hidden="true"></span><button type="button" data-action="minimize-fab" aria-label="将任务与面板收起到边缘">‹</button><button type="button" data-action="ai-status-close" aria-label="关闭任务提示（不会取消任务）">×</button></div><div data-ai-connections hidden></div><div data-ai-message role="status" aria-live="polite"></div><button type="button" data-action="ai-task-cancel" hidden class="wjwk-secondary" aria-label="取消当前插件任务">取消当前任务</button></aside><div class="wjwk-toast" role="alert" aria-live="assertive" hidden><span data-toast-text></span><button type="button" data-action="notice-dismiss" class="wjwk-toast-close" aria-label="关闭错误提示">×</button></div>`;
     document.body.append(this.root); this.panel = this.root.querySelector('.wjwk-window'); this.modal = this.root.querySelector('.wjwk-modal');
+    for(const button of this.root.querySelectorAll('.wjwk-fab,.wjwk-edge-tab'))button.insertAdjacentHTML('beforeend','<span class="wjwk-attention-badge" hidden aria-hidden="true"></span>');
     this.eventController = new AbortController();
     const listen = (name, handler, capture = false) => this.root.addEventListener(name, handler, { capture, signal: this.eventController.signal });
     listen('click', event => {
@@ -410,6 +411,13 @@ export class WorkbenchUI {
   render(view) {
     if (this.destroyed) return;
     this.view = view; if (!view) return; this.applyTheme(view.settings);
+    const attention=manualAttentionCount(view);
+    for(const button of this.root?.querySelectorAll?.('.wjwk-fab,.wjwk-edge-tab')||[]){
+      const badge=button.querySelector('.wjwk-attention-badge');badge.hidden=!attention;badge.textContent=attention>99?'99+':String(attention);
+      const label=button.classList.contains('wjwk-edge-tab')?'恢复万界武库':'打开万界武库';
+      button.setAttribute('aria-label',label+(attention?`，${attention} 项待手动处理`:''));
+      button.title=attention?`万界武库：${attention} 项待手动处理（整理候选、行动确认或角色同步）`:'万界武库（可拖动）';
+    }
     if (this.root) this.root.dataset.appearance = workbenchAppearance(view.state ? view.power : null);
     const { state, power, operations = [], selected, busy, querying, committing, continuing, settings, save, historyMismatch, bridge, error, roleError } = view;
     if (!state) { this.panelContext = null; this.renderWelcome(view); return; }

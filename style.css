@@ -1,4 +1,7 @@
 /* Original workbench styling. Host theme colors are read as values only. */
+.wjwk .wjwk-attention-badge{position:absolute;top:-6px;right:-6px;display:flex;align-items:center;justify-content:center;min-width:20px;height:20px;box-sizing:border-box;padding:0 5px;border:2px solid var(--wk-card,#182328);border-radius:999px;background:#cf343e!important;color:#fff!important;font:700 11px/1 sans-serif;box-shadow:0 2px 6px #0005;pointer-events:none}
+.wjwk .wjwk-attention-badge[hidden]{display:none!important}
+.wjwk .wjwk-edge-tab .wjwk-attention-badge{top:2px;right:2px}
 /* Taishi tables are read-only projections of the archive, with stacked rows on phones. */
 .wjwk .wjwk-taishi-view-switch{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:12px 0}
 .wjwk .wjwk-taishi-view-switch [aria-pressed="true"]{border-color:var(--wk-cyan);background:var(--wk-soft)!important}
