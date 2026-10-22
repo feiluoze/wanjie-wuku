@@ -12,6 +12,7 @@ export class AIActivity {
     this.current = null; this.publish(task);
   }
   phase(message) { if (this.current) { this.current.phase = message; this.publish(this.current); } }
+  budget(info) { if (this.current) { this.current.budget = { ...info }; this.publish(this.current); } }
   connection(connection) {
     if (!this.current) return;
     const task=this.current;task.connections ||= {};

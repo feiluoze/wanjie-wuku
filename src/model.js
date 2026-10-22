@@ -113,7 +113,7 @@ export class ModelConnection {
       throw error;
     } finally { clearTimeout(timer); signal?.removeEventListener('abort', abort); }
   }
-  async request(prompt, { signal, connection, onResponse = () => {} } = {}) {
+  async request(prompt, { signal, connection, onResponse = () => {}, onRequest = () => {} } = {}) {
     let diagnosticSettings,customParameters={};
     const report = value => { try { onResponse({...value,...(diagnosticSettings?{requestedMaxTokens:customParameters.max_completion_tokens??customParameters.max_tokens??diagnosticSettings.maxTokens??GENERATION_DEFAULTS.maxTokens,requestedThinking:customParameters.thinking?.type??thinkingOptions(diagnosticSettings).thinking?.type??'provider-default',requestedReasoningSplit:customParameters.reasoning_split??thinkingOptions(diagnosticSettings).reasoning_split??null,requestedReasoningEffort:customParameters.reasoning_effort??thinkingOptions(diagnosticSettings).reasoning_effort??null,requestedResponseFormat:customParameters.response_format?.type??archiveFormatOptions(diagnosticSettings,prompt).response_format?.type??'prompt-only',customParameterCount:Object.keys(customParameters).length}:{})}); } catch { /* Diagnostics never change a request outcome. */ } };
     const settings = clone(connection?.settings || this.settings());diagnosticSettings=settings;
@@ -124,6 +124,12 @@ export class ModelConnection {
       const id=settings.promptPresetLibrary.routes[connection?.task||'general'];
       try{onResponse({format:'prompt-preset',promptPresetId:id,promptMessages:prompt.messages.length,promptCharacters:prompt.messages.reduce((n,m)=>n+m.content.length,0)});}catch{ /* Diagnostics never alter requests. */ }
     }
+    try {
+      const messages=prompt.messages||[{role:'system',content:prompt.system},{role:'user',content:prompt.user}];
+      const counts={system:0,user:0,assistant:0,total:0,messages:messages.length};
+      for(const message of messages){const content=message.content,n=typeof content==='string'?content.length:Array.isArray(content)?content.reduce((sum,p)=>sum+(typeof p?.text==='string'?p.text.length:0),0):0;counts.total+=n;if(Object.hasOwn(counts,message.role))counts[message.role]+=n;}
+      onRequest(counts);
+    } catch { /* Input diagnostics never alter requests. */ }
     const seconds = requestTimeoutSeconds(settings, connection?.task);
     if (settings.mode === 'st') {
       assert(!this.rawPending, '上一笔酒馆请求仍在结束中，请稍后再试');

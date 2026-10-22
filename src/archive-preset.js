@@ -2,7 +2,7 @@
 // input; only maintained instructions belong to system. No remote preset executes.
 import {ARCHIVE_PROTOCOL_POLICY} from './archive-protocol.js';
 
-export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.7.tables2';
+export const ARCHIVE_PRESET_ID='wjwk.archive.1.6.8.tables3';
 const section=(id,body)=>`<${id}>\n${body}\n</${id}>`;
 const taskInstructions=Object.freeze({
  narrative:`主状态栏和所有已启用子表在初始化与每次更新时一起核对。先用rules与scopePolicy判断适用性，再逐项读取sources.settlements.facts；<WJWK-settle>是事实主依据，但一份回执可含多个词条，不等于全部属于当前词条。statusSnapshots（含MMLC-archive长期总档）用于核对现状；总档中的旧库存、旧能力和旧经历不是本轮新收益，不重复累加，首次遇到的明确现状可作为存量建档。content仅补充明确事实。无正式结算时允许使用明确叙事证据，不要求正文必须出现词条名称；机制联系仍需成立。对象已确认存在且需要长期接续时，即使没有详细属性、身份列或本轮数值增长，也先建立基础记录，未知列留空；有变化就更新，无变化保留。主表有概括不等于子表已建档，不能因为主表已记录、子表为空或缺少明细而跳过。只有正文明确没有该对象或事实时才省略。opportunities、规划、思考、选项、context、规则示例不证明执行或到账。正文与结算描述同一对象的同一变化时合并为一条，不能重新执行规则或补算收益。`,

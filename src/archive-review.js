@@ -200,7 +200,7 @@ export function normalizeArchiveBatch(data,power,sources,chat,playerNote='',stat
  assert(Array.isArray(data.changes),'候选列表格式无效：changes必须为数组');
  assert(data.changes.length<=MAX_RETURNED_CHANGES,'候选变化超过本地安全处理上限'+MAX_RETURNED_CHANGES+'，请保留原始结果后分段核对');
  const issues=[],skippedOwnership=[],ignoredChanges=[],blockedFloors=new Set();
- const reject=(kind,index,raw,error)=>{issues.push({kind,index,name:String(raw?.name||raw?.orderId||raw?.creationId||'未知条目').slice(0,200),sourceIndex:raw?.sourceIndex,quote:String(raw?.quote||'').slice(0,4000),reason:error.message,...(kind==='成果'?{diagnostic:error.relationDiagnostic||fieldDiagnostic(raw,ARCHIVE_FIELDS,creationConfig(power)?.records.find(r=>r.id===raw?.recordId))}:{}),...(error.fieldCandidate?{candidate:clone(raw),repairable:true}:{}),...(error.fieldConflicts?{conflicts:error.fieldConflicts,candidate:clone(raw)}:{})});try{const evidence=resolveArchiveEvidence(raw?.sourceIndex,String(raw?.quote||''),sources,playerNote);if(!evidence.manual)blockedFloors.add(evidence.source.index);}catch{for(const source of sources)blockedFloors.add(source.index);}};
+ const reject=(kind,index,raw,error)=>{issues.push({kind,index,name:String(raw?.name||raw?.orderId||raw?.creationId||'未知条目').slice(0,200),sourceIndex:raw?.sourceIndex,quote:String(raw?.quote||'').slice(0,4000),reason:error.message,...(kind==='成果'?{diagnostic:error.relationDiagnostic||fieldDiagnostic(raw,ARCHIVE_FIELDS,creationConfig(power)?.records.find(r=>r.id===raw?.recordId))}:{}),...(error.fieldCandidate?{candidate:clone(raw),repairable:true}:{}),...(error.archiveTargets?{archiveTargets:error.archiveTargets}:{}),...(error.fieldConflicts?{conflicts:error.fieldConflicts,candidate:clone(raw)}:{})});try{const evidence=resolveArchiveEvidence(raw?.sourceIndex,String(raw?.quote||''),sources,playerNote);if(!evidence.manual)blockedFloors.add(evidence.source.index);}catch{for(const source of sources)blockedFloors.add(source.index);}};
  const isolate=(kind,raw,max,normalize,identity,signature)=>{
   if(raw===undefined)return [];assert(Array.isArray(raw)&&raw.length<=max,kind+'列表无效');
   const groups=new Map();for(let start=0;start<raw.length;start+=REVIEW_SEGMENT_SIZE)raw.slice(start,start+REVIEW_SEGMENT_SIZE).forEach((item,offset)=>{const index=start+offset;try{const row=normalize(item,index);if(!row)return;const id=identity(row);if(!groups.has(id))groups.set(id,[]);groups.get(id).push({row,index,item});}catch(e){reject(kind,index,item,e);}});
@@ -528,12 +528,16 @@ export const archiveReviewMethods = {
     await this.assertReviewReferences(pending);
     this.store.assertCapture(pending.captured);
     const issue=pending.issues[Number(data.index)];assert(issue?.repairable&&issue.candidate,'此条目无法本地修正');
-    const raw=JSON.parse(String(data.values?.['repair-candidate:'+data.index]||''));
+    const power=snapshot.state.powers[pending.powerId],targetId=data.targetArchiveId;
+    if(targetId!==undefined){
+      const targets=issue.archiveTargets,target=power.archives?.[targetId];
+      assert(typeof targetId==='string'&&targets?.options?.some(o=>o.id===targetId)&&target?.specific?.recordId===targets.recordId&&target.specific.adapterId===creationConfig(power)?.id,'请选择本次候选列出的同一子表原档案');
+    }
+    const raw=targetId!==undefined?{...clone(issue.candidate),archiveId:targetId,operation:'update'}:JSON.parse(String(data.values?.['repair-candidate:'+data.index]||''));
     assert(raw&&typeof raw==='object'&&!Array.isArray(raw),'候选须为一个对象');
     // Editing values cannot change the captured owner, identity or evidence.
-    for(const key of ['ownerPowerId','archiveId','name','type','recordId','status','sourceIndex','quote','ruleQuote','module'])
+    for(const key of ['ownerPowerId',...(targetId!==undefined?[]:['archiveId']),'name','type','recordId','status','sourceIndex','quote','ruleQuote','module'])
       assert(stable(raw[key]??null)===stable(issue.candidate[key]??null),'只能修正字段，不能改变身份或来源：'+key);
-    const power=snapshot.state.powers[pending.powerId];
     const original=pending.data.changes[issue.index];
     assert(original,'原始候选不存在');
     const fixed=unwrapArchiveInput(raw);

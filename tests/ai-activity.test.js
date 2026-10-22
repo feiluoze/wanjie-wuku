@@ -6,6 +6,10 @@ test('elapsed covers response and later validation; success emitted only after w
  await a.run('??',async()=>{time=1200;a.phase('??');assert.equal(seen.at(-1).status,'running');time=2500;});
  assert.equal(seen.at(-1).elapsed,2500);assert.equal(seen.at(-1).status,'success');
 });
+test('request budget is transient display data and never enters the phase',async()=>{
+ const seen=[];const a=new AIActivity(s=>seen.push(s));let phase='';await a.run('整理成果',async()=>{a.budget({system:1000,user:3000,parts:{sources:2000}});a.phase('等待 AI 回复');phase=seen.at(-1).phase;});
+ assert.deepEqual(seen.at(-1).budget,{system:1000,user:3000,parts:{sources:2000}});assert.equal(phase,'等待 AI 回复');
+});
 test('post-response validation failure is failed and credentials are hidden',async()=>{
  const seen=[];const a=new AIActivity(s=>seen.push(s),{secret:()=> 'test-private-key'});
  await assert.rejects(a.run('??',async()=>{a.phase('??');throw Error('test-private-key Bearer abc sk-abcdef <script>');}));

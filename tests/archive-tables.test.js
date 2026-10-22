@@ -102,6 +102,12 @@ test('event tables stay queryable but do not auto-inject repeated receipt memory
  config.selections[p.id+'/'+r.id]={mode:'pinned'};plan=memoryPlan(s,[],'',config);assert(plan.packet.includes('支付100银'));
 });
 
+test('ambiguous same-name table updates expose explicit target choices instead of guessing',()=>{
+ const p=power('万界网购');save(p,local(p,[raw('orders','铁剑订单',{item:'第一笔铁剑'})]));const first=Object.values(p.archives)[0],second={...clone(first),id:'second-order',specific:{...clone(first.specific),fields:{...first.specific.fields,item:'第二笔铁剑'}}};p.archives[second.id]=second;
+ let error;try{tableTarget(p,{recordId:'orders',name:'铁剑订单',details:{progress:'已交付'}});}catch(e){error=e;}
+ assert(error);assert.equal(error.archiveTargets.options.length,2);assert.equal(error.fieldCandidate.name,'铁剑订单');assert.match(error.message,/选择/);
+ const target=error.archiveTargets.options.find(o=>o.name==='铁剑订单');assert.equal(tableTarget(p,{recordId:'orders',name:'铁剑订单',archiveId:target.id,details:{progress:'已交付'}}).before.id,target.id);
+});
 test('empty tables can be opened before first record; table browser filters independently and escapes user content',()=>{
  const p=power('心渊'),categories=archiveLibraryPage(p).categories;assert(categories.some(([id])=>id.endsWith('/scars')));assert.equal(archiveLibraryPage(p,{category:creationConfig(p).id+'/scars'}).matched,0);
  const b=local(p,[raw('scars','<script>渊痕</script>',{effect:'耐热'}),raw('relics','钥痕',{kind:'权限'},{status:'ended'})]);save(p,b);

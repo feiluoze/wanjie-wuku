@@ -1,4 +1,4 @@
-import {assert} from './primitives.js';
+import {assert,clone} from './primitives.js';
 import {creationConfig} from './creation-config.js';
 import {archiveTableDefinition} from './archive-table-definitions.js';
 import {selectedTableDefinition,frameworkSelectionPolicy,legacyFrameworkForType} from './record-frameworks.js';
@@ -14,6 +14,9 @@ export function archiveTables(power){
  return {...d,tables:d.tables.flatMap(fields),retiredTables:d.retiredTables.flatMap(fields)};
 }
 export function tableForRecord(power,record){const spec=archiveTables(power);return spec&&record?.specific?.adapterId===spec.adapter?[...spec.tables,...spec.retiredTables].find(t=>t.id===record.specific.recordId):null;}
+export function archiveNeedsDetails(record,spec){
+ return Boolean(spec&&record?.specific?.adapterId===spec.adapter&&[...spec.tables,...spec.retiredTables].some(t=>t.id===record.specific.recordId)&&!Object.values(record.specific.fields||{}).some(v=>String(v??'').trim()));
+}
 export function tableTarget(power,raw){
  const spec=archiveTables(power),table=spec&&[...spec.tables,...spec.retiredTables].find(t=>t.id===raw.recordId);if(!table){
   if(spec?.frameworkSelection&&!String(raw.recordId||'').startsWith('statusbar_')){
@@ -30,7 +33,12 @@ export function tableTarget(power,raw){
  assert(!raw.archiveId||explicit?.specific?.adapterId===spec.adapter&&explicit.specific.recordId===table.id,'子表更新必须指向同一分类中的原档案');
  // Names can resolve a unique row, but recency cannot establish identity.
  const identified=fullIdentity(raw.details,table)?matches.filter(r=>sameIdentity(r.specific.fields,raw.details,table)):[];
- assert(explicit||matches.length<=1||identified.length===1,'名称对应多份长期档案，请明确原 archiveId 或唯一身份；其他有效候选仍可保存');
+ if(!explicit&&matches.length>1&&identified.length!==1){
+  const error=Error('名称对应多份长期档案，请选择要更新的目标；其他有效候选仍可保存');
+  error.fieldCandidate=clone(raw);
+  error.archiveTargets={recordId:table.id,label:table.label,options:matches.map(row=>({id:row.id,name:row.name,status:row.status,updatedAt:row.updatedAt||0,summary:Object.values(row.specific?.fields||{}).filter(v=>String(v??'').trim()).slice(0,2).join('；').slice(0,180)}))};
+  throw error;
+ }
  const before=explicit||identified[0]||matches[0]||null;
  assert(!table.updateOnly||before||raw.operation===undefined,'该分类已收拢，不再新增独立记录；已有旧档仍可按名称或identity更新');
  if(before)for(const id of table.identityFields||[]){const value=identityValue(raw.details,id,table),old=before.specific?.fields?.[id];assert(value===undefined||!old||key(value)===key(old),'已有档案的身份列不能被另一对象或版本覆盖；不同版本请使用独立名称新增，纠错请手动核对');}
