@@ -12,7 +12,13 @@ export class AIActivity {
     this.current = null; this.publish(task);
   }
   phase(message) { if (this.current) { this.current.phase = message; this.publish(this.current); } }
-  budget(info) { if (this.current) { this.current.budget = { ...info }; this.publish(this.current); } }
+  budget(info) {
+    if (!this.current) return;
+    const task=this.current,characters=Number(info.total??(Number(info.system||0)+Number(info.user||0)));
+    task.budget={...info};task.usage={requests:(task.usage?.requests||0)+1,inputCharacters:(task.usage?.inputCharacters||0)+(Number.isFinite(characters)?Math.max(0,characters):0)};
+    this.publish(task);
+  }
+  reading(info) { if(this.current){this.current.reading=info?{...info}:null;this.publish(this.current);} }
   connection(connection) {
     if (!this.current) return;
     const task=this.current;task.connections ||= {};
@@ -36,6 +42,7 @@ export class AIActivity {
       task.phase = task.problem || task.warning || outcome(result);
       return result;
     } catch (error) {
+      task.requestStage=error?.requestStage;
       task.status = error?.name==='ContextChangedError'?'invalidated':error?.name === 'AbortError' || /取消|窗口已关闭/.test(error?.message) ? 'cancelled' : 'error';
       const stage={preflight:'发送前检查未通过',transport:'接口请求失败',response:'返回内容未通过校验',save:'保存未完成',context:'剧情已变化，本轮已作废'}[error?.requestStage];
       task.phase = task.status === 'cancelled' ? '本次任务已取消' : this.safe((stage?stage+'：':'')+error?.message);
@@ -61,7 +68,7 @@ export function installAIActivity(prototype) {
       const label = `${name === 'reviewArchives' && args[0]?.automatic ? '自动更新' : title}${power?.name ? ` · ${power.name}` : ''}`;
       if(this.aiActivity.current)return original.apply(this,args);
       return this.aiActivity.run(label, async () => {
-        const ticket=this.runtimeLog?.begin(label,{powerId:power?.id,automatic:Boolean(args[0]?.automatic)}),previous=this.logTask;this.logTask=ticket;if(this.aiActivity.current)this.aiActivity.current.logId=ticket;
+        const ticket=this.runtimeLog?.begin(label,{powerId:power?.id,automatic:Boolean(args[0]?.automatic)}),previous=this.logTask;this.logTask=ticket;if(this.aiActivity.current)Object.assign(this.aiActivity.current,{logId:ticket,taskName:name,powerId:power?.id});
         try{const result=await original.apply(this,args);const pending=name==='sync'?this.pendingSync:name==='reviewManagement'?this.pendingManagement:name==='reviewArchives'||name==='repairArchiveWithAI'?this.pendingArchiveReview:null;
           if(result?.skipped)this.runtimeLog?.step(ticket,'跳过任务',{reason:result.reason||'no_work',message:result.message||'本次无需处理，未调用AI'});
           const status=result?.skipped?'未执行':pending?'待确认':result?.saved?(result.changed===0?'未更新':'已保存'):'成功';

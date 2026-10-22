@@ -8,6 +8,26 @@ import { getContext } from './host.js';
 const only=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).every(k=>keys.includes(k));
 const correctionSource=(chat,note)=>({...archiveSource(chat,'玩家确认AI档案纠错'),quote:note});
 const ownRecord=(p,id)=>{assert(typeof id==='string'&&Object.hasOwn(p.archives||{},id),'纠错只能引用当前词条已有对象');return p.archives[id];};
+export function archiveMergeComparison(power,keepId,removeId,chat){
+ const a=ownRecord(power,keepId),b=ownRecord(power,removeId);
+ assert(a.id!==b.id,'请选择两份不同的档案');
+ // The same normalizer used at confirmation owns compatibility and source checks.
+ const fields={...b.fields,...a.fields},details={...b.specific?.fields,...a.specific?.fields};
+ normalizeCorrection({updates:[],merges:[{keepId,removeId,fields,...(a.specific?{details}:{}),status:a.status}]},power,chat);
+ const conflicts=[];
+ for(const [section,labels,left,right] of [['fields',ARCHIVE_FIELDS[a.type],a.fields,b.fields],['details',a.specific?.labels||{},a.specific?.fields||{},b.specific?.fields||{}]]){
+  for(const [key,label] of Object.entries(labels))if(left[key]&&right[key]&&left[key]!==right[key])conflicts.push({section,key,label,left:left[key],right:right[key]});
+ }
+ if(a.status!==b.status)conflicts.push({section:'status',key:'status',label:'当前状态',left:a.status,right:b.status});
+ return {keep:clone(a),remove:clone(b),conflicts};
+}
+export function manualMergeProposal(power,pair,values,chat){
+ const comparison=archiveMergeComparison(power,pair.keep.id,pair.remove.id,chat);
+ assert(stable(comparison)===stable(pair),'档案已变化，请重新核对合并');
+ const merge={keepId:pair.keep.id,removeId:pair.remove.id,fields:{},...(pair.keep.specific?{details:{}}:{})};
+ pair.conflicts.forEach((c,i)=>{const choice=values['merge-choice:'+i];assert(['left','right'].includes(choice),'请选择每个冲突字段要保留的内容');const value=c[choice];if(c.section==='status')merge.status=value;else merge[c.section][c.key]=value;});
+ return normalizeCorrection({updates:[],merges:[merge],message:'玩家确认两份档案为同一个对象；不相加数量。'},power,chat);
+}
 function patch(raw,labels){assert(only(raw,Object.keys(labels)),'纠错字段不属于原档案');return Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,text(v,4000)]));}
 export function correctionPrompt(power,chat,note){
  const current=Object.values(power.archives||{}).map(({history,...r})=>({...r,sourceCurrent:archiveCurrent(r,chat)}));
@@ -54,6 +74,20 @@ export function recapPrompt(evidence){const user=JSON.stringify(evidence);assert
 export function normalizeRecap(data,evidence){assert(only(data,['points'])&&Array.isArray(data.points)&&data.points.length<=12,'回顾格式无效');return data.points.map(p=>{assert(only(p,['text','refs'])&&Array.isArray(p.refs)&&p.refs.length>0&&p.refs.length<=8&&new Set(p.refs).size===p.refs.length,'回顾缺少引用');const value=text(p.text,1500);assert(value,'回顾内容为空');const refs=p.refs.map(id=>evidence.items.find(e=>e.id===id));assert(refs.every(Boolean),'回顾引用了未提供的记录');return {text:value,refs};});}
 
 export const archiveToolMethods={
+ openArchiveMerge(data={}){
+  const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(p?.active&&!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成并选择启用词条');
+  this.archiveToolDraft=null;this.archiveToolRequest={powerId:p.id,captured:this.store.capture(),contextHash:hash(stable(s.hashes))};
+  this.ui.showArchiveMergePicker(p,data.keepId,data.removeId);
+ },
+ compareArchiveMerge(data){
+  const req=this.archiveToolRequest;assert(req&&!this.busy&&!this.mainBusy&&!this.committing,'请重新打开合并窗口');const s=this.ensureStable();this.store.assertCapture(req.captured);assert(req.contextHash===hash(stable(s.hashes)),'正文已变化，请重新打开');
+  const p=s.state.powers[req.powerId];req.mergePair=archiveMergeComparison(p,data.values?.keepId,data.values?.removeId,s.ctx.chat);this.ui.showArchiveMergeComparison(req.mergePair,p);
+ },
+ previewArchiveMerge(data){
+  const req=this.archiveToolRequest;assert(req?.mergePair&&!this.busy&&!this.mainBusy&&!this.committing,'请重新核对合并对象');const s=this.ensureStable();this.store.assertCapture(req.captured);assert(req.contextHash===hash(stable(s.hashes)),'正文已变化，请重新核对');
+  const p=s.state.powers[req.powerId],proposal=manualMergeProposal(p,req.mergePair,data.values||{},s.ctx.chat);
+  this.archiveToolDraft={powerId:p.id,captured:req.captured,contextHash:req.contextHash,note:'玩家手动确认重复档案合并',proposal};this.ui.showArchiveCorrection(this.archiveToolDraft,p);
+ },
  dismissArchiveTool(){if(this.archiveToolRequest)this.cancel();this.archiveToolRequest=null;this.archiveToolDraft=null;this.resumePlayerReview();},
  openArchiveTools(){const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(p?.active&&!this.busy,'请先选择启用词条并等待当前操作');this.archiveToolDraft=null;this.archiveToolRequest={powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},contextHash:hash(stable(s.hashes))};this.ui.showArchiveTools(p);},
  async draftArchiveCorrection(data){const req=this.archiveToolRequest;assert(req&&!this.busy,'请重新打开纠错窗口');const s=this.ensureStable({model:true});this.store.assertCapture(req.captured);assert(req.contextHash===hash(stable(s.hashes)),'正文已变化，请重新打开');const p=s.state.powers[req.powerId],note=text(data.values?.note||'',1500);assert(note.length>=6,'用一句话说明哪里不对（至少6字）');const result=await this.query(correctionPrompt(p,s.ctx.chat,note),s);assert(this.archiveToolRequest===req,'窗口已关闭');const proposal=normalizeCorrection(result.data,p,s.ctx.chat);this.archiveToolDraft={...result,powerId:p.id,note,proposal};this.ui.showArchiveCorrection(this.archiveToolDraft,p);},

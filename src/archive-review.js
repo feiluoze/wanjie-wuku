@@ -127,7 +127,8 @@ export function archivePrompt(power, sources, chat, playerNote = '', { automatic
     const sizes=inputCharacterBreakdown(payload),e=new Error(`发送前检查：本次请求 ${body.length} 字符，超过 120000。规则 ${sizes.rules}，正文 ${sizes.sources}，档案目录与详情 ${sizes.current}，字段定义 ${sizes.recordSchemas}。${sizes.rules>60000?'当前词条规则过长，请检查接入的规则范围。':playerNote?'请缩小本次补充涉及的对象范围，分次补充。':'请使用手动分批整理或缩小读取范围。'}尚未调用模型，已保存档案不受影响。`);
     e.requestStage='preflight';e.inputCharacters=sizes;throw e;
   }
-  return {archivePowerId:power.id,databasePromptTrial:false,archiveSchema:archiveResponseSchema(payload),setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
+  const reading={floors:sources.map(s=>s.index+1),sourceCharacters:sources.reduce((n,s)=>n+s.content.length,0),contextFloors:context.map(s=>s.index+1),contextCharacters:context.reduce((n,s)=>n+s.content.length,0),excerpted:context.filter(s=>s.excerpt).length,detailRecords:payload.current.filter(r=>!r.identityOnly).length,identityRecords:payload.current.filter(r=>r.identityOnly).length};
+  return {reading,archivePowerId:power.id,databasePromptTrial:false,archiveSchema:archiveResponseSchema(payload),setupReferences,personReferences:Boolean(taishiDraft?.kind==='companion'&&referenceBatch),system:preset.system,user:body,inputCharacters:inputCharacterBreakdown(payload)};
 }
 export function normalizeArchiveChanges(data, power, sources, chat, playerNote = '',{playerJoining=false,state={}}={}) {
   assert(Array.isArray(data.changes) && data.changes.length <= (creationConfig(power)?.id==='wuku.precedent'?256:64), '档案变化列表无效或超过本批上限');
@@ -413,8 +414,8 @@ export const archiveReviewMethods = {
     if(options.taishiDraft)this.taishiDraft=null;
     if(options.taishiEvolution)this.taishiEvolutionDraft=null;
     this.runtimeLog?.step(result.logId,'校验结果',{accepted:batch.changes.length,ignoredSnapshots:batch.ignoredChanges.length,arrangements:batch.terminalResults.length,creations:batch.creationResults.length,issues:batch.issues,skippedOwnership:batch.skippedOwnership,blockedFloors:batch.blockedFloors.map(i=>i+1)});
-    if(batch.issues.length){this.runtimeLog?.patch(result.logId,{partial:true});this.aiActivity?.warning?.('部分条目未通过校验，可用更新已单独整理；详情见运行日志。');}
-    if(batch.issues.length&&!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!guide){reviewed.readOnly=true;this.pendingArchiveReview=reviewed;this.saveReviewCheckpoint(reviewed);this.runtimeLog?.patch(result.logId,{noUpdates:true});this.notice(`本次 ${batch.issues.length} 项未通过校验，未推进读取进度。请查看运行日志后重查。`,true);if(!options.silent)this.ui.showArchiveReview({...reviewed,readOnly:true},power,snapshot.ctx.chat);return;}
+    if(batch.issues.length){this.runtimeLog?.patch(result.logId,{partial:true});this.aiActivity?.warning?.('部分条目待处理，有效更新已单独整理；可直接打开剩余候选。');}
+    if(batch.issues.length&&!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&!guide){reviewed.readOnly=true;this.pendingArchiveReview=reviewed;this.saveReviewCheckpoint(reviewed);this.runtimeLog?.patch(result.logId,{noUpdates:true});this.notice(`本次 ${batch.issues.length} 项未通过校验，未推进读取进度。请打开剩余候选处理。`,true);if(!options.silent)this.ui.showArchiveReview({...reviewed,readOnly:true},power,snapshot.ctx.chat);return;}
     const needsScopeConfirmation=isTaishi(power)&&reviewed.changes.some(c=>!c.before);
     if(options.manualBatch&&options.batchContinuous&&!batch.issues.length&&!needsScopeConfirmation){
       await this.commitArchiveReview(reviewed,new Map(reviewed.changes.map((c,i)=>[i,c.id])),{terminalChosen:new Set(reviewed.terminalResults.map((_,i)=>i)),creationChosen:new Set(reviewed.creationResults.map((_,i)=>i))});this.notice('本批已保存；连续处理可随时取消，已保存批次和日志保留。');return;
@@ -600,7 +601,7 @@ export const archiveReviewMethods = {
     assert([...chosen.keys()].every(i => Number.isInteger(i) && i >= 0 && i < pending.changes.length), '选择项无效');
     const committed=await this.commitArchiveReview(pending, chosen, {terminalChosen,creationChosen});
     const unverified=committed?.save?.verified===false;
-    if(committed?.remainingReview){this.runtimeLog?.patch(pending.logId,{status:'部分保存，候选待补全'});this.ui.showArchiveReview(committed.remainingReview,this.contextSnapshot().state.powers[pending.powerId],this.contextSnapshot().ctx.chat);this.notice('有效项已保存；剩余候选已保留，本地补全不会重新调用AI。');return this.refresh();}
+    if(committed?.remainingReview){this.runtimeLog?.patch(pending.logId,{status:'部分保存，候选待补全'});this.ui.showArchiveReview(committed.remainingReview,this.contextSnapshot().state.powers[pending.powerId],this.contextSnapshot().ctx.chat);this.notice('有效项已保存；剩余候选已保留，可在这里继续处理。已保存的完整更新不会再次提交。');return this.refresh();}
     this.runtimeLog?.patch(pending.logId,{status:unverified?'本机已保存，酒馆待核实':pending.issues?.length?'部分保存':'已保存'});this.pendingArchiveReview = null; this.ui.closeDialog(); this.notice(unverified?committed.save.note:pending.taishiBuild?'所选底稿已保存；从世界书构建入口查看批次进度并继续。':pending.issues?.length?'有效成果已保存；未通过的条目留待重查，详情见运行日志。':'所选成果与进展已保存；未勾选的变化留待下次核对。'); this.refresh();if(pending.manualBatch)this.openArchiveBatch();
   },
   async commitArchiveReview(pending, chosen, { automatic = false, terminalChosen = new Set(),creationChosen=new Set() } = {}) {
@@ -610,6 +611,10 @@ export const archiveReviewMethods = {
     assert(!this.busy && !this.mainBusy && !this.committing, '请等待当前操作完成');
     this.committing = true; this.refresh();
     let counts;
+    const acceptedArchiveIds=new Map();
+        const results=pending.terminalResults||[], selected=automatic?new Set(results.map((_,i)=>i)):terminalChosen;
+        const creationResults=pending.creationResults||[],requested=automatic?new Set(creationResults.map((_,i)=>i)):creationChosen;
+         const acceptedCreations=new Set([...requested].filter(i=>creationResults[i]?.refs.every(r=>r.archiveId||chosen.has(r.changeIndex))));
     try {
       const result=await this.store.transact(next => {
         const p = next.powers[pending.powerId]; assert(p?.active, '接入已变化');
@@ -617,9 +622,6 @@ export const archiveReviewMethods = {
         if(pending.taishiTimeEvent){assert(!automatic,'正文历时发展需玩家确认');assertStoryTime(p,getContext().chat,pending.taishiTimeEvent);assert([...chosen.keys()].some(i=>pending.changes[i]?.id===pending.taishiTimeEvent.worldId),'采用正文历时必须同时保存世界候选');}
         if (automatic) assert(p.autoArchiveReview && p.autoArchiveSave, '自动保存已关闭');
         if (automatic && pending.automaticStart !== undefined) p.autoArchiveStart ??= pending.automaticStart;
-        const results=pending.terminalResults||[], selected=automatic?new Set(results.map((_,i)=>i)):terminalChosen;
-        const creationResults=pending.creationResults||[],requested=automatic?new Set(creationResults.map((_,i)=>i)):creationChosen;
-         const acceptedCreations=new Set([...requested].filter(i=>creationResults[i]?.refs.every(r=>r.archiveId||chosen.has(r.changeIndex))));
          const blockedFloors=new Set([...(pending.blockedFloors||[]),...results.filter((_,i)=>!selected.has(i)).map(c=>c.progress.anchor.index).concat(creationResults.filter((_,i)=>!acceptedCreations.has(i)).map(c=>c.progress.anchor.index))]);
         if(pending.taishiScheduleEvent){assert(!automatic&&!pending.issues.length&&chosen.size===pending.changes.length&&pending.changes.some((c,i)=>chosen.has(i)&&c.id===pending.taishiScheduleEvent.worldId),'按时演化需全部核对通过并接受，时间和成果一起保存');this.assertTaishiScheduleEvent(p,pending.taishiScheduleEvent,getContext().chat);}
         const undoBefore=journalSnapshot(next,p.id);
@@ -631,6 +633,7 @@ export const archiveReviewMethods = {
         }
         const before = { ...p.archives };
         const saved = applyArchiveChanges(p, pending.changes, pending.sources, chosen, getContext().chat, {blockedFloors,playerJoining:pending.taishiDraft?.kind==='companion'&&pending.taishiDraft.joining==='direct'});
+        for(const [i,target] of chosen){const c=pending.changes[i],matches=target?[p.archives[target]].filter(Boolean):saved.filter(r=>r.name===c.name&&r.type===c.type&&r.specific?.recordId===c.specific?.recordId&&r.module===c.module);if(matches.length===1)acceptedArchiveIds.set(c.inputIndex,matches[0].id);}
         if(pending.taishiScheduleEvent)this.recordTaishiSchedule(p,pending.taishiScheduleEvent,getContext().chat);
         if(pending.taishiTimeEvent)recordStoryTime(p,getContext().chat,pending.taishiTimeEvent);
         if(pending.taishiDraft?.kind==='companion')retainDraftPeople(p,saved,pending.taishiDraft.joining);
@@ -653,6 +656,21 @@ export const archiveReviewMethods = {
         const remainder={...pending,...batch,data,captured:{chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision},contextHash:hash(stable(snapshot.hashes)),readOnly:!batch.changes.length&&batch.issues.length>0,message:'已保存项不再重复提交；这里只保留本批未完成候选，可本地修正后继续保存。'};
         this.pendingArchiveReview=remainder;this.saveReviewCheckpoint(remainder);result.remainingReview=remainder;
         this.runtimeLog?.step(pending.logId,'保留本批待补全',{remaining:rows.length,accepted:batch.changes.length,cached:remainder.checkpointSaved});
+      }else if(Array.isArray(pending.data?.changes) && !isTaishi(this.contextSnapshot().state.powers[pending.powerId]) && (pending.issues?.length || chosen.size<pending.changes.length || selected.size<results.length || acceptedCreations.size<creationResults.length)){
+        const snapshot=this.contextSnapshot(),power=snapshot.state.powers[pending.powerId];
+        const accepted=new Set([...chosen.keys()].map(i=>pending.changes[i].inputIndex));
+        const failed=new Set((pending.issues||[]).filter(i=>i.kind==='成果').map(i=>i.index));
+        const remainingIndexes=new Map(),rawChanges=pending.data.changes.filter((r,i)=>{if(accepted.has(i)&&!failed.has(i))return false;remainingIndexes.set(i,remainingIndexes.size);return true;});
+        const data={...clone(pending.data),changes:clone(rawChanges)};
+        const doneOrders=new Set([...selected].map(i=>results[i]?.orderId)),doneCreations=new Set([...acceptedCreations].map(i=>creationResults[i]?.creationId));
+        if(data.terminalResults)data.terminalResults=data.terminalResults.filter(r=>!doneOrders.has(r.orderId));
+        if(data.creationResults)data.creationResults=data.creationResults.filter(r=>!doneCreations.has(r.creationId)).map(r=>({...r,archiveRefs:Array.isArray(r.archiveRefs)?r.archiveRefs.map(ref=>Number.isInteger(ref?.changeIndex)?remainingIndexes.has(ref.changeIndex)?{changeIndex:remainingIndexes.get(ref.changeIndex)}:acceptedArchiveIds.has(ref.changeIndex)?{archiveId:acceptedArchiveIds.get(ref.changeIndex)}:{changeIndex:-1}:ref):r.archiveRefs}));
+        const batch=normalizeArchiveBatch(data,power,pending.sources,snapshot.ctx.chat,pending.playerNote||'',snapshot.state,{chronological:Boolean(pending.layered)});
+        // Response/source failures have no raw candidate index; retain them separately.
+        batch.issues.push(...(pending.issues||[]).filter(i=>!['成果','安排进展','拟定进展','逐层核对'].includes(i.kind)));
+        batch.blockedFloors=[...new Set([...batch.blockedFloors,...batch.issues.flatMap(i=>Number.isSafeInteger(i.sourceIndex)?[i.sourceIndex]:pending.sources.map(s=>s.index))])];
+        const remainder={...pending,...batch,data,captured:this.store.capture(),contextHash:hash(stable(snapshot.hashes)),readOnly:!batch.changes.length&&!batch.terminalResults.length&&!batch.creationResults.length&&batch.issues.length>0,message:'已保存的完整更新已移出；剩余候选继续保留。部分有效字段已保存的条目仅需处理剩余问题。'};
+        this.pendingArchiveReview=remainder;this.saveReviewCheckpoint(remainder);result.remainingReview=remainder;
       }else this.clearReviewCheckpoint(pending.captured);
       this.runtimeLog?.step(pending.logId,'保存结果',{...counts,verified:result?.save?.verified!==false});
       result.counts=counts;return result;

@@ -1,6 +1,7 @@
 import {archiveDisplayFields} from './archives.js';
 import {fieldSourceIndex} from './archive-stale.js';
 import {archiveOrigin} from './archive-origin.js';
+import {isStatusbarRecord} from './builtin-statusbar.js';
 // Preserve all fact fields and identity, omit evidence already supplied in sources.
 export function archiveInputRecord(r) {
  const item={provenance:archiveOrigin(r),id:r.id,name:r.name,type:r.type,status:r.status,fields:archiveDisplayFields(r),...(r.module?{module:r.module}:{}),...(r.ownerPowerId?{ownerPowerId:r.ownerPowerId}:{})};
@@ -35,7 +36,9 @@ export function selectArchiveInput(records,query,{compact=false,focusIds=null,de
  const full=records.map(archiveInputRecord);
  if(!focusIds&&(!compact||JSON.stringify(full).length<=24000))return full;
  const key=s=>String(s||'').normalize('NFKC').replace(/\s/g,'').toLowerCase(),text=key(query);
- const selected=new Set(focusIds||full.filter(r=>[r.name,...r.previousNames].some(n=>key(n).length>=2&&text.includes(key(n)))).map(r=>r.id));
+ const selected=new Set(focusIds||full.filter(r=>[r.id,r.name,...r.previousNames].some(n=>key(n).length>=2&&text.includes(key(n)))).map(r=>r.id));
+ const main=new Set(full.filter(isStatusbarRecord).map(r=>r.id));
+ for(const id of main)selected.add(id);
  for(const r of full.filter(r=>selected.has(r.id))){
   const f=r.specific?.fields||{};
   for(const id of [f.world_id,f.region_id,f.organization_id,f.civilization_id,f.subject_id,f.target_id,f.event_id])if(id)selected.add(id);
@@ -43,11 +46,12 @@ export function selectArchiveInput(records,query,{compact=false,focusIds=null,de
  }
  const identities=full.map(r=>({id:r.id,name:r.name,type:r.type,status:r.status,...(r.previousNames.length?{previousNames:r.previousNames}:{}),identityOnly:true,...(r.module?{module:r.module}:{}),...(r.specific?{specific:{recordId:r.specific.recordId,fields:Object.fromEntries(Object.entries(r.specific.fields).filter(([k])=>['world_id','world'].includes(k)))}}:{})}));
  let remaining=Math.max(0,Math.min(detailBudget,80000-JSON.stringify(identities).length));
- return full.map((r,i)=>{
-  if(!selected.has(r.id))return identities[i];
+ const result=[...identities],rank=r=>main.has(r.id)?0:[r.id,r.name,...r.previousNames].some(n=>key(n).length>=2&&text.includes(key(n)))?1:2;
+ for(const {r,i} of full.map((r,i)=>({r,i})).filter(({r})=>selected.has(r.id)).sort((a,b)=>rank(a.r)-rank(b.r))){
   const cost=Math.max(0,JSON.stringify(r).length-JSON.stringify(identities[i]).length);
-  if(cost>remaining)return identities[i];remaining-=cost;return r;
- });
+  if(cost>remaining)continue;remaining-=cost;result[i]=r;
+ }
+ return result;
 }
 
 // A read-only archive request depends on this power and the ownership directory,

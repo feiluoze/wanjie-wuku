@@ -206,6 +206,7 @@ export class WukuApp {
     const rolePlans=taishiWorkflow?Object.fromEntries((workflowRetryRole?[workflowRetryRole]:TAISHI_ROLES).map(role=>[role,resolveTaskConnectionPlan(role,getContext(),this.settings,this.apiKey)])):null;
     const roleConnections=rolePlans?Object.fromEntries(Object.entries(rolePlans).map(([role,plan])=>[role,plan[0]])):null;
     if(!taishiWorkflow)this.aiActivity?.connection(connection);
+    this.aiActivity?.reading?.(prompt.reading||null);
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
     const archiveScope=prompt.archivePowerId?stable(archiveRequestScope(snapshot.state,prompt.archivePowerId)):null;
@@ -891,6 +892,9 @@ export class WukuApp {
       case 'confirm-story': return this.openManualStory(data.id);
       case 'save-manual-story': return this.saveManualStory(data);
       case 'archive-tools': return this.openArchiveTools();
+      case 'archive-merge-open': return this.openArchiveMerge(data);
+      case 'archive-merge-compare': return this.compareArchiveMerge(data);
+      case 'archive-merge-preview': return this.previewArchiveMerge(data);
       case 'archive-tool-dismiss': return this.dismissArchiveTool();
       case 'archive-correct-draft': return this.draftArchiveCorrection(data);
       case 'archive-correct-apply': return this.applyArchiveCorrection();
@@ -909,6 +913,10 @@ export class WukuApp {
       case 'player-initial': return this.reviewArchives({ initial: true });
       case 'player-supplement': return this.reviewArchives({ ...data, supplement: true });
       case 'player-pending': return this.openPlayerReview();
+      case 'attention-review': {
+        assert(this.pendingArchiveReview?.powerId===data.id,'这份待处理结果已变化');
+        this.powerId=data.id;this.ui.space=powerSpace(this.store.read().powers[data.id]);this.refresh();return this.openPlayerReview();
+      }
       case 'player-auto-save': return this.togglePlayerAutoSave();
       case 'player-auto': return this.togglePlayerAuto();
       case 'repair-archive-ai': return this.repairArchiveWithAI();
