@@ -227,7 +227,7 @@ export class WorkbenchUI {
     if (focused && [...this.panel.querySelectorAll('button,input,textarea,select,summary')].filter(n => this.panelIdentity(n) === this.panelIdentity(focused)).length !== 1) focused = null;
     return {
       details: [...this.panel.querySelectorAll('details')].map(n => ({ id: this.panelIdentity(n), open: n.open })).filter((item, _, all) => all.filter(other => other.id === item.id).length === 1),
-      scroll: ['.wjwk-main', '.wjwk-sidebar','.wjwk-mmlc-layout .wjwk-content','.wjwk-mmlc-table-scroll'].map(selector => { const n = this.panel.querySelector(selector); return { selector, top: n?.scrollTop || 0, left: n?.scrollLeft || 0 }; }),
+      scroll: ['.wjwk-layout', '.wjwk-main', '.wjwk-sidebar','.wjwk-mmlc-layout .wjwk-content','.wjwk-mmlc-table-scroll'].map(selector => { const n = this.panel.querySelector(selector); return { selector, top: n?.scrollTop || 0, left: n?.scrollLeft || 0 }; }),
       focus: focused && { id: this.panelIdentity(focused), value: focused.matches('textarea,input:not([type]),input[type="text"],input[type="search"]') ? focused.value : undefined, start: focused.selectionStart, end: focused.selectionEnd, direction: focused.selectionDirection, top: focused.scrollTop },
     };
   }
