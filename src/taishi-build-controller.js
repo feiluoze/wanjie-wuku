@@ -11,6 +11,7 @@ export const taishiBuildMethods={
   async initializeTaishi(){
     assert(!this.busy&&!this.mainBusy&&!this.committing&&!this.pendingArchiveReview,'请先处理当前任务或待确认结果');
     const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(isTaishi(p)&&p.active,'请先启用太始天');
+    this.ui.resumeTaishiDialogs?.();
     if(!p.taishiWorldStructure)return this.openTaishiStructure('references');
     if(p.taishiWorldStructure.mode==='single')assert(p.archives?.[p.taishiWorldStructure.worldId]?.specific?.recordId==='world'&&p.archives[p.taishiWorldStructure.worldId].status!=='ended','指定主世界已失效，请重新选择建档结构');
     if(!p.taishiBuildReferences?.books.some(b=>b.entryIds.length)){await this.openAIWorldbooks({taishiPowerId:p.id});return this.notice('请为太始天构建单独选择世界书和词条；共享参考不会自动加入。');}

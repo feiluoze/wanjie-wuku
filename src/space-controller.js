@@ -77,7 +77,7 @@ export const spaceMethods={
     assert(typeof description==='string'&&description.trim().length>=6&&description.length<=2500,'请填写6至2500字的构想');
     const joining=d.kind==='world'?'none':values.joining;
     assert(['none','direct','encounter','npc'].includes(joining),'人物加入方式无效');
-    return this.reviewArchives({supplement:true,taishiDraft:{kind:d.kind,joining},values:{playerNote:description.trim()}});
+    try{return await this.reviewArchives({supplement:true,taishiDraft:{kind:d.kind,joining},values:{playerNote:description.trim()}});}finally{if(this.taishiDraft===d)this.taishiDraft=null;}
   },
   dismissTaishiDraft(){if(this.taishiDraft)this.cancel();this.taishiDraft=null;this.resumePlayerReview();},
   openTaishiPeople(){
@@ -134,7 +134,7 @@ export const spaceMethods={
     const evolution={worldId:values.worldId,elapsed:Number(values.elapsed),unit:values.unit};const world=evolutionWorld(p,evolution);
     assert(typeof values.note==='string'&&values.note.length<=1500,'发展方向最多1500字');
     const playerNote=timeEvent?`正文已经明确记载「${world.name}」内部 ${evolution.elapsed}${TAISHI_TIME_UNITS[evolution.unit]}，原文：${timeEvent.quote}。只补全这段已发生历时内的发展，不额外推进同样时间，不重复正文已有成果；新增细节是AI候选而非原文证实。`:`玩家允许AI合理创作，确认仅推进「${world.name}」内部 ${evolution.elapsed}${TAISHI_TIME_UNITS[evolution.unit]}。发展方向：${values.note.trim()||'沿用已有安排，让世界与人物自然发展。'} 不表示正文已经发生。`;
-    return this.reviewArchives({supplement:true,taishiEvolution:evolution,...(timeEvent?{taishiTimeEvent:timeEvent}:{}),values:{playerNote}});
+    return this.reviewArchives({supplement:true,taishiEvolution:evolution,...(timeEvent?{taishiTimeEvent:timeEvent}:{}),values:{playerNote}}).finally(()=>{if(this.taishiEvolutionDraft===d)this.taishiEvolutionDraft=null;});
   },
   dismissTaishiDevelopment(){if(this.taishiEvolutionDraft)this.cancel();this.taishiEvolutionDraft=null;this.resumePlayerReview();},
   openTaishiAdvanced(){

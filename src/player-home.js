@@ -27,6 +27,7 @@ export const playerHomeMethods = {
   openPlayerReview() {
     const s = this.ensureStable(), p = s.state.powers[this.powerId], pending = this.pendingArchiveReview;
     assert(pending && p?.active && pending.powerId === p.id && pending.captured.stateId === s.state.id && pending.captured.revision === s.state.revision, '整理结果已变化，请重新整理');
+    this.ui.resumeTaishiDialogs?.();
     this.ui.showArchiveReview(pending, p, s.ctx.chat);
   },
   async togglePlayerAuto() {
