@@ -75,3 +75,17 @@ test('cross-power updates preserve unique IDs and old data, while foreign source
   const bad=run(p,{...raw,archiveId:id,quote},`<WJWK-status>【其他系统·状态】\n${quote}</WJWK-status>`);assert.equal(bad.batch.changes.length,0);assert.equal(stable(p.archives),snapshot);
  }
 });
+
+
+test('all built-in status updates survive numbered event titles without guessing a foreign power',()=>{
+ let count=0;
+ for(const p of powers()){
+  const raw=statusCandidate(p);if(!raw)continue;count++;
+  const quote='当前容量：106；晋升进展：2/3。';
+  const content=`<WJWK-settle>本轮收益：\n1. 【技艺推演·基础构筑】：已经完成推演。\n2. 【回流与环境滋养】：效果已生效。\n状态变化：\n${quote}</WJWK-settle>`;
+  const result=run(p,{...raw,quote},content);
+  assert.equal(result.batch.changes.length,1,p.name+JSON.stringify(result.batch.issues));
+  assert.deepEqual(result.batch.issues,[],p.name);assert.deepEqual(result.batch.blockedFloors,[],p.name);
+ }
+ assert(count>100,count);
+});

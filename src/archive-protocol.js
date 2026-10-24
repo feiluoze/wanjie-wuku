@@ -31,24 +31,23 @@ export function evidenceParts(content){
 export function settledOwnership(content,powerName,objectName,worldName=''){
  const alias=String(powerName||'').split(/[（(]/)[0].trim(),name=String(objectName||'').trim();
  if(!alias||!name)return false;
- return evidenceParts(content).settlements.some(receipt=>{let inherited=[];return receipt.facts.split(/\r?\n/).some(line=>{
-  const markers=receiptScopeOwners(line,[alias]);
-  if(markers.length||receiptItemStart(line))inherited=markers;
-  const owners=markers.length?markers:inherited;
+ return evidenceParts(content).settlements.some(receipt=>{const scope={block:[],item:[]};return receipt.facts.split(/\r?\n/).some(line=>{
+  const owners=receiptScopeOwners(line,[alias],scope);
   const owner=owners.length?owners.every(marker=>marker===alias):line.includes(alias);
   return owner&&line.includes(name)&&(!worldName||line.includes(worldName))
    &&!/(?:尚未|未曾|未能|没有|计划|准备|拟将|如果|可能|预计)/.test(line)
    &&/(?:成功|已生效|已到账|已入账|已归档|已交付|已完成|已建立|已取得|已获得|已结算|已暂存|已延期|资格已保留)/.test(line);
  });});
 }
-// Each numbered receipt item starts a new scope. Its leading owner marker
-// must not inherit the previous power, including powers absent from this task.
-// Ordinary bracketed items later in a sentence remain object names.
-const receiptItemStart=line=>/^\s*\d+[.、．)]\s*/.test(line);
-function receiptScopeOwners(line,known){
- const owners=protocolOwners(line,known);
- const heading=String(line).match(/^\s*\d+[.、．)]\s*【([^】·]+)(?:·[^】]*)?】/);
- return [...new Set([...(heading?[heading[1].trim()]:[]),...owners])];
+// Numbering starts an item, not a power identity. Unknown event labels
+// reset item ownership without inventing another power. Section boundaries
+// end item scope, while an explicit block-level owner remains authoritative.
+function receiptScopeOwners(line,known,scope){
+ const markers=protocolOwners(line,known);
+ if(/^\s*\d+[.、．)]\s*/.test(line))scope.item=markers;
+ else if(markers.length){scope.block=markers;scope.item=[];}
+ else if(/^\s*(?:本轮收益|状态变化|当前状态|新增解锁)\s*[：:]/.test(line))scope.item=[];
+ return scope.item.length?scope.item:scope.block;
 }
 
 // Qualified protocol headings carry ownership; ordinary bracketed place/item
@@ -61,8 +60,8 @@ export function sourceOwnership(content,quote,known=[]){
  const parts=evidenceParts(content),blocks=[...parts.settlements.map(r=>r.facts),...parts.statusSnapshots];
  const matches=[];
  for(const block of blocks){let offset=0;while(offset<block.length){const at=block.indexOf(quote,offset);if(at<0)break;
-   const prefix=block.slice(0,at),lines=prefix.split(/\r?\n/);let owners=[];
-   for(const line of lines){const found=receiptScopeOwners(line,known);if(found.length||receiptItemStart(line))owners=found;}
+   const prefix=block.slice(0,at),lines=prefix.split(/\r?\n/),scope={block:[],item:[]};let owners=[];
+   for(const line of lines)owners=receiptScopeOwners(line,known,scope);
    matches.push(owners);offset=at+quote.length;
  }}
  // The same quote in two differently owned receipts is ambiguous, not current.
