@@ -12,10 +12,10 @@ import {saveArchive,archiveSource} from '../src/archives.js';
 import {memoryPlan} from '../src/archive-memory.js';
 const entries=builtinEntries({includeDedicated:true}),power=name=>createPower(entries.find(e=>e.name===name));
 const bound=p=>{const g=builtinStatusbar(p).groups.find(g=>g.fields.some(f=>statusbarResource(p,f.id)));return {g,f:g.fields.find(f=>statusbarResource(p,f.id))};};
-test('all 124 current sources explicitly reviewed, 13 dedicated resources retain verbatim evidence',()=>{
- assert.equal(BUILTIN_RESOURCES.length,124);const kinds={point:0,energy:0,quota:0};let none=0;
+test('all 131 current sources explicitly reviewed, 13 dedicated resources retain verbatim evidence',()=>{
+ assert.equal(BUILTIN_RESOURCES.length,131);const kinds={point:0,energy:0,quota:0};let none=0;
  for(const e of entries){const row=builtinResources(e);assert(row?.reviewed,e.name);for(const r of row.resources){kinds[r.kind]++;assert(e.content.includes(r.evidence),e.name);assert.equal(r.id,'res_'+hash(r.name==='模拟次数'?'今日模拟次数':r.name));}if(!row.resources.length){none++;assert.deepEqual(inferResources(e),[]);}assert.equal(builtinResources({...e,content:e.content+'changed'}),null);}
- assert.deepEqual(kinds,{point:9,energy:2,quota:2});assert.equal(none,111);
+ assert.deepEqual(kinds,{point:9,energy:2,quota:2});assert.equal(none,118);
  assert.equal(Object.values(power('心渊').resources)[0].name,'心相碎片');assert(!managementProfile(entries.find(e=>e.name==='心渊')).templates.some(t=>t.label.includes('心相碎片')));
 });
 test('new wallets stay unknown; alias upgrades preserve identity, balance and limits and refuse ambiguous merges',()=>{
@@ -43,7 +43,7 @@ test('current projection replaces stale status numbers without rewriting saved r
 test('model current-state input and pinned narrative memory share the ledger projection',()=>{
  const p=power('深蓝'),{g,f}=bound(p);Object.values(p.resources)[0].balance='170';const r=saveArchive(p,{type:'record',name:g.title,status:'active',fields:{description:'当前状态'},specific:{adapterId:'wuku.original_statusbar',recordId:g.id,version:'1.0.0',label:g.title,labels:{[f.id]:f.label},fields:{[f.id]:'999'}}},archiveSource([],'玩家确认的旧快照'));
  const s=emptyState();s.powers[p.id]=p;const packet=memoryPlan(s,[],'',{auto:false,budget:3000,selections:{[p.id+'/'+r.id]:{mode:'pinned'}}}).packet;assert(packet.includes('170'));assert(!packet.includes('999'));
- const current=JSON.stringify(JSON.parse(archivePrompt(p,[],[],'').user).current);assert(current.includes('170'));assert(!current.includes('999'));assert.equal(r.specific.fields[f.id],'999');
+ const current=JSON.parse(archivePrompt(p,[],[],'').user).current.find(row=>row.archiveId===r.id);assert.equal(current.details[f.id],'170');assert.equal(r.specific.fields[f.id],'999');
 });
 test('negative difference snapshot never expands spending permission or permits other negative currency',()=>{
  const p=power('指数增长'),r=Object.values(p.resources)[0];r.balance='-5';const s=emptyState();s.powers[p.id]=p;assert.doesNotThrow(()=>validateState(s));assert.equal(canAfford(p,{costs:[{kind:'resource',id:r.id,amount:'1'}]}).ok,false);r.floor='1';assert.throws(()=>validateState(s));

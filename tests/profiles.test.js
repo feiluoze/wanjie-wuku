@@ -8,12 +8,12 @@ import { managementPrompt, managementMethods } from '../src/management.js';
 import { profilePanel, coveragePanel, coverageResults } from '../src/profile-view.js';
 import { WorkbenchUI } from '../src/ui.js';
 const data = configuredProfiles();
-const original = process.env.WJWK_TEST_BOOK ? await readFile(process.env.WJWK_TEST_BOOK) : null;
+const original = await readFile(new URL('../data/builtin-worldbook.json',import.meta.url));
 const entries = original ? importBook(JSON.parse(original.toString('utf8').replace(/^\uFEFF/,'')), '任意导入文件名') : [];
-test('coverage inventory accounts for 124 latest entries, 115 primary powers and 9 support entries', () => {
-  a.equal(data.entries.length,124);a.equal(new Set(data.entries.map(e=>e.name)).size,124);
-  a.equal(data.entries.filter(e=>e.role==='primary').length,115);a.equal(data.entries.filter(e=>e.role==='support').length,9);
-  a.equal(data.entries.reduce((n,e)=>n+e.templates.length,0),502);
+test('coverage inventory accounts for 131 latest entries, 121 primary powers and 10 support entries', () => {
+  a.equal(data.entries.length,131);a.equal(new Set(data.entries.map(e=>e.name)).size,131);
+  a.equal(data.entries.filter(e=>e.role==='primary').length,121);a.equal(data.entries.filter(e=>e.role==='support').length,10);
+  a.equal(data.entries.reduce((n,e)=>n+e.templates.length,0),512);
   for(const p of data.entries) { a.ok(PROFILE_FAMILIES[p.family]);a.ok(p.role==='support'||p.templates.length);if(p.parent)a.ok(data.entries.some(e=>e.name===p.parent&&e.role==='primary')); }
 });
 test('every source entry and every template matches the actual book, under a different filename', {skip:!original}, () => {
@@ -32,7 +32,7 @@ test('changed known rules and unknown powers receive generic templates; unchange
 test('attached supplemental rules do not defeat matching primary rules; returned configurations are isolated', {skip:!original}, () => {
   const e=entries.find(e=>e.name==='深蓝'), p=createPower(e,[entries.find(e=>e.name==='万界武库通用选项栏')]);
   const profile=managementProfile(p);a.equal(profile.verified,true);profile.templates[0].label='改坏';a.notEqual(managementProfile(p).templates[0].label,'改坏');
-  const copy=configuredProfiles();copy.entries.length=0;a.equal(configuredProfiles().entries.length,124);
+  const copy=configuredProfiles();copy.entries.length=0;a.equal(configuredProfiles().entries.length,131);
 });
 test('support entries cannot be primary registrations; variant checks include active powers and companions', {skip:!original}, () => {
   const support=entries.filter(e=>managementProfile(e).role==='support');
@@ -43,10 +43,10 @@ test('support entries cannot be primary registrations; variant checks include ac
 
 });
 test('coverage separates unread configurations, verified imports, changed versions and unknown imports', {skip:!original}, () => {
-  a.equal(coverageRows().filter(r=>r.status==='unread').length,123);
-  a.equal(coverageRows(entries).filter(r=>r.status==='verified').length,123);
+  a.equal(coverageRows().filter(r=>r.status==='unread').length,130);
+  a.equal(coverageRows(entries).filter(r=>r.status==='verified').length,130);
   const e=entries[0], changed={...e,content:e.content+'变化'}, unknown={id:'custom',name:'新权柄',content:'自编新内容',book:'自编'};
-  const rows=coverageRows([changed,unknown]);a.equal(rows.length,124);a.equal(rows.find(r=>r.name===e.name).status,'changed');a.equal(rows.at(-1).status,'unknown');
+  const rows=coverageRows([changed,unknown]);a.equal(rows.length,131);a.equal(rows.find(r=>r.name===e.name).status,'changed');a.equal(rows.at(-1).status,'unknown');
   a.match(coverageResults([e,changed],emptyState(),'','fallback'),/已读取不同规则|同名规则已变/);
 });
 test('templates prepare a form without inventing a fact, spending resources or invoking a model', {skip:!original}, () => {
@@ -70,9 +70,9 @@ test('source structural fields never create phantom wallets; explicit spendable 
 });
 test('all source powers remain backup-compatible and have an honest management path', {skip:!original}, () => {
   const s=emptyState();for(const e of entries.filter(e=>managementProfile(e).role==='primary')){const p=createPower(e);s.powers[p.id]=p;a.match(profilePanel(p,false),/只帮助填写/);}
-  a.equal(Object.keys(validateState(clone(s)).powers).length,115);
+  a.equal(Object.keys(validateState(clone(s)).powers).length,121);
   a.match(coveragePanel([],s),/尚未读取核对/);a.match(coverageResults(entries,s,'预支'),/负势差/);
-  const html=coverageResults(entries,s,'','support');a.equal((html.match(/class="wjwk-asset"/g)||[]).length,9);
+  const html=coverageResults(entries,s,'','support');a.equal((html.match(/class="wjwk-asset"/g)||[]).length,10);
 });
 test('coverage and template content cannot execute HTML from custom names or text', () => {
   const e={id:'custom',name:'<img src=x onerror=alert(1)>',content:'<script>bad()</script>',book:'<img>'},html=coveragePanel([e],emptyState())+profilePanel(e,false);

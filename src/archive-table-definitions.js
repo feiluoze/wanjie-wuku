@@ -887,6 +887,535 @@ const ORIGINAL_TABLE_DEFINITIONS=[
     }
   ]
 }
+// 1026 additions begin
+,{
+  "name": "诸天盲盒",
+  "records": [
+    {
+      "id": "souvenirs",
+      "label": "留存纪念物",
+      "description": "每轮结束后真正留下、需要继续保留的唯一纪念物；不把临时角色模板当永久能力。",
+      "fields": [
+        {
+          "id": "round",
+          "label": "对应轮次与角色",
+          "description": "明确本轮标识、角色来源与版本；同轮不重复生成纪念物。",
+          "type": "text"
+        },
+        {
+          "id": "nature",
+          "label": "物品与独立功能",
+          "description": "实际留存的单件物品及自身功能，不封存整套模板。",
+          "type": "text"
+        },
+        {
+          "id": "holding",
+          "label": "当前持有与位置",
+          "description": "实际归属、保存位置及后续处置。",
+          "type": "text"
+        },
+        {
+          "id": "change",
+          "label": "重要变化",
+          "description": "后续确有变化沿原物品更新，不按再次展示复制。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "entanglements",
+      "label": "持续世界纠缠",
+      "description": "跨轮次仍成立的重要人物、地点、规则或持续事件；未触发不建档，短暂无后续影响的不常驻。",
+      "fields": [
+        {
+          "id": "origin",
+          "label": "来源轮次与世界",
+          "description": "本轮角色及纠缠来源，旁人临时覆盖仍由当前总览记录。",
+          "type": "text"
+        },
+        {
+          "id": "kind",
+          "label": "持续对象与性质",
+          "description": "人物、地点、规则或长期事件的实际性质。",
+          "type": "text"
+        },
+        {
+          "id": "effect",
+          "label": "已经成立的变化",
+          "description": "真实发生的现实联系与后果。",
+          "type": "text"
+        },
+        {
+          "id": "state",
+          "label": "当前状态与持续条件",
+          "description": "按实际因果更新；主变身结束不自动撤销纠缠。",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "等待与变身时间仅记正文已定结果，不按电脑时间、消息数自动抽取或结算。",
+    "临时模板和旁人覆盖留在当前总览；结束撤去临时性质，不将其当永久所得。",
+    "已结束轮次只保留必要摘要，不逐次开抽取流水；每轮唯一纪念物与真实持续纠缠独立接续。"
+  ],
+  "hash": "0b8efa120ea35e4e",
+  "adapter": "wuku.statusbar_0b8efa120ea35e4e",
+  "tables": [
+    {
+      "id": "souvenirs",
+      "kind": "entity",
+      "retain": "每轮结束后真正留下、需要继续保留的唯一纪念物；不把临时角色模板当永久能力。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    },
+    {
+      "id": "entanglements",
+      "kind": "entity",
+      "retain": "跨轮次仍成立的重要人物、地点、规则或持续事件；未触发不建档，短暂无后续影响的不常驻。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    }
+  ]
+},
+{
+  "name": "瓦学弟",
+  "records": [
+    {
+      "id": "mothers",
+      "label": "义母关系",
+      "description": "实际成功建立的义母关系；每位人物一行，首次规则只由主状态栏统一记录。",
+      "fields": [
+        {
+          "id": "identity",
+          "label": "身份与来源",
+          "description": "明确独立人物及来源，不能把同名人物混为一人。",
+          "type": "text"
+        },
+        {
+          "id": "established",
+          "label": "关系成立事实",
+          "description": "实际成功的认母判定与已知时点；失败尝试不混入名单。",
+          "type": "text"
+        },
+        {
+          "id": "relationship",
+          "label": "当前关系与重要联系",
+          "description": "仅记录影响后续的真实关系变化，不逐轮记录态度。",
+          "type": "text"
+        },
+        {
+          "id": "inheritance",
+          "label": "关联传承",
+          "description": "引用具体传承名称，不复制整份能力详情。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "inheritances",
+      "label": "实际传承",
+      "description": "分别保留实际取得的独立能力、知识、体质和装备；同一传承成长沿原档接续。",
+      "fields": [
+        {
+          "id": "origin",
+          "label": "来源义母与取得事件",
+          "description": "实际结算时的来源；对方以后新获得能力不自动倒填。",
+          "type": "text"
+        },
+        {
+          "id": "kind",
+          "label": "传承性质与形式",
+          "description": "能力、血脉、技艺、知识、装备等，以及实际复制、重构或融合方式。",
+          "type": "text"
+        },
+        {
+          "id": "effect",
+          "label": "已取得的功能",
+          "description": "基本功能取得即成立，不凭空附加学习或维持关系门槛。",
+          "type": "text"
+        },
+        {
+          "id": "growth",
+          "label": "品质与融合进展",
+          "description": "真实成长、适配与融合；不以阶段名变更重复建档。",
+          "type": "text"
+        },
+        {
+          "id": "holding",
+          "label": "归属与保留",
+          "description": "已得收益归本人；关系疏远不撤回，不删同源之外独立有效能力。",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "首次强制接受状态为全局一次，保留原状态栏，不因换人、换世界重置。",
+    "成功关系与实际传承分别记录，初始化和更新同时核对，不只记名单遗漏所得。",
+    "相似但独立的来源保留各自有效内容；同一能力重复叙述不复制，装备已在本表登记时不再复制同份资产。"
+  ],
+  "hash": "b7567119b314f66b",
+  "adapter": "wuku.statusbar_b7567119b314f66b",
+  "tables": [
+    {
+      "id": "mothers",
+      "kind": "entity",
+      "retain": "实际成功建立的义母关系；每位人物一行，首次规则只由主状态栏统一记录。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    },
+    {
+      "id": "inheritances",
+      "kind": "entity",
+      "retain": "分别保留实际取得的独立能力、知识、体质和装备；同一传承成长沿原档接续。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    }
+  ]
+},
+{
+  "name": "始源精灵",
+  "records": [
+    {
+      "id": "crystals",
+      "label": "重要灵结晶",
+      "description": "有独立用途或持有安排的重要灵结晶实例；同概念可有多个真实实例，不以概念相同合并。",
+      "fields": [
+        {
+          "id": "concept",
+          "label": "主辅概念与谱系",
+          "description": "已确定的主概念、辅助概念及谱系；数量不是槽位。",
+          "type": "text"
+        },
+        {
+          "id": "instance",
+          "label": "实例与持有安排",
+          "description": "用独立名称区别同概念不同结晶，记录实际宿主、留存与回收重授。",
+          "type": "text"
+        },
+        {
+          "id": "powers",
+          "label": "天使灵装与魔王表现",
+          "description": "原文明确的重要特征和实际组合，不逐次施展建档。",
+          "type": "text"
+        },
+        {
+          "id": "growth",
+          "label": "独特开发与持久变化",
+          "description": "已形成的新应用、深化与独特性质；大量普通同类实例只在总览汇总。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "source_links",
+      "label": "受赠者与始源联系",
+      "description": "重要受赠者、纯粹精灵及持续始源关系；每个独立生命接续同一记录。",
+      "fields": [
+        {
+          "id": "identity",
+          "label": "人物身份与生命来源",
+          "description": "既有人物受赠或新创造的纯粹精灵，保留独立人格。",
+          "type": "text"
+        },
+        {
+          "id": "crystals",
+          "label": "所持结晶与承载",
+          "description": "引用结晶实例名称、赋予与回收后的实际生命承载。",
+          "type": "text"
+        },
+        {
+          "id": "relation",
+          "label": "始源联系与持续安排",
+          "description": "联系、授权与原文确定的保护；回收不自动终止联系或独立生命。",
+          "type": "text"
+        },
+        {
+          "id": "feedback",
+          "label": "重要反哺成果",
+          "description": "联系建立后真实新取得的知识、招式和概念深化；不复制独立财产或再次结算旧成果。",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "固定本命权限不逐轮复制；主表摘要、结晶详情和受赠者详情分工，不在多表重复同一长段。",
+    "结晶回收、转赠不撤销既得反哺、持久变化或独立生命；联系按实际状态接续。",
+    "创造不另设资源、次数、容量或冷却；插件仅归档已发生事实，不替玩家凭空生成结晶。"
+  ],
+  "hash": "80350de02c84b48a",
+  "adapter": "wuku.statusbar_80350de02c84b48a",
+  "tables": [
+    {
+      "id": "crystals",
+      "kind": "entity",
+      "retain": "有独立用途或持有安排的重要灵结晶实例；同概念可有多个真实实例，不以概念相同合并。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    },
+    {
+      "id": "source_links",
+      "kind": "entity",
+      "retain": "重要受赠者、纯粹精灵及持续始源关系；每个独立生命接续同一记录。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    }
+  ]
+},
+{
+  "name": "骇客",
+  "records": [
+    {
+      "id": "systems",
+      "label": "持续系统与安排",
+      "description": "需跨回合维持的身份、节点、自动化和现实系统规则；局部细节附原系统。",
+      "fields": [
+        {
+          "id": "kind",
+          "label": "系统性质与对象",
+          "description": "数字身份、技术网络、自动化、现实修改或系统主权，按实际对象区分。",
+          "type": "text"
+        },
+        {
+          "id": "scope",
+          "label": "作用范围与实际效果",
+          "description": "已经建立的对象、范围和规则，不把意图当完成。",
+          "type": "text"
+        },
+        {
+          "id": "authorization",
+          "label": "授权与目标",
+          "description": "实际授权、目标和重大待定选择；伙伴概况仍在主表。",
+          "type": "text"
+        },
+        {
+          "id": "conditions",
+          "label": "依赖与持续条件",
+          "description": "技艺的真实设备与接口、超凡的已成立规则按各自性质记录。",
+          "type": "text"
+        },
+        {
+          "id": "state",
+          "label": "当前状态与重要变化",
+          "description": "离场不自动取消持续规则，局部节点损坏不删除独立成果。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "research",
+      "label": "重要研究与成果",
+      "description": "有长期复用价值的研究、知识、程序与工程成果；同一项目按实际阶段接续，不逐个动作建流水。",
+      "fields": [
+        {
+          "id": "subject",
+          "label": "主题与具体目标",
+          "description": "具体研究或工程，普通已固定专业知识不反复收录。",
+          "type": "text"
+        },
+        {
+          "id": "stage",
+          "label": "实际完成阶段",
+          "description": "已发现、已设计、已制造、已投入使用，或直接权能实际成立。",
+          "type": "text"
+        },
+        {
+          "id": "result",
+          "label": "已成立的知识与产物",
+          "description": "方法与实物分清；⑦以上真实直接创造不强制绕回制造流程。",
+          "type": "text"
+        },
+        {
+          "id": "conditions",
+          "label": "适用与剩余事项",
+          "description": "确有依据的外部条件和未完部分，不凭空加门槛。",
+          "type": "text"
+        },
+        {
+          "id": "authority",
+          "label": "所用配置与成立依据",
+          "description": "按当时玩家已选①—⑨配置，不自动升档或因详解解锁高档。",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "当前强度和同一位智能伙伴归主表，不另建第二套配置、伙伴或结算。",
+    "九档由玩家选择而非强制升级树，详解只补充已有能力；知识、设计、实物与实际救援结果分别核对。",
+    "持续系统与已得研究沿原对象接续；关闭设备不自动抹除知识，正常使用不添加点数、冷却或反噬。"
+  ],
+  "hash": "261f14799e4ccf5b",
+  "adapter": "wuku.statusbar_261f14799e4ccf5b",
+  "tables": [
+    {
+      "id": "systems",
+      "kind": "entity",
+      "retain": "需跨回合维持的身份、节点、自动化和现实系统规则；局部细节附原系统。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    },
+    {
+      "id": "research",
+      "kind": "entity",
+      "retain": "有长期复用价值的研究、知识、程序与工程成果；同一项目按实际阶段接续，不逐个动作建流水。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    }
+  ]
+},
+{
+  "name": "自动填坑",
+  "records": [
+    {
+      "id": "works",
+      "label": "创作与作品",
+      "description": "本人明确想做出的创意及其持续完善成果；从开坑到完整作品使用同一记录。",
+      "fields": [
+        {
+          "id": "intent",
+          "label": "原始创意与确定要求",
+          "description": "保留本人明确的核心方向；一句话意图即可，不要求完整草稿。",
+          "type": "text"
+        },
+        {
+          "id": "state",
+          "label": "创作状态与版本",
+          "description": "已开坑、补完中、已完成或持续完善的实际状态，沿同一作品更新。",
+          "type": "text"
+        },
+        {
+          "id": "completed",
+          "label": "已完成内容与功能",
+          "description": "权能补完后即可实际使用，不额外附加学习、制作、验证或测试门槛。",
+          "type": "text"
+        },
+        {
+          "id": "extension",
+          "label": "新增灵感与适应补强",
+          "description": "后续明确的新想法及已并入内容，保留原核心，不按每次完善复制作品。",
+          "type": "text"
+        },
+        {
+          "id": "remaining",
+          "label": "实际缺口与潜在方向",
+          "description": "已知缺口和未选延展分开，不把可能性冒充已完成内容。",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "当前创作主表只记当前聚焦，创作总览摘要计数；跨作品长期详情只在作品表保存，不再建独立阶段和补全流水。",
+    "权能可直接补齐实现条件，记录已成立结果，不套用普通工程的学习、材料或验证门槛。",
+    "插件只归档叙事确认的创意与成果，不因选中词条而替玩家调用模型生成新作品；已完成作品不会因暂时不提及而失效。"
+  ],
+  "hash": "b87895075232f6ed",
+  "adapter": "wuku.statusbar_b87895075232f6ed",
+  "tables": [
+    {
+      "id": "works",
+      "kind": "entity",
+      "retain": "本人明确想做出的创意及其持续完善成果；从开坑到完整作品使用同一记录。",
+      "update": "首次发现已成立且需长期接续的对象即可建立基础记录；已有对象沿原ID补充变化，保留未改变内容。缺少详细属性不跳过；不按普通动作另建流水。"
+    }
+  ]
+}
+,{
+  "name": "他化自在大法",
+  "hash": "7499b63b9a19b627",
+  "adapter": "wuku.statusbar_7499b63b9a19b627",
+  "records": [
+    {
+      "id": "avatars",
+      "label": "化身与任务",
+      "description": "跨场景仍需调度的重要化身或同任务化身组；同形态不同任务使用可区分的名称，不逐次施法建流水。",
+      "fields": [
+        {
+          "id": "form",
+          "label": "身份形态与时代分支",
+          "description": "明确所显化对象、版本与分支；化身不是原主本人。",
+          "type": "text"
+        },
+        {
+          "id": "deployment",
+          "label": "数量位置与识别",
+          "description": "真实显化数量、所在位置和必要识别；同类同任务可合并，不设置上限。",
+          "type": "text"
+        },
+        {
+          "id": "mission",
+          "label": "任务与协作",
+          "description": "真实指定的任务、分工、协作与重要未完事项。",
+          "type": "text"
+        },
+        {
+          "id": "state",
+          "label": "化身存在状态",
+          "description": "持续、调整、收回或摧毁等实际变化；重新显化不产生冷却或反噬。",
+          "type": "text"
+        },
+        {
+          "id": "outcomes",
+          "label": "已经独立成立的成果",
+          "description": "实际救援、情报、制造与世界变化；收回化身不撤销独立成果，不默认为永久继承道果。",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "invocations",
+      "label": "道果调用与持续效果",
+      "description": "当前重要的能力调用和需要接续的特殊效果；同一调用更新一行，不把临时加持当永久能力。",
+      "fields": [
+        {
+          "id": "origin",
+          "label": "所借道果与对应形态",
+          "description": "具体能力、道果与实际对应的化身版本，不自动获得原主全部记忆。",
+          "type": "text"
+        },
+        {
+          "id": "target",
+          "label": "作用对象与范围",
+          "description": "本体或其他指定对象，以及实际作用范围。",
+          "type": "text"
+        },
+        {
+          "id": "effect",
+          "label": "实际能力与效果",
+          "description": "已产生的能力加持、持续效果和独立后果，区分当前维系与永久所得。",
+          "type": "text"
+        },
+        {
+          "id": "dependency",
+          "label": "真实维系条件",
+          "description": "仅记录能力本身确有的维持、材料或环境条件，不扩大成本法消耗、冷却或层数限制。",
+          "type": "text"
+        },
+        {
+          "id": "state",
+          "label": "调用状态与结束后留存",
+          "description": "结束调用只终止相应加持；独立成立的结果继续保留，依赖持续施法的效果按实际性质更新。",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "avatars",
+      "kind": "entity",
+      "retain": "跨场景仍需调度的重要化身或同任务化身组；同形态不同任务使用可区分的名称，不逐次施法建流水。",
+      "update": "初始化与后续整理一起核对。首次确认长期对象就建立基础记录，后续按同一身份补全；无变化保留，不按普通动作建流水。"
+    },
+    {
+      "id": "invocations",
+      "kind": "entity",
+      "retain": "当前重要的能力调用和需要接续的特殊效果；同一调用更新一行，不把临时加持当永久能力。",
+      "update": "初始化与后续整理一起核对。首次确认长期对象就建立基础记录，后续按同一身份补全；无变化保留，不按普通动作建流水。"
+    }
+  ],
+  "boundaries": [
+    "不记录或新增本法的资源费用、剩余次数、冷却、数量上限、持续时限或递进层数上限。",
+    "化身可被收回、摧毁、重新显化；本体与原主独立，不转移伤害，不把借用自动写为永久继承。",
+    "真实独立成果保存在原任务或明确对象中，不因化身消散删除；仅依赖化身持续维系的效果按其本身机制结束。"
+  ]
+}
+// 1026 additions end
 ];
 export const ARCHIVE_TABLE_DEFINITIONS=ORIGINAL_TABLE_DEFINITIONS.map(compactTableDefinition);
 export function archiveTableDefinition(power,config){

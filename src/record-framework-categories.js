@@ -113,5 +113,11 @@ export const FRAMEWORK_CATEGORIES={
   "30463c08cde13e8a": "rules",
   "56cc54b9006c7505": "rules",
   "45d75a83298a9c77": "rules",
-  "d93f6c8fd6d477d1": "rules"
+  "d93f6c8fd6d477d1": "rules",
+  "0b8efa120ea35e4e": "collection",
+  "b7567119b314f66b": "companions",
+  "80350de02c84b48a": "companions",
+  "261f14799e4ccf5b": "exploration",
+  "b87895075232f6ed": "collection",
+  "7499b63b9a19b627": "companions"
 };

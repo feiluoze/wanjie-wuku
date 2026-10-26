@@ -53,7 +53,12 @@ function receiptScopeOwners(line,known,scope){
 // Qualified protocol headings carry ownership; ordinary bracketed place/item
 // names do not. A bare heading counts only when it is a known power name.
 export function protocolOwners(text,known=[]){
- return [...new Set([...String(text||'').matchAll(/【([^】·]+)(·[^】]*)?】/g)].filter(m=>known.includes(m[1].trim())||m[2]&&/(?:结算|回执|总览|状态|调用成果|收益)/.test(m[2])).map(m=>m[1].trim()))];
+ const value=String(text||'');
+ const headings=[...value.matchAll(/【([^】·]+)(·[^】]*)?】/g)].filter(m=>known.includes(m[1].trim())||m[2]&&/(?:结算|回执|总览|状态|调用成果|收益)/.test(m[2])).map(m=>m[1].trim());
+ // Some original receipts declare the owner as a labelled value rather than
+ // a title. This explicit form also identifies powers absent from the task.
+ const labelled=[...value.matchAll(/^\s*【(?:金手指|所属词条)】[：:]\s*([^\r\n]+)$/gm)].map(m=>m[1].trim());
+ return [...new Set([...headings,...labelled])];
 }
 export function sourceOwnership(content,quote,known=[]){
  const direct=protocolOwners(quote,known);if(direct.length||!quote)return direct;

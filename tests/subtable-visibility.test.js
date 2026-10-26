@@ -24,7 +24,7 @@ test('every active native table is actually requested under its matching framewo
   const html=frameworkChoicesHTML(p);assert(html.includes(`data-native-table="${table.id}"`));
   assert.equal(stable(p),before);count++;
  }
- assert.equal(count,59);
+ assert.equal(count,70);
 });
 
 test('a confirmed pre-existing object can first enter an empty generic table, then deepen without duplicating',()=>{

@@ -15,9 +15,9 @@ const entries=builtinEntries(),power=name=>createPower(entries.find(e=>e.name===
 const raw=(recordId,name,details,extra={})=>({type:'record',recordId,name,details,status:'active',fields:{description:'真实且重要的长期事实'},sourceIndex:-1,...extra});
 function save(p,rows){const b=normalizeArchiveBatch({changes:rows},p,[],[],'玩家核对实际成立事实');assert.deepEqual(b.issues,[]);applyArchiveChanges(p,b.changes,[],new Map(b.changes.map((r,i)=>[i,r.id])),[]);}
 
-test('seven templates cover all 114 general built-in powers by exact source; recommendations never select or write state',()=>{
- assert.equal(RECORD_FRAMEWORKS.length,7);assert.equal(Object.keys(FRAMEWORK_CATEGORIES).length,114);
- assert.equal(entries.filter(e=>!e.auxiliary).length,114);
+test('seven templates cover all 120 general built-in powers by exact source; recommendations never select or write state',()=>{
+ assert.equal(RECORD_FRAMEWORKS.length,7);assert.equal(Object.keys(FRAMEWORK_CATEGORIES).length,120);
+ assert.equal(entries.filter(e=>!e.auxiliary).length,120);
  for(const e of entries.filter(e=>!e.auxiliary)){const p=createPower(e),before=stable(p);assert(supportsRecordFrameworks(p));assert(frameworkCategory(p));assert(recommendedFrameworks(p).length);assert.equal(stable(p),before);assert.equal(p.recordFrameworks,undefined);assert.equal(frameworkCategory({...p,primaryRules:p.primaryRules+'改'}),null);}
  for(const d of ARCHIVE_TABLE_DEFINITIONS)for(const t of d.tables)assert(RECORD_FRAMEWORKS.some(f=>f.id===nativeFramework(d,t.id)),d.name+'/'+t.id);
 });

@@ -26,6 +26,12 @@ export const FRAMEWORK_CATEGORY_LABELS={combat:'直接战斗型',growth:'自身�
 
 // Native row IDs keep their fields and identities. A template never duplicates them.
 const native={
+ "他化自在大法":{avatars:"members",invocations:"arrangements"},
+ "诸天盲盒":{"souvenirs":"assets","entanglements":"arrangements"},
+ "瓦学弟":{"mothers":"members","inheritances":"abilities"},
+ "始源精灵":{"crystals":"assets","source_links":"members"},
+ "骇客":{"systems":"arrangements","research":"knowledge"},
+ "自动填坑":{"works":"assets"},
  '万界网购':{orders:'assets',assets:'assets'},'升变之印':{forms:'abilities'},'天人骨血':{life_features:'abilities'},'熟练度状态栏':{skills:'abilities'},
  '先祖投资人':{investments:'arrangements',inheritance:'knowledge'},'道途':{path:'abilities'},'自我束缚':{vows:'arrangements'},'心渊':{scars:'abilities',relics:'assets'},
  '败家生财':{wealth:'assets'},'生命球':{forms:'assets'},'拓印':{patterns:'abilities'},'万灵图鉴':{members:'members',missions:'arrangements'},

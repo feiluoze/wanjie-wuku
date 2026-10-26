@@ -18,17 +18,17 @@ const old=process.env.WJWK_PREVIOUS_BOOK?importBook(read(process.env.WJWK_PREVIO
 const previousAdapters=process.env.WJWK_PREVIOUS_ADAPTERS?read(process.env.WJWK_PREVIOUS_ADAPTERS):null;
 
 test('bundled book has only latest named rules and keeps author text intact',()=>{
-  assert.equal(entries.length,123);assert.equal(new Set(entries.map(e=>e.name)).size,123);
+  assert.equal(entries.length,130);assert.equal(new Set(entries.map(e=>e.name)).size,130);
   assert.equal(entry('升变之印').entryId,'122');assert(!entry('绝对适应'));assert(!entry('自定义式'));
   assert(entry('绝对适应（新版）'));assert(entry('自定义'));
-  assert.equal(builtinWorldbookInfo().authorEntries,127);
-  if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));assert.equal(author.length,127);for(const e of entries){const override=builtinWorldbookInfo().overrides?.taishi;if(e.name.startsWith('太始天（完整版')&&override)assert.equal(hash(e.content),override.contentHash);else assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content);}}
+  assert.equal(builtinWorldbookInfo().authorEntries,134);
+  if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));assert.equal(author.length,127);for(const e of entries.filter(e=>author.some(a=>a.entryId===e.entryId))){const override=builtinWorldbookInfo().overrides?.taishi;if(e.name.startsWith('太始天（完整版')&&override)assert.equal(hash(e.content),override.contentHash);else assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content);}}
   const copy=builtinEntries();copy[0].content='changed';assert.notEqual(builtinEntries()[0].content,'changed');
 });
 test('all latest rules have management configuration and original-statebar declarations match',()=>{
   for(const e of entries)assert.equal(managementProfile(e).match,'exact',e.name);
   assert(!managementProfile(entry('人生模拟')).workflows.includes('simulation'),'三重奖励不沿用候选选择入口');
-  assert.equal(entries.filter(e=>creationConfig(createPower(e))).length,112);
+  assert.equal(entries.filter(e=>creationConfig(createPower(e))).length,118);
   for(const config of CREATION_PRESETS){validateAdapter(config);const e=builtinEntries({includeDedicated:true}).find(e=>config.target.primaryHashes.includes(hash(e.content)));assert(e,config.id);assert(config.operations.every(o=>e.content.includes(o.ruleQuote)));}
 });
 test('new open-ended abilities do not invent wallets from descriptive overviews',()=>{
@@ -36,9 +36,9 @@ test('new open-ended abilities do not invent wallets from descriptive overviews'
 });
 test('catalog is available without chat and preserves customized material',()=>{
   const fork={...entry('自定义'),id:'custom-fork',book:'自编',content:'只修改本地骰子，自编限定规则。'};
-  const catalog=withBuiltinCatalog([fork]);assert.equal(catalog.length,124);assert.deepEqual(catalog[0],fork);
+  const catalog=withBuiltinCatalog([fork]);assert.equal(catalog.length,131);assert.deepEqual(catalog[0],fork);
   assert.equal(stable(withBuiltinCatalog(catalog)),stable(catalog));
-  const f=fixture();assert.equal(f.app.settings.catalog.filter(e=>e.book==='万界武库V4.1 · 内置').length,123);
+  const f=fixture();assert.equal(f.app.settings.catalog.filter(e=>e.book==='万界武库V4.1 · 内置').length,130);
 });
 
 test('official catalog copies collapse across books and prefer the source without (1)',()=>{
@@ -69,7 +69,7 @@ test('same-name player edits survive official-copy deduplication',()=>{
   assert.deepEqual(catalog.find(e=>e.id===custom.id),custom);
 });
 test('old catalog upgrades in place and duplicate author seal is collapsed',{skip:!old},()=>{
-  const catalog=withBuiltinCatalog(old);assert.equal(catalog.length,123);
+  const catalog=withBuiltinCatalog(old);assert.equal(catalog.length,131);
   for(const name of ['万界网购','人生模拟','升变之印']){const e=catalog.find(e=>e.name===name);assert.equal(e.id,old.find(e=>e.name===name).id);assert.equal(e.content,entry(name).content);}
   assert(!catalog.some(e=>e.name==='自定义式'||e.name==='绝对适应'));
   assert.equal(withBuiltinCatalog([...entries,{...old.find(e=>e.name==='升变之印'),book:entry('升变之印').book}]).filter(e=>e.name==='升变之印').length,1);
@@ -150,13 +150,13 @@ for(const [name,recordId,title,details,story]of cases)test(name+': AI-shaped upd
 
 test('1013 author replacements are unique and only full taishi is retained outside the general catalog',()=>{
  const all=builtinEntries({includeDedicated:true}),full=builtinTaishiEntry();
- assert.equal(all.length,124);assert.equal(entries.length,123);assert.equal(all.filter(e=>e.name.startsWith('太始天')).length,1);
- assert(full.name.includes('完整版'));assert.equal(builtinWorldbookInfo().dedicatedEntries,1);assert.equal(builtinWorldbookInfo().version,'2026-10-13');
+ assert.equal(all.length,131);assert.equal(entries.length,130);assert.equal(all.filter(e=>e.name.startsWith('太始天')).length,1);
+ assert(full.name.includes('完整版'));assert.equal(builtinWorldbookInfo().dedicatedEntries,1);assert.equal(builtinWorldbookInfo().version,'2026-10-26');
  assert.equal(entry('旅法师').entryId,'119');assert.equal(entry('一言为定').entryId,'123');assert.equal(entry('万物之始').entryId,'72');
  for(const name of ['进化之炎','诸天投影镜','一以贯之','心渊','万界武库思维链（无状态栏和回执版）'])assert(entry(name),name);
  const simplified={...full,id:'old-simplified',name:'太始天（精简版，择一开启）',content:'旧版不应再进入通用目录。'};
- for(const catalog of [[],[full],[full,simplified]]){const result=withBuiltinCatalog(catalog);assert(!result.some(e=>e.name.startsWith('太始天')));assert.equal(result.length,123);}
- if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));for(const e of all)assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content,e.name);const catalog=withBuiltinCatalog(author);assert.equal(catalog.length,123);for(const name of ['旅法师','一言为定']){const rows=catalog.filter(e=>e.name===name);assert.equal(rows.length,1);assert.equal(rows[0].content,entry(name).content);}}
+ for(const catalog of [[],[full],[full,simplified]]){const result=withBuiltinCatalog(catalog);assert(!result.some(e=>e.name.startsWith('太始天')));assert.equal(result.length,130);}
+ if(process.env.WJWK_AUTHOR_BOOK){const author=importBook(read(process.env.WJWK_AUTHOR_BOOK));for(const e of all.filter(e=>author.some(a=>a.entryId===e.entryId)))assert.equal(e.content,author.find(a=>a.entryId===e.entryId).content,e.name);const catalog=withBuiltinCatalog(author);assert.equal(catalog.length,131);for(const name of ['旅法师','一言为定']){const rows=catalog.filter(e=>e.name===name);assert.equal(rows.length,1);assert.equal(rows[0].content,entry(name).content);}}
 });
 
 test('new adaptation and dedicated taishi expose their actual new result fields',()=>{
