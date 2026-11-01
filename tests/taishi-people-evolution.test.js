@@ -126,7 +126,7 @@ test('old autonomy is off and invalid elapsed values reject before model calls',
 test('autonomous candidates preview without mutation, keep rates/reset, advance only selected world on commit',async()=>{
   for(const advanced of [false,true]){const f=await setup();await enable(f,advanced);const before=clone(f.store.read());let calls=0;
     f.app.model.request=async(p,{connection})=>{calls++;const input=JSON.parse(p.user);if(connection.task==='taishiSummary')return JSON.stringify({message:'已生成候选'});assert.equal(input.taishiEvolution.worldName,'海蓝界');assert.match(p.system,/不再乘时间倍率/);return JSON.stringify({changes:connection.task==='taishiPeople'?[{...personRow(f,f.a,'云岚'),sourceIndex:-1}]:[worldRow(f),...(advanced?[]:[{...personRow(f,f.a,'云岚'),sourceIndex:-1}])]});};
-    await f.app.evolveTaishi(values(f));assert.equal(calls,advanced?3:1);assert.deepEqual(f.store.read(),before);
+    await f.app.evolveTaishi(values(f));assert.equal(calls,advanced?2:1);assert.deepEqual(f.store.read(),before);
     const pending=f.app.pendingArchiveReview;assert(pending.taishiEvolution);assert.equal(pending.changes.length,2);assert(pending.changes.every(c=>c.source.type==='manual'&&c.source.note.includes('自主发展')));
     const personIndex=pending.changes.findIndex(c=>c.id===f.a);await assert.rejects(f.app.commitArchiveReview(pending,new Map([[personIndex,f.a]])),/一并保存/);
     await f.app.commitArchiveReview(pending,new Map(pending.changes.map((c,i)=>[i,c.id])));

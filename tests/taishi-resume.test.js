@@ -9,7 +9,7 @@ import {runTaishiWorkflow} from '../src/taishi-workflow.js';
 const row=role=>({name:role==='taishiWorld'?'海蓝界':'云岚',type:role==='taishiWorld'?'environment':'member',status:'active',fields:role==='taishiWorld'?{conditions:'海洋文明'}:{role:'灵植师'},recordId:role==='taishiWorld'?'world':'companion',details:role==='taishiWorld'?{overview:'群岛文明'}:{profile:'沉稳'},sourceIndex:0,quote:role==='taishiWorld'?'太始天已纳入海蓝界。':'云岚已正式加入太始天。'});
 async function setup(){
   const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};f.ctx.chat[0].mes='太始天已纳入海蓝界。云岚已正式加入太始天。';
-  await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);f.calls=[];
+  await f.store.transact(s=>{s.powers[f.app.powerId].taishiWorkflow=true;s.powers[f.app.powerId].taishiCollaboration={summary:true};});f.calls=[];
   f.fail=new Set(['taishiPeople']);f.app.model.request=async(p,{connection})=>{const role=connection.task;f.calls.push(role);if(f.fail.has(role))throw Error(role+' 超时');return completeReview(p,role==='taishiSummary'?{message:'世界与人物候选'}:{changes:[row(role)]});};return f;
 }
 const pending=f=>f.app.pendingArchiveReview;
@@ -77,14 +77,14 @@ test('cancelled requests consume the manual budget and cannot be used to bypass 
   await assert.rejects(f.app.retryTaishiWorkflow('taishiPeople'),/上限/);assert.equal(called,false);
 });
 
-test('automatic partial runs pause for preview; successful cache cannot be resumed after saving',async()=>{
+test('automatic partial runs pause for preview; remainder can resume after a partial save',async()=>{
   const f=await setup(),before=clone(f.store.read());await f.app.reviewArchives({autoSave:true});assert.deepEqual(f.store.read(),before);assert(pending(f));
-  const old=pending(f);await f.app.commitArchiveReview(old,new Map([[0,null]]));assert.equal(f.store.read().powers[f.app.powerId].archiveReviewed.length,0);await assert.rejects(f.app.retryTaishiWorkflow('taishiPeople'));assert.equal(f.calls.length,2);
+  const old=pending(f);await f.app.commitArchiveReview(old,new Map([[0,null]]));assert.equal(f.store.read().powers[f.app.powerId].archiveReviewed.length,0);f.fail.clear();await f.app.retryTaishiWorkflow('taishiPeople');assert.equal(f.calls.length,3);assert.equal(pending(f).changes.length,1);assert.equal(pending(f).changes[0].name,'云岚');
 });
 
 test('workflow panel exposes individual retry, budget, cancel/discard and local recovery',async()=>{
   const f=await setup();await f.app.reviewArchives();const html=WorkbenchUI.prototype.taishiWorkflowReview.call({},pending(f));
-  assert(html.includes('data-stage="taishiPeople"'));assert(!html.includes('data-stage="taishiWorld"'));assert(html.includes('2/9'));assert(html.includes('刷新后可继续未完成阶段'));assert(pending(f).checkpointSaved);assert(html.includes('taishi-workflow-discard'));
+  assert(html.includes('data-stage="taishiPeople"'));assert(!html.includes('data-stage="taishiWorld"'));assert(html.includes('已使用 2 次请求'));assert(html.includes('每岗位合计最多 3 次'));assert(html.includes('成功岗位与未保存候选会保留'));assert(pending(f).checkpointSaved);assert(html.includes('taishi-workflow-discard'));
 });
 
 test('invalid resume input fails without invoking a model',async()=>{

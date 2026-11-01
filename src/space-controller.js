@@ -1,7 +1,8 @@
+import {collaborationSettings} from './taishi-collaboration.js';
 import {RELATION_FIELDS,assertRelation,findRelation} from './taishi-relations.js';
 import {creationConfig} from './creation-config.js';
 import {resolveTaskConnectionPlan} from './host.js';
-import {taskConnectionLabel} from './task-routing.js';
+import {taskConnectionLabel,AI_TASKS} from './task-routing.js';
 import {storyTimeEvents,assertStoryTime} from './taishi-time.js';
 import {taishiBuildMethods} from './taishi-build-controller.js';
 import {createPower,assert,clone} from './core.js';
@@ -140,14 +141,14 @@ export const spaceMethods={
   openTaishiAdvanced(){
     const s=this.ensureStable();const p=s.state.powers[this.powerId];assert(isTaishi(p)&&p.active,'请先启用太始天');
     this.taishiWorkflowDraft={powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}};
-    const plans=['archive','taishiWorld','taishiPeople','taishiSummary'].map(task=>{try{return {task,label:resolveTaskConnectionPlan(task,s.ctx,this.settings,this.apiKey).map(taskConnectionLabel).join('；备用：')};}catch{return {task,label:'连接未就绪，请在连接设置中检查'};}});
+    const plans=['archive','taishiWorld','taishiPeople','taishiReview','taishiSummary'].map(task=>{try{return {task,label:resolveTaskConnectionPlan(task,s.ctx,this.settings,this.apiKey).map(taskConnectionLabel).join('；备用：')};}catch{return {task,label:AI_TASKS[task]+' · 连接未就绪，请在连接设置中检查'};}});
     this.ui.showTaishiAdvanced(p,plans);
   },
   async saveTaishiWorkflow(values){
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');
     const d=this.taishiWorkflowDraft;assert(d&&d.powerId===this.powerId,'高级窗口已失效，请重新打开');this.ensureStable();
-    await this.store.transact(next=>{const p=next.powers[d.powerId];assert(isTaishi(p)&&p.active,'太始天已变化');p.taishiWorkflow=values.workflow==='on';},{captured:d.captured,facts:false});
-    this.taishiWorkflowDraft=null;this.ui.closeDialog();this.refresh();this.notice(values.workflow==='on'?'高级剧情核对已开启：最多3次模型请求，仍经统一预览与保存流程。':'已使用基础单模型核对。');
+    await this.store.transact(next=>{const p=next.powers[d.powerId];assert(isTaishi(p)&&p.active,'太始天已变化');const config=collaborationSettings({mode:values.collaborationMode||(values.workflow==='on'?'split':'single'),scope:values.collaborationScope||'auto',summary:values.collaborationSummary==='on',maxAttempts:Number(values.collaborationAttempts||3)});p.taishiCollaboration=config;p.taishiWorkflow=config.mode!=='single';},{captured:d.captured,facts:false});
+    this.taishiWorkflowDraft=null;this.ui.closeDialog();this.refresh();this.notice('分工设置已保存；请求前会显示本次岗位，失败只续跑未完成岗位。');
   },
   ...taishiBuildMethods
 };

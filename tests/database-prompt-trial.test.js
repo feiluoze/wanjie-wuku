@@ -31,6 +31,6 @@ test('tavern raw path carries message arrays without duplicating system prompt o
 test('archive stages use one protocol without the legacy table prompt; explicit legacy helper stays available',async()=>{
  const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};await f.store.transact(s=>s.powers[f.app.powerId].taishiWorkflow=true);
  const calls=[];f.app.model.request=async(p,{connection})=>{calls.push({p,task:connection.task});return completeReview(p,connection.task==='taishiSummary'?{message:'无新变化'}:{changes:[]});};
- f.app.runtimeLog=new RuntimeLog({storage:f.storage});f.app.logTask=f.app.runtimeLog.begin('试验');await f.app.reviewArchives({rescan:true});assert.equal(calls.length,3);assert(calls.every(c=>!c.p.messages));assert(calls.every(c=>!c.p.databasePromptTrial));
+ f.app.runtimeLog=new RuntimeLog({storage:f.storage});f.app.logTask=f.app.runtimeLog.begin('试验');await f.app.reviewArchives({rescan:true});assert.equal(calls.length,2);assert(calls.every(c=>!c.p.messages));assert(calls.every(c=>!c.p.databasePromptTrial));
  f.app.pendingArchiveReview=null;f.app.clearReviewCheckpoint({chatKey:f.app.contextSnapshot().chatKey});calls.length=0;f.app.model.request=async p=>{calls.push({p});return '{}';};await f.app.query({system:'普通操作',user:'{}'},f.app.ensureStable());assert.equal(calls.length,1);assert.equal(calls[0].p.messages,undefined);
 });

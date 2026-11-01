@@ -1,4 +1,5 @@
 import {inferBuiltinResources,builtinResources,resourceMatches,negativeResourceSnapshotAllowed} from './builtin-resources.js';
+import {collaborationSettings} from './taishi-collaboration-config.js';
 import {validateSchedule,validateWorldSchedules} from './taishi-schedule.js';
 import {validateTaishiLocks} from './taishi-relations.js';
 import {validateArchiveBatch} from './archive-batch.js';
@@ -26,7 +27,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.7.0';
+export const VERSION = '1.7.1';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -473,6 +474,7 @@ export function validateState(data) {
     validateAIWorldbooks(p.taishiBuildReferences);
     if(p.taishiBuildReferences)assert(p.taishiBuildReferences.mode==='manual','太始天构建须明确选择世界书和词条');
     if(p.taishiAutonomy!==undefined)assert(typeof p.taishiAutonomy==='boolean','自主发展设置无效');
+    if(p.taishiCollaboration!==undefined)collaborationSettings(p.taishiCollaboration);
     if (p.taishiWorkflow !== undefined) assert(typeof p.taishiWorkflow === 'boolean', '太始天高级工作流设置无效');
     if (p.autoArchiveReview !== undefined) assert(typeof p.autoArchiveReview === 'boolean', '自动整理设置无效');
     if (p.playerGuide) {

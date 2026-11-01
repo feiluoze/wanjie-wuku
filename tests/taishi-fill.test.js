@@ -61,7 +61,7 @@ test('one uncertain floor does not erase valid acknowledgements from another flo
  assert.equal(out.floorReviews[0].status,'uncertain');assert.match(out.floorReviews[0].reason,/人口缺少可靠来源/);assert.equal(out.floorReviews[1].status,'reviewed');assert(out.workflowIssues.every(i=>i.sourceIndex===0));
 });
 test('summary failure is a warning, valid facts and floor acknowledgements can be saved immediately',async()=>{
- const f=await setup();await f.store.transact(s=>{s.powers[f.p.id]=f.p;s.powers[f.p.id].taishiWorkflow=true;});f.app.refresh();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};
+ const f=await setup();await f.store.transact(s=>{s.powers[f.p.id]=f.p;s.powers[f.p.id].taishiWorkflow=true;s.powers[f.p.id].taishiCollaboration={summary:true};});f.app.refresh();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};
  f.ctx.chat=[{is_user:false,mes:'海蓝界群岛议会已经成立。'}];let calls=0;
  f.app.model.request=async(p,{connection})=>{calls++;if(connection.task==='taishiSummary')throw Error('摘要临时失败');return completeReview(p,{changes:connection.task==='taishiWorld'?[{archiveId:f.world.id,name:f.world.name,type:'environment',status:'active',fields:{conditions:'群岛议会已经成立'},recordId:'world',details:{era:'议会时代'},sourceIndex:0,quote:f.ctx.chat[0].mes}]:[]});};
  await f.app.reviewArchives();const pending=f.app.pendingArchiveReview;assert.equal(calls,3);assert.deepEqual(pending.issues,[]);assert.equal(pending.data.workflowWarnings.length,1);assert.match(pending.message,/基础摘要/);

@@ -1,4 +1,5 @@
 import {archiveResponseSchema} from './archive-contract.js';
+import {runCollaboration} from './taishi-collaboration.js';
 import {assert,clone,hash,stable} from './primitives.js';
 import {archiveResponseContract,archiveSummaryPreset} from './archive-preset.js';
 
@@ -13,7 +14,8 @@ const wireBudget=(stage,role,onAttempt,onCheckpoint,state)=>({remainingAttempts:
 // Cache lives in the pending preview only, never in chat data, keys or model profiles.
 // A resumed action invokes exactly one role. The normal validator and commit queue
 // still own archive writes and progress; summary can only replace the display text.
-export async function runTaishiWorkflow(prompt,invoke,{signal,onStage=()=>{},parallel=true,resume=null,retryRole=null,validateChanges=()=>[],onAttempt=()=>{},onCheckpoint=()=>{}}={}){
+export async function runTaishiWorkflow(prompt,invoke,{collaboration=null,signal,onStage=()=>{},parallel=true,resume=null,retryRole=null,validateChanges=()=>[],onAttempt=()=>{},onCheckpoint=()=>{},coordinateOnly=false}={}){
+  if(collaboration&&resume?.version!==1)return runCollaboration(prompt,invoke,{config:collaboration,signal,onStage,parallel,resume,retryRole,validateChanges,onAttempt,onCheckpoint,coordinateOnly});
   const check=()=>{if(signal?.aborted)throw new DOMException('查询已取消','AbortError');};
   const input=JSON.parse(prompt.user),promptHash=hash(stable(prompt));
   let state={version:1,promptHash,stages:Object.fromEntries(TAISHI_ROLES.map(role=>[role,{status:'pending',attempts:0,changes:[],issues:[],message:''}]))};

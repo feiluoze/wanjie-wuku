@@ -8,7 +8,7 @@ import {rollbackStoryRecords} from '../src/archive-branch.js';
 import {undoArchiveUpdate} from '../src/archive-journal.js';
 async function setup(advanced=false){
  const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};f.app.ui.showTaishiDevelopment=()=>{};
- await f.store.transact(s=>{const p=s.powers[f.app.powerId];p.taishiAutonomy=true;p.taishiWorkflow=advanced;f.world=saveArchive(p,{type:'environment',name:'海蓝界',status:'active',fields:{conditions:'已有文明'},specific:{adapterId:'wuku.primordial_world',recordId:'world',version:'1.2.0',label:'世界',fields:{clock:'第九年'},labels:{clock:'内历'}}},archiveSource(f.ctx.chat,'原世界')).id;});
+ await f.store.transact(s=>{const p=s.powers[f.app.powerId];p.taishiAutonomy=true;p.taishiWorkflow=advanced;p.taishiCollaboration={summary:true};f.world=saveArchive(p,{type:'environment',name:'海蓝界',status:'active',fields:{conditions:'已有文明'},specific:{adapterId:'wuku.primordial_world',recordId:'world',version:'1.2.0',label:'世界',fields:{clock:'第九年'},labels:{clock:'内历'}}},archiveSource(f.ctx.chat,'原世界')).id;});
  f.ctx.chat.push({is_user:false,swipe_id:0,mes:'海蓝界内部过去了3天。'});f.calls=[];
  f.app.model.request=async(prompt,{connection})=>{f.calls.push(connection.task);return JSON.stringify(connection.task==='taishiSummary'?{message:'待确认'}:{changes:connection.task==='taishiPeople'?[]:[{archiveId:f.world,name:'海蓝界',type:'environment',status:'active',fields:{conditions:'本段历时内灵圃发展'},recordId:'world',details:{overview:'本段发展完成'},sourceIndex:-1}]});};
  f.p=()=>f.store.read().powers[f.app.powerId];f.events=()=>storyTimeEvents(f.p(),f.ctx.chat);return f;

@@ -31,6 +31,6 @@ test('parse failure captures opt-in raw response before parsing and always keeps
 });
 
 test('economic briefing reuses world resources and advanced preview is read-only with public connection labels',async()=>{
- const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';let plans,calls=0;f.app.model.request=async()=>{calls++;throw Error('no request');};f.app.ui.showTaishiAdvanced=(_p,p)=>plans=p;const before=JSON.stringify(f.store.read());f.app.openTaishiAdvanced();assert.equal(calls,0);assert.equal(JSON.stringify(f.store.read()),before);assert.equal(plans.length,4);assert(!JSON.stringify(plans).includes('apiKey'));
+ const f=fixture();await f.app.openTaishi();f.app.settings.mode='st';let plans,calls=0;f.app.model.request=async()=>{calls++;throw Error('no request');};f.app.ui.showTaishiAdvanced=(_p,p)=>plans=p;const before=JSON.stringify(f.store.read());f.app.openTaishiAdvanced();assert.equal(calls,0);assert.equal(JSON.stringify(f.store.read()),before);assert.equal(plans.length,5);assert(!JSON.stringify(plans).includes('apiKey'));
  const p=f.store.read().powers[f.app.powerId],prompt=archivePrompt(p,[],f.ctx.chat),data=JSON.parse(prompt.user);assert.match(prompt.system,/经济简报/);assert.match(prompt.system,/世界经济轮廓不等于玩家可支取资源账本/);assert.match(data.recordSchemas.find(r=>r.id==='world').fields.find(f=>f.id==='resources').description,/主要产业/);assert(!data.recordSchemas.some(r=>r.id==='economy'));
 });

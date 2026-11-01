@@ -1,6 +1,6 @@
 import {assert} from './primitives.js';
 import {requestTimeoutSeconds} from './preferences.js';
-export const AI_TASKS=Object.freeze({archive:'整理与自动更新',creation:'拟定新内容',terminal:'终端安排',setup:'世界书初始化',general:'其他核对与建议',taishiWorld:'太始天高级 · 世界核对（复杂因果建议 Pro）',taishiPeople:'太始天高级 · 人物更新（日常建议 Flash）',taishiSummary:'太始天高级 · 汇总（建议 Flash）'});
+export const AI_TASKS=Object.freeze({archive:'整理与自动更新',creation:'拟定新内容',terminal:'终端安排',setup:'世界书初始化',general:'其他核对与建议',taishiWorld:'太始天 · 世界发展',taishiPeople:'太始天 · 人物活动',taishiSummary:'太始天 · 世界简报（可选）',taishiReview:'太始天 · 因果复核（按需）'});
 export function normalizeTaskRoutes(routes={},profiles=[]){
   assert(routes&&typeof routes==='object'&&!Array.isArray(routes)&&Object.keys(routes).every(k=>Object.hasOwn(AI_TASKS,k)),'AI任务分流格式无效');
   return Object.fromEntries(Object.keys(AI_TASKS).map(task=>{

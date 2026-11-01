@@ -199,12 +199,15 @@ export class WukuApp {
     if(this.manualBatchRun)this.manualBatchRun.stopped=true;
     this.aiActivity?.cancel(); this.modelListController?.abort();
   }
-  async query(prompt, snapshot, { task = 'general', retryTransient = false, taishiWorkflow = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
+  async query(prompt, snapshot, { task = 'general', retryTransient = false, taishiWorkflow = false, collaboration = null, coordinateOnly = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
     assert(!this.destroyed, '插件实例已释放');
     assert(!this.busy, '已有查询进行中');
     const connectionPlan = resolveTaskConnectionPlan(task,getContext(),this.settings,this.apiKey), connection=connectionPlan[0];this.requestSecrets=[this.apiKey,...accountSecrets()];
-    const rolePlans=taishiWorkflow?Object.fromEntries((workflowRetryRole?[workflowRetryRole]:TAISHI_ROLES).map(role=>[role,resolveTaskConnectionPlan(role,getContext(),this.settings,this.apiKey)])):null;
-    const roleConnections=rolePlans?Object.fromEntries(Object.entries(rolePlans).map(([role,plan])=>[role,plan[0]])):null;
+    // Resolve only a requested role: a disabled optional connection cannot block
+    // an otherwise unrelated task. ST raw generation must remain serialized.
+    const rolePlans=taishiWorkflow?{}:null;
+    let parallel=false;
+    if(taishiWorkflow)try{parallel=['taishiWorld','taishiPeople'].every(role=>resolveTaskConnectionPlan(role,getContext(),this.settings,this.apiKey).every(c=>c.settings.mode==='custom'));}catch{/* The selected role reports its own connection error. */}
     if(!taishiWorkflow)this.aiActivity?.connection(connection);
     this.aiActivity?.reading?.(prompt.reading||null);
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
@@ -247,7 +250,8 @@ export class WukuApp {
       const invoke=async(p,role,budget)=>{
         if(controller.signal.aborted||this.controller!==controller)throw new DOMException('查询已取消','AbortError');
         checkCapture();
-        const selected=roleConnections?.[role]||connection;
+        if(rolePlans&&!rolePlans[role])rolePlans[role]=resolveTaskConnectionPlan(role,getContext(),this.settings,this.apiKey);
+        const selected=rolePlans?.[role]?.[0]||connection;
         this.aiActivity?.connection(selected);
         this.runtimeLog?.step(logId,'专职请求',{task:role,profile:selected.profileName,model:selected.settings.model||'酒馆当前连接'});
         this.runtimeLog?.capture(logId,'专职请求 '+role,p);
@@ -261,7 +265,7 @@ export class WukuApp {
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
       requestStage='response';rawResponse=raw;
       if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
-      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{signal:controller.signal,parallel:false,resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
+      const data = taishiWorkflow?await runTaishiWorkflow(actualPrompt,invoke,{collaboration,coordinateOnly,signal:controller.signal,parallel,resume:workflowResume,retryRole:workflowRetryRole,validateChanges:validateWorkflowChanges,onAttempt:workflowOnAttempt,onCheckpoint:state=>workflowOnCheckpoint(state,reference.fingerprint),onStage:stage=>this.aiActivity?.phase(stage)}):parseJSON(raw);
       referenceReport.status='已返回';
       this.runtimeLog?.step(logId,'模型已返回',{characters:String(raw).length});
       if (this.controller === controller) this.aiActivity?.phase('整理与校验结果');
@@ -678,6 +682,8 @@ export class WukuApp {
       case 'taishi-civilization-dismiss': this.taishiCivilizationDraft=null;return;
       case 'taishi-section': return this.selectTaishiSection(data.section);
       case 'taishi-workflow-retry': return this.retryTaishiWorkflow(data.stage);
+      case 'taishi-workflow-coordinate': return this.retryTaishiWorkflow('taishiWorld',true);
+      case 'taishi-conflict-keep': return this.resolveTaishiConflict(Number(data.index));
       case 'taishi-workflow-cancel': return this.cancel();
       case 'taishi-workflow-discard': this.clearReviewCheckpoint(); this.pendingArchiveReview=null; this.cancel(); this.ui.closeDialog(); this.refresh(); return this.resumePlayerReview();
       case 'taishi-setup': return this.initializeTaishi();
