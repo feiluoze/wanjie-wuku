@@ -557,7 +557,7 @@ export class WukuApp {
     const asset=power.assets[id];assert(asset&&!asset.removed&&amount(asset.quantity)>0n,'该能力或物资已不可用');
     this.ui.goal=`基于已持有的「${asset.name}」，拟定符合当前金手指规则的使用或改进方案。${asset.permanent?'保留永久成果，不将它作为消耗品。':'投入以当前确认的库存与规则为准。'}先列出投入、实际效果与限制，确认后再执行。`;
     this.ui.tab='operations';this.plans=[];this.selected=null;this.ui.closeDialog();this.refresh();
-    this.ui.root?.querySelector('[data-goal]')?.focus();this.notice('已带入当前能力或物资，尚未调用模型或扣付。');
+    this.ui.root?.querySelector('[data-goal]')?.focus();this.notice('已带入所选能力或物资，请填写这次的目标。');
   }
   async sync(auto = false) {
     if (auto && (this.busy || this.mainBusy || this.committing)) return {skipped:true,reason:'busy',message:'当前任务尚未结束，本次自动核对跳过，未调用AI'};
@@ -669,6 +669,8 @@ export class WukuApp {
       case 'mmlc-rulebook': return this.ui.showMmlcRulebook();
       case 'mmlc-initial': return this.openMmlcInitial();
       case 'mmlc-initial-save': return this.applyMmlcInitial(data.values);
+      case 'mmlc-chain': return this.openMmlcChain(data.id);
+      case 'mmlc-use-outcome': return this.continueMmlc(data.id,data.kind);
       case 'mmlc-continue': return this.continueMmlc(data.id);
       case 'mmlc-rule-chapter': return this.ui.openMmlcRuleChapter(data.id);
       case 'space-wuku': this.ui.space = 'wuku'; this.ui.tab = 'management'; this.powerId = Object.values(this.store.read().powers).find(p => powerSpace(p)==='wuku')?.id; this.plans = []; this.selected = null; return this.refresh();
@@ -728,7 +730,7 @@ export class WukuApp {
         assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前任务结束');
         const routes=Object.fromEntries(Object.entries(data.values||{}).filter(([k])=>k.startsWith('route:')).map(([k,v])=>[k.slice(6),v]));
         const fallbacks=Object.fromEntries(Object.keys(routes).map(task=>[task,[data.values?.['fallback1:'+task],data.values?.['fallback2:'+task]].filter(Boolean)]));
-        saveTaskRoutes(routes,getContext(),fallbacks);this.settings=getSettings();this.ui.closeDialog();this.refresh();return this.notice('任务主连接与备用顺序已保存；未配置备用的任务不会自动切换。');
+        saveTaskRoutes(routes,getContext(),fallbacks);this.settings=getSettings();this.ui.closeDialog();this.refresh();return this.notice('主连接与备用顺序已保存，任务按配置的顺序尝试连接。');
       }
       case 'select-power': this.ui.space = powerSpace(this.store.read().powers[data.id]); this.powerId = data.id; this.plans = []; this.selected = null; return this.refresh();
       case 'select-operation': this.selected = this.ui.view.operations.find(op => op.id === data.id); return this.refresh();
@@ -747,7 +749,7 @@ export class WukuApp {
           }
         }, { captured: { chatKey: s.chatKey, stateId: s.state.id, revision: s.state.revision } });
         this.powerId = registered.id; this.ui.space = 'mmlc'; this.ui.mmlcSection = null; this.ui.tab = 'management'; this.ui.closeDialog(); this.refresh();
-        return this.notice('漫漫长路统计已接入。点击AI整理当前情况即可；未导入世界书或自动调用API。');
+        return this.notice('漫漫长路已接入，点击“整理当前情况”开始收录成果。正文世界书需另行导入。');
       }
       case 'role-read': return this.readRole();
       case 'role-save': return this.saveRole(data);
@@ -813,7 +815,7 @@ export class WukuApp {
         }, { captured: this.balancesCapture });
         this.ui.closeDialog(); this.refresh(); return this.notice(this.store.lastSave?.note || '余额已核对，当前账本没有变化');
       }
-      case 'adopt-balance-candidate': {const field=data.form?.elements.namedItem(data.input);assert(field&&!field.readOnly,'此余额不可直接修改');field.value=normAmount(data.value);return this.notice('已填入候选，确认并保存后才生效；不会再次扣款');}
+      case 'adopt-balance-candidate': {const field=data.form?.elements.namedItem(data.input);assert(field&&!field.readOnly,'此余额不可直接修改');field.value=normAmount(data.value);return this.notice('已填入余额候选，请核对后保存。');}
       case 'save-baseline': {
         assert(!this.busy && !this.mainBusy, '请等待正在进行的生成结束'); const pId = this.baselinePowerId, v = data.values;
         assert(this.baselineCapture && pId === this.powerId, '起始事实表单已失效，请重新打开'); this.store.assertCapture(this.baselineCapture);
@@ -953,7 +955,7 @@ export class WukuApp {
         const current=this.aiActivity?.current;
         if(!current||current.status!=='running'||String(current.id)!==String(data.taskId))return;
         assert(!this.committing,'结果正在提交，请等待完成；已保存内容不能通过取消撤销');
-        this.cancel();this.refresh();return this.notice('已取消当前插件任务，未提交的返回不会保存；沿用酒馆连接时远端可能仍在结束。');
+        this.cancel();this.refresh();return this.notice('任务已取消，未提交的结果已放弃。酒馆连接的远端请求可能需要片刻才结束。');
       }
       case 'cancel': this.cancel(); return this.notice('查询已取消，本次没有改变账目。');
       case 'open-workflow': return this.openWorkflow(data);

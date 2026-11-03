@@ -1,3 +1,4 @@
+import {bindMmlcLinks} from './mmlc-links.js';
 import {taishiWorldKey,separateTaishiWorlds} from './taishi-fill.js';
 import {archiveResource} from './builtin-resources.js';
 import {separateArchiveTables} from './archive-table-definitions.js';
@@ -140,12 +141,13 @@ export function saveArchive(power, input, source) {
   const module = isMmlc(power) ? input.module ?? mmlcModule(previous || { type, name }) : undefined;
   assert(!module || MMLC_MODULES.some(m => m.id === module), '漫漫长路模块归属无效');
   const originalSpecific=input.specific===undefined?previous?.specific:input.specific,specific=originalSpecific===undefined?undefined:clone(originalSpecific);validateSpecific(specific);
-   const next = { ...((input.ownerPowerId||previous?.ownerPowerId)?{ownerPowerId:input.ownerPowerId||previous.ownerPowerId}:{}),...(previous?.ownershipHistory?{ownershipHistory:clone(previous.ownershipHistory)}:{}),...(previous?.previousModule?{previousModule:previous.previousModule}:{}),...(previous?.previousSpecific?{previousSpecific:clone(previous.previousSpecific)}:{}), id, type, name, status, fields, ...(specific?{specific}:{}), source: clone(source), updatedAt: at, ...(module ? { module } : {}) };
+   const next = { ...((input.ownerPowerId||previous?.ownerPowerId)?{ownerPowerId:input.ownerPowerId||previous.ownerPowerId}:{}),...(previous?.ownershipHistory?{ownershipHistory:clone(previous.ownershipHistory)}:{}),...(previous?.previousModule?{previousModule:previous.previousModule}:{}),...(previous?.previousSpecific?{previousSpecific:clone(previous.previousSpecific)}:{}), ...(isMmlc(power)&&previous?.mmlcRefs?{mmlcRefs:clone(previous.mmlcRefs)}:{}), id, type, name, status, fields, ...(specific?{specific}:{}), source: clone(source), updatedAt: at, ...(module ? { module } : {}) };
   if (previous && (!isMmlc(power) || module === mmlcModule(previous)) && stable({ name, status, fields, source,specific }) === stable({ name: previous.name, status: previous.status, fields: previous.fields, source: previous.source,specific:previous.specific })) return previous;
   const history = clone(previous?.history || []);
   assert(history.length < 1000, '此档案历史超过1000次，请导出整理后再操作');
   if (previous) { const { history: _history, ...snapshot } = previous; history.push(snapshot); }
   power.archives[id] = { ...next, history };
+  if(isMmlc(power))bindMmlcLinks(power);
   return power.archives[id];
 }
 export const archiveMethods = {

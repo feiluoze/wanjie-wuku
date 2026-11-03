@@ -150,7 +150,7 @@ export const narrativeMethods = {
       if (status === 'waiting') { assert(a.status !== 'stopped', '该行动已停止自动承接'); delete a.review; }
       a.status = status;
     }, { facts: false });
-    this.refresh(); this.notice(status === 'confirmed' ? '已由玩家确认本次正文承接。' : status === 'stopped' ? '已停止这笔行动的自动承接；已结算所得保留，投入不会自动返还。' : '已保留同一行动等待补写；无需重新生成方案或扣费。');
+    this.refresh(); this.notice(status === 'confirmed' ? '已由玩家确认本次正文承接。' : status === 'stopped' ? '已停止这笔行动的自动承接。已结算所得保留，投入维持原账目。' : '已保留原行动，等待补写正文；沿用原方案与已付费用。');
   },
   openSceneSuggestions() {
     const s = this.ensureStable(), p = s.state.powers[this.powerId]; assert(p?.active, '请先选择已接入的金手指');
@@ -168,7 +168,7 @@ export const narrativeMethods = {
       const indices=[...new Set(new FormData(data.form).getAll('keep-scene').map(Number))];
       assert(indices.every(i=>Number.isInteger(i)&&i>=0&&i<previous.actions.length),'保留路线选择无效');
       kept=indices.map(i=>previous.actions[i]);
-      if(kept.length===previous.actions.length)return this.notice('所有路线都已保留，无需调用AI；取消勾选后可替换其他方向。');
+      if(kept.length===previous.actions.length)return this.notice('所有路线都已保留。取消勾选后，可重新生成对应方向。');
     }
     this.ui.sceneFocus = focus;
     let roleUnavailable = '';

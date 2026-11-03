@@ -122,7 +122,7 @@ export const spaceMethods={
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');
     const d=this.taishiEvolutionDraft;assert(d&&d.powerId===this.powerId,'发展设置窗口已失效');this.ensureStable();
     await this.store.transact(next=>{const p=next.powers[d.powerId];assert(isTaishi(p)&&p.active,'太始天接入已变化');p.taishiAutonomy=values.autonomy==='on';},{captured:d.captured,facts:false});
-    this.openTaishiDevelopment();this.notice(values.autonomy==='on'?'已允许AI合理创作发展候选；指定内部历时后可生成预览。':'已关闭自主发展；剧情整理与已有档案继续保留。');
+    this.openTaishiDevelopment();this.notice(values.autonomy==='on'?'已开启自主发展。选择世界和内部历时，即可预览发展结果。':'已关闭自主发展；剧情整理与已有档案继续保留。');
   },
   evolveTaishiStory(id){
     const d=this.taishiEvolutionDraft;assert(d&&d.powerId===this.powerId,'发展窗口已失效');const s=this.ensureStable({model:true});this.store.assertCapture(d.captured);

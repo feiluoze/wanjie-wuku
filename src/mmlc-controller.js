@@ -1,4 +1,5 @@
 import {assert,hash,stable} from './core.js';
+import {MMLC_OUTCOME_ACTIONS} from './mmlc-workbench.js';
 import {isMmlc,mmlcModule} from './mmlc.js';
 import {MMLC_RULEBOOK} from './mmlc-rulebook.js';
 import {MMLC_CONFIG} from './mmlc-config.js';
@@ -18,6 +19,7 @@ export function mmlcInitialRecords(){
 }
 
 export const mmlcMethods={
+ openMmlcChain(id){const s=this.ensureStable(),p=s.state.powers[this.powerId];this.ui.showMmlcChain(p,s.ctx.chat,id);},
  openMmlcInitial(){
   const s=this.ensureStable(),p=s.state.powers[this.powerId];assert(isMmlc(p)&&p.active&&!this.busy,'请先进入启用的漫漫长路');
   assert(!Object.keys(p.archives||{}).length,'已有成果时请整理正文，初授建档只用于空档案');
@@ -39,12 +41,13 @@ export const mmlcMethods={
     saveArchiveUpdate(p,{},saved,[],{chat:s.ctx.chat});
     this.record(next,'确认漫漫长路初授开局',[`建立 ${saved.length} 项基础档案；未推算库存或推进时间`],'setup',p.id);
    },{captured:d.captured});
-   this.mmlcInitialDraft=null;this.ui.closeDialog();this.notice('初授基础档案已建立；未调用AI，后续按实际剧情更新。');
+   this.mmlcInitialDraft=null;this.ui.closeDialog();this.notice('初授基础档案已建立，后续随剧情更新。');
   }finally{this.committing=false;this.refresh();}
  },
- continueMmlc(id){
+ continueMmlc(id,kind=null){
   const s=this.ensureStable(),p=s.state.powers[this.powerId],r=p?.archives?.[id];
   assert(isMmlc(p)&&p.active&&r&&r.status!=='ended'&&archiveCurrent(r,s.ctx.chat),'请选择当前有效的漫漫长路成果');
+  if(kind){const action=MMLC_OUTCOME_ACTIONS[kind];return this.openCreation({section:action.section,focusId:id,goal:`基于「${r.name}」已有的研究所得，${action.goal}我这次希望：`});}
   const module=mmlcModule(r),aim={arts:'继续参悟并拓展已验证方法的用途',projects:'继续研究，优先交付已经可用的部分并解决具体缺口',body:'继续修行，保留既有功法与性命所得',items:'改良已有器物，保留原有用途与个体',spirits:'完善当前能力与职责，保留同一位器灵的记忆与经历'}[module]||'继续改良与发展，保留已有成果';
   return this.openCreation({section:module,focusId:id,goal:`基于「${r.name}」${aim}。我这次希望：`});
  }

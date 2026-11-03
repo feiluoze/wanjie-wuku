@@ -162,6 +162,9 @@ export const MMLC_CONFIG = {
       "label": "法器丹药",
       "description": "记录已经制成、取得或明确持有的器物、丹药和材料；纯图纸留在研究工程。",
       "fields": [
+{"id": "produced", "label": "实际产出", "description": "正文明确的实际产出数量与单位，保留所属批次或统计范围。"},
+{"id": "delivered", "label": "已交付", "description": "明确已经交付或转出的数量、单位与对象。"},
+{"id": "stock", "label": "当前库存", "description": "正文明确的当前持有数量与单位；缺少明确余量时留空。"},
         {
           "id": "quantity",
           "label": "明确数量与单位",

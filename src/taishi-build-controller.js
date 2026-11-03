@@ -14,7 +14,7 @@ export const taishiBuildMethods={
     this.ui.resumeTaishiDialogs?.();
     if(!p.taishiWorldStructure)return this.openTaishiStructure('references');
     if(p.taishiWorldStructure.mode==='single')assert(p.archives?.[p.taishiWorldStructure.worldId]?.specific?.recordId==='world'&&p.archives[p.taishiWorldStructure.worldId].status!=='ended','指定主世界已失效，请重新选择建档结构');
-    if(!p.taishiBuildReferences?.books.some(b=>b.entryIds.length)){await this.openAIWorldbooks({taishiPowerId:p.id});return this.notice('请为太始天构建单独选择世界书和词条；共享参考不会自动加入。');}
+    if(!p.taishiBuildReferences?.books.some(b=>b.entryIds.length)){await this.openAIWorldbooks({taishiPowerId:p.id});return this.notice('请为本次太始天建档选择世界书和词条。');}
     let connectionLabel;try{connectionLabel=taskConnectionLabel(resolveTaskConnection('setup',s.ctx,this.settings,this.apiKey));}catch{connectionLabel='世界书初始化 · 未配置可用连接，请到连接设置检查任务分流';}
     const d={includePeople:false,structure:p.taishiWorldStructure,connectionLabel,selectionSummary:p.taishiBuildReferences.books.filter(b=>b.entryIds.length).map(b=>`${b.name}（${b.entryIds.length}条）`).join('、'),powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},loading:true,error:''};this.taishiBuildDraft=d;this.ui.showTaishiBuild(d);
     try{
@@ -52,7 +52,7 @@ export const taishiBuildMethods={
     const d=this.taishiBuildDraft;assert(d&&!d.loading,'请等待读取完成');this.ensureStable();
     assert(!this.busy&&!this.mainBusy&&!this.committing&&!this.pendingArchiveReview,'请先处理当前任务');
     await this.store.transact(next=>{const p=next.powers[d.powerId];assert(p?.active,'太始天已停用');delete p.taishiBuild;},{captured:d.captured,facts:false});
-    this.taishiBuildDraft=null;await this.initializeTaishi();this.notice('批次已重新建立；已有档案与历史保留，尚未调用模型。');
+    this.taishiBuildDraft=null;await this.initializeTaishi();this.notice('批次已重新建立，已有档案与历史保留。');
   },
   async selectTaishiBuildReferences(){
     const d=this.taishiBuildDraft;assert(d&&!d.loading,'请等待读取或生成结束');

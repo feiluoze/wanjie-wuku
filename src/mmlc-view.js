@@ -20,6 +20,7 @@ export function mmlcRelations(power, chat) {
  const edges=[];
  for(const r of records){
   if(r.specific?.adapterId!==MMLC_CONFIG.id)continue;
+  for(const id of r.mmlcRefs?.text===(r.specific.fields.links||'')?r.mmlcRefs.ids:[])if(records.some(x=>x.id===id)&&id!==r.id)edges.push({from:r.id,to:id,text:r.specific.fields.links,source:r.source});
   const names=String(r.specific.fields.links||'').split(/[;；、\n]/).map(normalize).filter(Boolean);
   for(const name of new Set(names)){
    const matches=aliases.get(name);if(matches?.size!==1)continue;
@@ -29,10 +30,12 @@ export function mmlcRelations(power, chat) {
  }
  return edges;
 }
-export function mmlcLinked(power, chat, id) {
- const ids=new Set(mmlcRelations(power,chat).flatMap(e=>e.from===id?[e.to]:e.to===id?[e.from]:[]));
- return [...ids].map(key=>power.archives[key]);
+export function mmlcLinked(power, chat, id, {depth=1}={}) {
+ const edges=mmlcRelations(power,chat),seen=new Set([id]);let frontier=[id];
+ for(let level=0;level<depth;level++){const next=[];for(const key of frontier)for(const e of edges){const target=e.from===key?e.to:e.to===key?e.from:null;if(target&&!seen.has(target)){seen.add(target);next.push(target);}}frontier=next;}
+ seen.delete(id);return [...seen].map(key=>power.archives[key]);
 }
+
 export function mmlcDashboard(power,chat,moduleId=null){
  const all=Object.values(power.archives||{}), valid=all.filter(r=>archiveCurrent(r,chat));
  return MMLC_MODULES.filter(m=>!moduleId||m.id===moduleId).map(m=>({

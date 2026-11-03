@@ -12,11 +12,11 @@ export const promptPresetMethods={
  openPromptPresets(){
   this.promptPresetCapture=captureAccount();this.promptPresetLibrary=getPromptPresetLibrary();this.promptPresetDraft=null;
   const lib=this.promptPresetLibrary,names=installedNames();
-  this.ui.dialog('自定义提示词预设',`<p>导入自己的补全预设，选择需要的提示块，再指定哪些任务使用。独立保存到当前酒馆账户，默认不启用；不包含Key，不改主聊天预设。</p>
-  <label>导入预设JSON<input type="file" accept=".json,application/json" data-prompt-preset-file></label><small>支持酒馆Chat Completion预设和武库导出的预设，最多2MB。只导入提示块，不导入模型、地址或采样参数。</small>
+  this.ui.dialog('自定义提示词预设',`<p>导入自己的补全预设，选择需要的提示块，再指定哪些任务使用。预设独立保存在当前账户，指定任务后生效；连接参数和主聊天预设沿用原设置。</p>
+  <label>导入预设JSON<input type="file" accept=".json,application/json" data-prompt-preset-file></label><small>支持酒馆Chat Completion预设和武库导出的预设，最多2MB。导入提示块，连接与采样参数在连接设置中配置。</small>
   ${names.length?`<form><label>或从酒馆已安装的预设中复制<select name="installedPreset">${names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></label>${button('prompt-preset-installed','复制并挑选')}</form>`:'<p class="wjwk-muted">当前酒馆未提供可读取的补全预设列表，可直接导入JSON文件。</p>'}
   <h3>已保存预设 · ${lib.presets.length}/20</h3>${lib.presets.map(p=>`<section class="wjwk-card"><strong>${esc(p.name)}</strong><p>${p.blocks.filter(b=>b.enabled&&b.kind==='text').length}个文本块 · ${p.blocks.filter(b=>b.enabled).reduce((n,b)=>n+b.content.length,0)}字符</p><div class="wjwk-toolbar">${button('prompt-preset-edit','挑选／编辑',`data-id="${esc(p.id)}"`)}${button('prompt-preset-export','导出',`data-id="${esc(p.id)}"`)}${button('prompt-preset-delete','删除',`data-id="${esc(p.id)}"`)}</div></section>`).join('')||'<p>尚未导入预设。</p>'}
-  <form><h3>哪些任务使用预设</h3>${Object.entries(AI_TASKS).map(([id,label])=>`<label>${esc(label)}<select name="preset:${id}"><option value="">关闭，使用武库原提示</option>${lib.presets.map(p=>`<option value="${esc(p.id)}" ${lib.routes[id]===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`).join('')}${button('prompt-preset-routes','保存任务选择')}</form><p class="wjwk-muted">自动更新与手动整理共用“整理与自动更新”；失败候选修复沿用该任务的选择。沿用酒馆连接时仍受酒馆自身预设影响。预设不能保证所有模型均不拒答。</p>`);
+  <form><h3>哪些任务使用预设</h3>${Object.entries(AI_TASKS).map(([id,label])=>`<label>${esc(label)}<select name="preset:${id}"><option value="">关闭，使用武库原提示</option>${lib.presets.map(p=>`<option value="${esc(p.id)}" ${lib.routes[id]===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`).join('')}${button('prompt-preset-routes','保存任务选择')}</form><p class="wjwk-muted">自动更新与手动整理共用“整理与自动更新”；失败候选修复沿用该任务的选择。沿用酒馆连接时仍受酒馆自身预设影响。实际回复取决于所用模型和渠道。</p>`);
  },
  async importUserPromptPreset(file){
   assertAccount(this.promptPresetCapture);assert(file?.size<=PRESET_FILE_LIMIT,'预设文件超过2MB');
