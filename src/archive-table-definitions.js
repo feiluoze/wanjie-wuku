@@ -1416,6 +1416,374 @@ const ORIGINAL_TABLE_DEFINITIONS=[
   ]
 }
 // 1026 additions end
+,{
+  "name": "命中注定",
+  "hash": "32c0ec93fcb2eca7",
+  "adapter": "wuku.statusbar_32c0ec93fcb2eca7",
+  "records": [
+    {
+      "id": "decrees",
+      "label": "命定与兑现",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "scope",
+          "label": "对象与作用范围",
+          "description": "对象与作用范围",
+          "type": "text"
+        },
+        {
+          "id": "result",
+          "label": "命定结果与禁则",
+          "description": "命定结果与禁则",
+          "type": "text"
+        },
+        {
+          "id": "condition",
+          "label": "条件、起算点与命期",
+          "description": "条件、起算点与命期",
+          "type": "text"
+        },
+        {
+          "id": "progress",
+          "label": "实际进度与兑现",
+          "description": "实际进度与兑现",
+          "type": "text"
+        },
+        {
+          "id": "revision",
+          "label": "修订、例外与相容关系",
+          "description": "修订、例外与相容关系",
+          "type": "text"
+        },
+        {
+          "id": "lasting",
+          "label": "持续影响",
+          "description": "持续影响",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "decrees",
+      "kind": "entity",
+      "retain": "命定与兑现中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    }
+  ],
+  "boundaries": [
+    "按词条原文记录实际状态、归属与持续结果；不新增资源费用、冷却或门槛。"
+  ]
+},
+{
+  "name": "召唤万岁",
+  "hash": "8e84b248f8708ffc",
+  "adapter": "wuku.statusbar_8e84b248f8708ffc",
+  "records": [
+    {
+      "id": "summons",
+      "label": "召唤对象",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "identity",
+          "label": "来源版本与本体身份",
+          "description": "来源版本与本体身份",
+          "type": "text"
+        },
+        {
+          "id": "nature",
+          "label": "对象性质、能力与用途",
+          "description": "对象性质、能力与用途",
+          "type": "text"
+        },
+        {
+          "id": "ownership",
+          "label": "归属与关系",
+          "description": "归属与关系",
+          "type": "text"
+        },
+        {
+          "id": "location",
+          "label": "位置与状态",
+          "description": "位置与状态",
+          "type": "text"
+        },
+        {
+          "id": "arrangement",
+          "label": "持续指令与收束安排",
+          "description": "持续指令与收束安排",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "worlds",
+      "label": "世界与持续现象",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "origin",
+          "label": "世界、时空与来源",
+          "description": "世界、时空与来源",
+          "type": "text"
+        },
+        {
+          "id": "effect",
+          "label": "现象、法则与范围",
+          "description": "现象、法则与范围",
+          "type": "text"
+        },
+        {
+          "id": "route",
+          "label": "门户与跨界联系",
+          "description": "门户与跨界联系",
+          "type": "text"
+        },
+        {
+          "id": "progress",
+          "label": "当前进展与持续安排",
+          "description": "当前进展与持续安排",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "summons",
+      "kind": "entity",
+      "retain": "召唤对象中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    },
+    {
+      "id": "worlds",
+      "kind": "entity",
+      "retain": "世界与持续现象中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    }
+  ],
+  "boundaries": [
+    "按词条原文记录实际状态、归属与持续结果；不新增资源费用、冷却或门槛。"
+  ]
+},
+{
+  "name": "神级选择",
+  "hash": "9538716afd671700",
+  "adapter": "wuku.statusbar_9538716afd671700",
+  "records": [
+    {
+      "id": "choices",
+      "label": "重要选择与收益",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "options",
+          "label": "事件与可选路线",
+          "description": "事件与可选路线",
+          "type": "text"
+        },
+        {
+          "id": "chosen",
+          "label": "实际选择与进展",
+          "description": "实际选择与进展",
+          "type": "text"
+        },
+        {
+          "id": "received",
+          "label": "实际到账奖励、效果与归属",
+          "description": "实际到账奖励、效果与归属",
+          "type": "text"
+        },
+        {
+          "id": "pending",
+          "label": "未完成目标与待兑现收益",
+          "description": "未完成目标与待兑现收益",
+          "type": "text"
+        },
+        {
+          "id": "lasting",
+          "label": "持续影响与后续用途",
+          "description": "持续影响与后续用途",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "choices",
+      "kind": "entity",
+      "retain": "重要选择与收益中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    }
+  ],
+  "boundaries": [
+    "按词条原文记录实际状态、归属与持续结果；不新增资源费用、冷却或门槛。"
+  ]
+},
+{
+  "name": "诸天聊天群",
+  "hash": "a98c7eabc434d281",
+  "adapter": "wuku.statusbar_a98c7eabc434d281",
+  "records": [
+    {
+      "id": "members",
+      "label": "群员与能力映照",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "identity",
+          "label": "身份、世界与版本",
+          "description": "身份、世界与版本",
+          "type": "text"
+        },
+        {
+          "id": "access",
+          "label": "接入阶段与关系",
+          "description": "接入阶段与关系",
+          "type": "text"
+        },
+        {
+          "id": "abilities",
+          "label": "已得映照、同步进展与启用选择",
+          "description": "已得映照、同步进展与启用选择",
+          "type": "text"
+        },
+        {
+          "id": "history",
+          "label": "重要经历与持续约定",
+          "description": "重要经历与持续约定",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "worlds",
+      "label": "世界与跨界通路",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "world",
+          "label": "世界与持续经历",
+          "description": "世界与持续经历",
+          "type": "text"
+        },
+        {
+          "id": "anchors",
+          "label": "锚点、坐标与安全落点",
+          "description": "锚点、坐标与安全落点",
+          "type": "text"
+        },
+        {
+          "id": "routes",
+          "label": "通路与通行授权",
+          "description": "通路与通行授权",
+          "type": "text"
+        },
+        {
+          "id": "changes",
+          "label": "命运变化与持续影响",
+          "description": "命运变化与持续影响",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "assets",
+      "label": "重要库存与交付",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "nature",
+          "label": "物品或资料性质与用途",
+          "description": "物品或资料性质与用途",
+          "type": "text"
+        },
+        {
+          "id": "quantity",
+          "label": "实际数量与状态",
+          "description": "实际数量与状态",
+          "type": "text"
+        },
+        {
+          "id": "owner",
+          "label": "归属与持有人",
+          "description": "归属与持有人",
+          "type": "text"
+        },
+        {
+          "id": "location",
+          "label": "位置与交付情况",
+          "description": "区分群员财产、待交付品、资料副本与群主实物库存",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "cooperation",
+      "label": "跨界合作成果",
+      "description": "初始化和后续整理时与主状态栏一起更新；同一对象接续原记录，保存重要持续事实。",
+      "fields": [
+        {
+          "id": "result",
+          "label": "已验证成果与用途",
+          "description": "已验证成果与用途",
+          "type": "text"
+        },
+        {
+          "id": "participants",
+          "label": "合作对象与来源世界",
+          "description": "合作对象与来源世界",
+          "type": "text"
+        },
+        {
+          "id": "method",
+          "label": "可复用技术、方法与稳定路线",
+          "description": "可复用技术、方法与稳定路线",
+          "type": "text"
+        },
+        {
+          "id": "conditions",
+          "label": "实际适配条件与持续约定",
+          "description": "实际适配条件与持续约定",
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "tables": [
+    {
+      "id": "members",
+      "kind": "entity",
+      "retain": "群员与能力映照中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    },
+    {
+      "id": "worlds",
+      "kind": "entity",
+      "retain": "世界与跨界通路中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    },
+    {
+      "id": "assets",
+      "kind": "entity",
+      "retain": "重要库存与交付中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    },
+    {
+      "id": "cooperation",
+      "kind": "entity",
+      "retain": "跨界合作成果中需要后续调用的对象与成果。",
+      "update": "初始化与后续更新一起填写；同一对象沿用原档案。"
+    }
+  ],
+  "boundaries": [
+    "按词条原文记录实际状态、归属与持续结果；不新增资源费用、冷却或门槛。"
+  ]
+}
 ];
 export const ARCHIVE_TABLE_DEFINITIONS=ORIGINAL_TABLE_DEFINITIONS.map(compactTableDefinition);
 export function archiveTableDefinition(power,config){

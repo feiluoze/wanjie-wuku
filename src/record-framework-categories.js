@@ -1,5 +1,9 @@
 // Exact built-in source fingerprints; categories recommend records, never limit powers.
 export const FRAMEWORK_CATEGORIES={
+"32c0ec93fcb2eca7":"rules",
+"8e84b248f8708ffc":"collection",
+"9538716afd671700":"growth",
+"a98c7eabc434d281":"companions",
   "970e1f277c7fa1a7": "combat",
   "8afbfd59794b9275": "combat",
   "2c5d6f89ba790725": "combat",
@@ -113,7 +117,8 @@ export const FRAMEWORK_CATEGORIES={
   "30463c08cde13e8a": "rules",
   "56cc54b9006c7505": "rules",
   "45d75a83298a9c77": "rules",
-  "d93f6c8fd6d477d1": "rules",
+  "d93f6c8fd6d477d1": "rules"
+,
   "0b8efa120ea35e4e": "collection",
   "b7567119b314f66b": "companions",
   "80350de02c84b48a": "companions",
