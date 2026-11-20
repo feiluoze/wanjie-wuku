@@ -1,4 +1,4 @@
-import {inferBuiltinResources,builtinResources,resourceMatches,negativeResourceSnapshotAllowed} from './builtin-resources.js';
+import {inferBuiltinResources,builtinResources,resourceMatches,negativeResourceSnapshotAllowed,resourceDefinition} from './builtin-resources.js';
 import {collaborationSettings} from './taishi-collaboration-config.js';
 import {validateSchedule,validateWorldSchedules} from './taishi-schedule.js';
 import {validateTaishiLocks} from './taishi-relations.js';
@@ -27,7 +27,7 @@ import { isTaishi } from './taishi.js';
 import {validatePeopleControls} from './taishi-people.js';
 import { stripVariableReceipts } from './receipt.js';
 export { stripVariableReceipts } from './receipt.js';
-export const VERSION = '1.7.3';
+export const VERSION = '1.7.4';
 export const MODULE_ID = 'wanjie_wuku_general';
 export const ASYNC_MARKER = 'WJWK_ASYNC_REQUEST_V1';
 export const STATE_MARKER = 'WJWK_COMMITTED_STATE_V1';
@@ -204,6 +204,18 @@ export function createPower(entry, companions = []) {
     cycles: {}, simulations: {}, managementRecords: {}, quotes: [], fixedQuotes: [], pricing: entry.name === '蝴蝶效应' ? 'fixed_effect' : 'stateful', createdAt: Date.now(),
   };
 }
+function panelBalanceAmount(value) {
+  const plain = value.replace(/,/g, '');
+  const scientific = /^(-?)(\d+)(?:\.(\d+))?\s*(?:e\s*|[×x]\s*10\s*\^\s*)([+-]?\d+)$/i.exec(plain);
+  if (!scientific) return normAmount(plain);
+  const [,sign,whole,fraction='',exponent] = scientific;
+  const digits = whole + fraction;
+  const point = whole.length + Number(exponent);
+  assert(Number.isSafeInteger(point) && point <= 120 && point >= -6, '科学计数超出账本可记范围');
+  const integer = point <= 0 ? '0' : digits.slice(0, point).padEnd(point, '0');
+  const decimals = (point < 0 ? '0'.repeat(-point) + digits : digits.slice(point)).replace(/0+$/, '');
+  return normAmount(sign + integer + (decimals ? '.' + decimals : ''));
+}
 export function extractPanelBalances(power, chat) {
   const findings = {};
   const names = [...new Set([power.name, power.name.replace(/（.*?）|\(.*?\)/g, '').trim()])].filter(Boolean);
@@ -235,9 +247,12 @@ export function extractPanelBalances(power, chat) {
         if (findings[resource.id]) continue;
         const labels = [...new Set([...(resource.labels || []), `${resource.name}余额`, resource.name])];
         for (const label of labels) {
-          const number = '-?(?:\\d{1,3}(?:,\\d{3})+|\\d{1,120})(?:\\.\\d{1,6})?';
+          const decimal = '-?(?:\\d{1,3}(?:,\\d{3})+|\\d{1,120})(?:\\.\\d{1,6})?';
+          const number = resourceDefinition(power,resource)?.kind === 'energy'
+            ? '(?:-?\\d{1,120}(?:\\.\\d{1,120})?\\s*(?:[eE]\\s*|[×xX]\\s*10\\s*\\^\\s*)[+-]?\\d{1,4}|' + decimal + ')'
+            : decimal;
           const m = plain.match(new RegExp(`(?:^|\\n)\\s*(?:[-*|]\\s*)?(?:当前|可用|剩余)?${escape(label)}\\s*[：:|]\\s*[\\[［(（]?\\s*(?:剩余|当前|现有|可用)?\\s*(${number})(?=[\\s;；,，\\]］)）点次个份/／|]|$)(?:\\s*(?:点|次)?\\s*[\\]］]?\\s*(?:->|→|=>)\\s*[\\[［]?\\s*(${number})(?=[\\s;；,，\\]］)）点次个份/／|]|$))?`));
-          if (m) { try { findings[resource.id] = { balance: normAmount((m[2] || m[1]).replace(/,/g, '')), source: `第 ${i + 1} 条模型回复 · ${power.name}`, messageIndex: i, evidence: m[0].trim() }; } catch { /* Ignore unparseable amounts; never substitute zero. */ } break; }
+          if (m) { try { findings[resource.id] = { balance: panelBalanceAmount(m[2] || m[1]), source: `第 ${i + 1} 条模型回复 · ${power.name}`, messageIndex: i, evidence: m[0].trim() }; } catch { /* Ignore unparseable amounts; never substitute zero. */ } break; }
         }
       }
     }

@@ -17,7 +17,7 @@ export function withBuiltinStatusbar(config,power){
  if(!row||row.disposition==='dedicated'||power?.adapterBinding&&!config)return config;
  const records=row.groups.map(g=>({id:g.id,label:g.title,description:g.cardinality==='per-object'?'原文具名详情，同一名称更新原对象，不覆盖其他对象。':'原文状态栏当前主表，每块仅一条；不是新增成果或事件流水。',fields:g.fields.filter(f=>!statusbarResourceReadOnly(power,f.id))}));
  const existing=(config?.records||[]).map(r=>({...r,...(r.fields.some(f=>archiveResource(power,r.id,f.id))?{description:r.description+' 当前余额只读引用资源账本；此分类只登记收支依据，不得把余额另写进通用描述。'}:{}),fields:r.fields.filter(f=>!archiveResource(power,r.id,f.id))}));
- return {...(config||{format:'wjwk-adapter',schemaVersion:1,target:{primaryHashes:[row.contentHash]},id:'wuku.statusbar_'+row.contentHash,version:'1.0.0',name:row.name+'原文状态栏',operations:[]}),records:[...existing,...records]};
+ return {...(config||{format:'wjwk-adapter',schemaVersion:1,target:{primaryHashes:[row.contentHash]},id:row.adapterId||'wuku.statusbar_'+row.contentHash,version:'1.0.0',name:row.name+'原文状态栏',operations:[]}),records:[...existing,...records]};
 }
 // insert/update on a declared original statusbar are redundant hints, not table commands.
 export function normalizeStatusbarOperation(power,raw){

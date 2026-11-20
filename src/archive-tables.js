@@ -8,6 +8,12 @@ const identityValue=(details,id,table)=>details?.[id]??details?.[table.fields.fi
 const identityValues=(details,table)=>(table.identityFields||[]).map(id=>identityValue(details,id,table));
 const fullIdentity=(details,table)=>Boolean(table.identityFields?.length)&&identityValues(details,table).every(v=>typeof v==='string'&&v.trim());
 const sameIdentity=(a,b,table)=>fullIdentity(a,table)&&fullIdentity(b,table)&&identityValues(a,table).every((v,i)=>key(v)===key(identityValues(b,table)[i]));
+function distinctTableObjects(a,b,table){
+ return Boolean(table.distinctIdentity && identityValues(a,table).some((value,index)=>{
+  const other=identityValues(b,table)[index];
+  return value && other && key(value)!==key(other);
+ }));
+}
 export function archiveTables(power){
  const config=creationConfig(power),d=selectedTableDefinition(power,config,archiveTableDefinition(power,config));if(!d||!config)return null;
  const fields=t=>{const r=config.records.find(r=>r.id===t.id);return r?[{...t,label:r.label,fields:r.fields}]:[];};
@@ -28,7 +34,7 @@ export function tableTarget(power,raw){
  assert(!table.disabled,'该记录框架未启用；旧档保留可查看，请先启用对应框架再自动更新');
  assert(raw.operation===undefined||['insert','update','transition'].includes(raw.operation),'子表操作须为 insert、update 或 transition；不允许删除或批量覆盖');
  const rows=Object.values(power.archives||{}).filter(r=>r.specific?.adapterId===spec.adapter&&r.specific.recordId===table.id);
- const matches=table.kind==='singleton'?rows:rows.filter(r=>names(r).includes(key(raw.name))||sameIdentity(r.specific.fields,raw.details,table));
+ const matches=table.kind==='singleton'?rows:rows.filter(r=>sameIdentity(r.specific.fields,raw.details,table)||names(r).includes(key(raw.name))&&!distinctTableObjects(r.specific.fields,raw.details,table));
  const explicit=raw.archiveId?power.archives?.[raw.archiveId]:null;
  assert(!raw.archiveId||explicit?.specific?.adapterId===spec.adapter&&explicit.specific.recordId===table.id,'子表更新必须指向同一分类中的原档案');
  // Names can resolve a unique row, but recency cannot establish identity.
@@ -54,7 +60,9 @@ export function tableTarget(power,raw){
   if(table.exclusiveWith?.length)assert(!Object.values(power.archives||{}).some(r=>r.specific?.adapterId===spec.adapter&&table.exclusiveWith.includes(r.specific.recordId)&&names(r).includes(key(raw.name))),'同一对象已在关联分类中登记；请沿用原 recordId 和 archiveId，不能重复建档');
   assert(table.kind==='singleton'||key(raw.name)!==key(table.label),'新增名称应是具体对象或独立事件，不能只写子表标题');
  }
- return {table,before,name:before?.name||(table.kind==='singleton'?table.singletonName||table.label:raw.name)};
+ const qualifier=table.distinctIdentity&&fullIdentity(raw.details,table)?' · '+identityValues(raw.details,table).join(' / ').slice(0,150):'';
+ const name=qualifier&&!raw.name.endsWith(qualifier)?raw.name.slice(0,Math.max(1,200-qualifier.length))+qualifier:raw.name;
+ return {table,before,name:before?.name||(table.kind==='singleton'?table.singletonName||table.label:name)};
 }
 export function assertTableBatchIdentity(power,raw,previous){
  const spec=archiveTables(power),table=spec?.tables.find(t=>t.id===raw.recordId);if(!table)return;
@@ -66,7 +74,7 @@ export function assertTableBatchIdentity(power,raw,previous){
 export function assertChronologicalTableInsert(power,raw,previous){
  if(raw.operation!=='insert')return;
  const t=archiveTables(power)?.tables.find(t=>t.id===raw.recordId);if(!t)return;
- assert(!previous.some(r=>r?.recordId===t.id&&Number.isInteger(r.sourceIndex)&&r.sourceIndex<raw.sourceIndex&&(t.kind==='singleton'||key(r.name)===key(raw.name)||sameIdentity(r.details,raw.details,t))),'本批前层已经提出同一对象；后层必须接续更新，不可再次 insert');
+ assert(!previous.some(r=>r?.recordId===t.id&&Number.isInteger(r.sourceIndex)&&r.sourceIndex<raw.sourceIndex&&(t.kind==='singleton'||sameIdentity(r.details,raw.details,t)||key(r.name)===key(raw.name)&&!distinctTableObjects(r.details,raw.details,t))),'本批前层已经提出同一对象；后层必须接续更新，不可再次 insert');
 }
 export function archiveTablePolicy(power){
  const spec=archiveTables(power);if(!spec)return null;

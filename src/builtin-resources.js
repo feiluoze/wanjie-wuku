@@ -9,7 +9,7 @@ export function inferBuiltinResources(entry){
 export function resourceMatches(resource,definition){return resource.id===definition.id||definition.labels.includes(resource.name);}
 export function resourceDefinition(power,resource){return builtinResources(power)?.resources.find(d=>resourceMatches(resource,d))||null;}
 export function statusbarResource(power,fieldId){
- const definition=builtinResources(power)?.resources.find(d=>'s_'+hash(d.label).slice(0,10)===fieldId||d.label===fieldId);return resourceBinding(power,definition);
+ const definition=builtinResources(power)?.resources.find(d=>[d.label,...(d.statusbarLabels||[])].some(label=>'s_'+hash(label).slice(0,10)===fieldId||label===fieldId));return resourceBinding(power,definition);
 }
 function resourceBinding(power,definition){
  if(!definition)return null;
