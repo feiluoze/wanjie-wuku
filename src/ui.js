@@ -276,6 +276,7 @@ export class WorkbenchUI {
   saveRecovery(view) {
     const {save,busy,state,chatKey}=view;
     if(!state||!save||save.chatKey!==chatKey||save.verified||save.saving)return '';
+    if(save.conflict)return `<section class="wjwk-save-recovery" role="alert" aria-label="档案保存冲突"><strong>酒馆档案与本次保存冲突</strong><p>后续档案修改已暂停。先导出完整备份，再核对酒馆里的档案。</p><div class="wjwk-save-recovery-actions">${btn('export-all','导出完整备份','wjwk-primary')}${btn('runtime-log-open','查看保存日志','wjwk-link')}</div></section>`;
     const blocked=!save.local;
     return `<section class="wjwk-save-recovery" role="alert" aria-label="档案保存需要处理"><strong>${blocked?'档案尚未安全保存，已暂停后续修改':'已有本机备份，酒馆保存仍待核实'}</strong><p>${blocked?'当前数据暂留本页，请先导出完整备份；处理前不要刷新或关闭页面。':'本机备份已写入；可重试酒馆保存，或先导出完整备份。'}</p>${save.storageError||save.server?`<p class="wjwk-muted">${esc([save.storageError&&'浏览器：'+save.storageError,save.server&&'酒馆：'+save.server].filter(Boolean).join('；'))}</p>`:''}<div class="wjwk-save-recovery-actions">${btn('retry-save','重试保存','wjwk-primary',busy)}${btn('export-all','导出完整备份','wjwk-secondary')}${btn('runtime-log-open','查看保存日志','wjwk-link')}</div></section>`;
   }

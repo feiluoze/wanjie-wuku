@@ -188,7 +188,7 @@ export async function verifyReceiptSaved(capture, target, id, { context = getCon
 }
 export class ChatStore {
   constructor({ context = getContext, fetchImpl = globalThis.fetch, lockManager = globalThis.navigator?.locks, storageImpl = storage() } = {}) {
-    this.context = context; this.fetchImpl = fetchImpl; this.lockManager = lockManager; this.storageImpl = storageImpl; this.queue = Promise.resolve(); this.lastSave = null; this.listeners = new Set(); this.pendingSaves = new Map(); this.onPersistence = () => {};
+    this.context = context; this.fetchImpl = fetchImpl; this.lockManager = lockManager; this.storageImpl = storageImpl; this.queue = Promise.resolve(); this.lastSave = null; this.listeners = new Set(); this.pendingSaves = new Map(); this.conflictedSaves = new Set(); this.onPersistence = () => {};
   }
   backupKey(captured) { return `${MODULE_ID}:chat:${captured.key}`; }
   read() {
@@ -200,7 +200,9 @@ export class ChatStore {
     if (!this.pendingSaves.has(captured.key) && local && (!host || local.writeVersion > (host.writeVersion || 0))) selected = local;
     if (!selected) selected = emptyState();
     validateState(selected);
-    ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = selected;
+    if (!this.conflictedSaves.has(captured.key)) {
+      ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = selected;
+    }
     return clone(selected);
   }
   capture() { const ctx = this.context(), state = this.read(); return { chatKey: scope(ctx).key, stateId: state.id, revision: state.revision }; }
@@ -208,7 +210,7 @@ export class ChatStore {
     assert(scope(this.context()).key === captured.chatKey, '聊天已经切换，本次结果不会写入其他聊天');
     assert(state.id === captured.stateId && state.revision === captured.revision, '档案已经变化，本次旧结果已丢弃');
   }
-  async persist(state) {
+  async persist(state, {retry = false} = {}) {
     const ctx = this.context(), captured = scope(ctx);
     const report = data => { try { this.onPersistence({ chatKey: captured.key, ...data }); } catch { /* Diagnostics cannot prevent saving. */ } };
     let local = false, storageError = '';
@@ -224,50 +226,101 @@ export class ChatStore {
       this.lastSave = { verified: false, local, note, at: Date.now(), chatKey: captured.key };
       report({ local, storageError, server: '接口不可用', verified: false }); throw new Error(note);
     }
-    ctx.chatMetadata.extensions ||= {}; ctx.chatMetadata.extensions[MODULE_ID] = clone(state);
     this.lastSave = { verified: false, local, saving: true, note: local ? '已提交本机账本，正在核对酒馆保存…' : '本机备份不可用，正在尝试酒馆保存…', at: Date.now(), chatKey: captured.key };
     if (local) for (const listener of this.listeners) { try { listener(); } catch { /* Preserve the committed checkpoint. */ } }
-    let verified = false, server = '接口不可用', verification = null;
+    let verified = false, server = '接口不可用', verification = null, conflict = false;
     if (typeof save === 'function') {
-      try { await timeout(Promise.resolve(save.call(ctx)), 12000, '酒馆保存超时'); server = '已调用'; }
-      catch { server = '保存报错或超时'; }
-      // A host can throw after writing. Read-back remains the authority.
-      try {
-        for (let attempt=0;attempt<2;attempt++) {
-          assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
-          let saved;
-          try{saved = await readSavedMetadata(ctx, captured, this.fetchImpl);}catch(error){
-            assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
-            verification={attempts:attempt+1,reason:'read-error'};
-            if(attempt===1)throw error;
-            await new Promise(resolve=>setTimeout(resolve,200));continue;
-          }
-          assert(scope(this.context()).key===captured.key,'聊天已切换，停止核对旧聊天');
-          verified = saved?.id === state.id && saved.writeVersion === state.writeVersion && stable(saved) === stable(state);
-          verification={attempts:attempt+1,reason:verified?'matched':!saved?'missing':saved.id!==state.id?'different-state':saved.writeVersion!==state.writeVersion?'different-write-version':'different-content'};
-          if(verified||attempt===1)break;
-          // Read again only; never replay a mutation or force overwrite the chat.
-          await new Promise(resolve=>setTimeout(resolve,200));
+      let attempts = 0, writeAttempts = 0, observed = null, timedOut = false;
+      const active = () => {
+        const current = this.context();
+        assert(scope(current).key === captured.key, '聊天已切换，停止核对旧聊天');
+        return current;
+      };
+      const read = async () => {
+        active();
+        attempts++;
+        const saved = await readSavedMetadata(ctx, captured, this.fetchImpl);
+        active();
+        return saved;
+      };
+      const write = async () => {
+        const current = active();
+        current.chatMetadata.extensions ||= {};
+        current.chatMetadata.extensions[MODULE_ID] = clone(state);
+        const saveCurrent = current.saveChat || current.saveMetadata || globalThis.saveChatConditional;
+        writeAttempts++;
+        try {
+          await timeout(Promise.resolve(saveCurrent.call(current)), 12000, '酒馆保存超时');
+        } catch (error) {
+          timedOut = error?.message === '酒馆保存超时';
         }
-        server = verified ? '落盘核对成功' : '落盘内容未匹配';
-      } catch { server += '，落盘读取失败'; }
+      };
+      const compare = saved => {
+        if (!saved) return 'missing';
+        if (saved.id !== state.id) return 'different-state';
+        if (saved.writeVersion < state.writeVersion) return 'older-write-version';
+        if (saved.writeVersion > state.writeVersion) return 'newer-write-version';
+        return stable(saved) === stable(state) ? 'matched' : 'different-content';
+      };
+      const isConflict = result => ['newer-write-version', 'different-state', 'different-content'].includes(result);
+      let reason = 'read-error';
+      try {
+        if (retry) {
+          observed = await read();
+          reason = compare(observed);
+        }
+        if (reason !== 'matched' && !isConflict(reason)) {
+          await write();
+          observed = await read();
+          reason = compare(observed);
+          if (!isConflict(reason) && reason !== 'matched') {
+            const previous = observed;
+            await new Promise(resolve => setTimeout(resolve, 250));
+            observed = await read();
+            reason = compare(observed);
+            const current = active().chatMetadata.extensions?.[MODULE_ID];
+            if (!timedOut && reason === 'older-write-version' && previous &&
+                stable(previous) === stable(observed) && current && stable(current) === stable(state)) {
+              await write();
+              observed = await read();
+              reason = compare(observed);
+            }
+          }
+        }
+      } catch { reason = 'read-error'; }
+      verified = reason === 'matched';
+      conflict = isConflict(reason) || (reason === 'read-error' && this.conflictedSaves.has(captured.key));
+      verification = {attempts, reason, writeAttempts, expectedWriteVersion: state.writeVersion, observedWriteVersion: observed?.writeVersion ?? null};
+      server = verified ? '落盘核对成功' : conflict ? '检测到档案写入冲突，已暂停覆盖' :
+        reason === 'older-write-version' ? '酒馆仍保留较早的档案版本' : reason === 'missing' ? '酒馆未读回武库档案' : '落盘读取失败';
+      if (conflict) {
+        this.conflictedSaves.add(captured.key);
+        this.pendingSaves.set(captured.key, clone(state));
+        const current = this.context();
+        const live = current.chatMetadata.extensions?.[MODULE_ID];
+        if (isConflict(reason) && scope(current).key === captured.key && live && stable(live) === stable(state)) {
+          current.chatMetadata.extensions[MODULE_ID] = observed;
+        }
+      } else if (verified) {
+        this.conflictedSaves.delete(captured.key);
+      }
     }
-    const note = verified ? (local ? '已保存，并核对酒馆落盘' : `已保存到酒馆并核对成功；浏览器${storageError}，本机备份暂不可用`) : local ? '已保存本机备份；酒馆落盘未核实，可稍后重试保存' : `浏览器${storageError}，酒馆保存也未确认；档案暂留本页，请重试酒馆保存或导出档案，刷新前请先处理`;
-    this.lastSave = { verified, local, storageError, server, verification, blocked: !local && !verified, note, at: Date.now(), chatKey: captured.key };
+    const note = conflict ? '酒馆档案与本次保存冲突，请先导出完整备份。' : verified ? (local ? '已保存，并核对酒馆落盘' : `已保存到酒馆并核对成功；浏览器${storageError}，本机备份暂不可用`) : local ? '已保存本机备份；酒馆落盘未核实，可稍后重试保存' : `浏览器${storageError}，酒馆保存也未确认；档案暂留本页，请重试酒馆保存或导出档案，刷新前请先处理`;
+    this.lastSave = { verified, local, storageError, server, verification, conflict, blocked: conflict || !local && !verified, note, at: Date.now(), chatKey: captured.key };
     if (!local || !verified) report({ local, storageError, server, verified, verification });
     if (!local && !verified) {
       this.pendingSaves.set(captured.key, clone(state));
       for (const listener of this.listeners) { try { listener(); } catch { /* Keep pending data exportable. */ } }
       throw new Error(note);
     }
-    this.pendingSaves.delete(captured.key);
+    if (!conflict) this.pendingSaves.delete(captured.key);
     return this.lastSave;
   }
   retrySave() {
     const identity = scope(this.context()).key;
     const work = async () => {
       assert(scope(this.context()).key === identity, '聊天已切换，保存已取消');
-      const result = await this.persist(this.read());
+      const result = await this.persist(this.read(), {retry:true});
       for (const listener of this.listeners) { try { listener(); } catch { /* Save is already complete. */ } }
       return result;
     };

@@ -20,8 +20,32 @@ test('a stale first read is checked once more without replaying save or mutation
 });
 test('unverified save diagnostics identify missing state without recording private contents',async()=>{
  const {store}=fixture({badSave:true});const reports=[];store.onPersistence=r=>reports.push(r);
- await store.transact(s=>{s.syncCursor=1;});strict.deepEqual(reports[0].verification,{attempts:2,reason:'missing'});
+ await store.transact(s=>{s.syncCursor=1;});strict.deepEqual(reports[0].verification,{attempts:2,reason:'missing',writeAttempts:1,expectedWriteVersion:1,observedWriteVersion:null});
  strict.equal('state' in reports[0],false);
+});
+test('a stable older server version is saved again once without repeating the transaction',async()=>{
+ const {store,ctx}=fixture();
+ const prior=store.read();
+ let saves=0,mutations=0,disk=prior;
+ ctx.saveChat=async()=>{if(++saves===2)disk=clone(ctx.chatMetadata.extensions[MODULE_ID]);};
+ store.fetchImpl=async()=>({ok:true,json:async()=>[{chat_metadata:{extensions:{[MODULE_ID]:disk}}}]});
+ const result=await store.transact(s=>{mutations++;s.syncCursor=1;});
+ strict.equal(result.save.verified,true);strict.equal(saves,2);strict.equal(mutations,1);
+ strict.equal(disk.writeVersion,1);strict.equal(disk.syncCursor,1);
+});
+test('a newer disk version is never overwritten by a retry',async()=>{
+ const {store,ctx}=fixture();
+ const disk={...store.read(),writeVersion:2,syncCursor:2};
+ let saves=0;
+ ctx.saveChat=async()=>{saves++;};
+ store.fetchImpl=async()=>({ok:true,json:async()=>[{chat_metadata:{extensions:{[MODULE_ID]:disk}}}]});
+ const result=await store.transact(s=>{s.syncCursor=1;});
+ strict.equal(result.save.verification.reason,'newer-write-version');
+ strict.equal(store.read().syncCursor,1);
+ strict.equal(ctx.chatMetadata.extensions[MODULE_ID].syncCursor,2);
+ await store.retrySave();
+ strict.equal(saves,1);
+ await strict.rejects(store.transact(s=>{s.syncCursor=3;}),/上一笔档案/);
 });
 test('swallowed host save failure still preserves one durable local transaction and reports unverified', async () => { const { store, ctx, memory } = fixture({ badSave: true }); const result = await store.transact(s => { s.syncCursor = 1; }); strict.equal(result.save.verified, false); strict.match(result.save.note, /本机备份/); ctx.chatMetadata = {}; strict.equal(store.read().syncCursor, 1); strict.equal(memory.size, 1); });
 test('local persistence failure falls back to verified host storage', async () => {
