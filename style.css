@@ -640,6 +640,8 @@
 /* 1.5.5 save recovery: visible within every module, without hiding export. */
 .wjwk-save-recovery{position:sticky;top:0;z-index:4;border:1px solid var(--wk-warning);border-radius:12px;padding:14px 16px;margin:0 0 18px;background:var(--wk-card);box-shadow:0 3px 14px #0002;overflow-wrap:anywhere}
 .wjwk-save-recovery p{margin:8px 0;line-height:1.6}
+.wjwk-save-note{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;font-size:.9em}
+.wjwk-save-note button{flex:none}
 .wjwk-save-recovery-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .wjwk-save-recovery-actions button{min-height:44px}
 @media(max-width:600px){.wjwk-save-recovery{padding:12px}.wjwk-save-recovery-actions>button{flex:1 1 120px}}

@@ -130,6 +130,11 @@ export class WorkbenchUI {
       }
       if(name==='power-management'){this.showPowerManagement();return;}
       if(name==='attention-open'){this.showAttention();return;}
+      if(name==='dismiss-save-notice'){
+        (this.dismissedSaveNotices ??= new Set()).add(this.view.chatKey);
+        button.closest('.wjwk-save-note').remove();
+        return;
+      }
       if(name==='attention-main'){this.closeDialog();this.tab='management';this.render(this.view);this.panel.querySelector('.wjwk-main')?.scrollTo(0,0);return;}
       const powerMenu = button.closest('.wjwk-power-menu,[data-power-management]');
       if (powerMenu) {
@@ -277,8 +282,11 @@ export class WorkbenchUI {
     const {save,busy,state,chatKey}=view;
     if(!state||!save||save.chatKey!==chatKey||save.verified||save.saving)return '';
     if(save.conflict)return `<section class="wjwk-save-recovery" role="alert" aria-label="档案保存冲突"><strong>酒馆档案与本次保存冲突</strong><p>后续档案修改已暂停。先导出完整备份，再核对酒馆里的档案。</p><div class="wjwk-save-recovery-actions">${btn('export-all','导出完整备份','wjwk-primary')}${btn('runtime-log-open','查看保存日志','wjwk-link')}</div></section>`;
-    const blocked=!save.local;
-    return `<section class="wjwk-save-recovery" role="alert" aria-label="档案保存需要处理"><strong>${blocked?'档案尚未安全保存，已暂停后续修改':'已有本机备份，酒馆保存仍待核实'}</strong><p>${blocked?'当前数据暂留本页，请先导出完整备份；处理前不要刷新或关闭页面。':'本机备份已写入；可重试酒馆保存，或先导出完整备份。'}</p>${save.storageError||save.server?`<p class="wjwk-muted">${esc([save.storageError&&'浏览器：'+save.storageError,save.server&&'酒馆：'+save.server].filter(Boolean).join('；'))}</p>`:''}<div class="wjwk-save-recovery-actions">${btn('retry-save','重试保存','wjwk-primary',busy)}${btn('export-all','导出完整备份','wjwk-secondary')}${btn('runtime-log-open','查看保存日志','wjwk-link')}</div></section>`;
+    if(save.local){
+      if(this.dismissedSaveNotices?.has(chatKey))return '';
+      return `<div class="wjwk-save-note"><span>已有本机备份，酒馆保存待确认</span>${btn('dismiss-save-notice','收起','wjwk-link')}</div>`;
+    }
+    return `<section class="wjwk-save-recovery" role="alert" aria-label="档案保存需要处理"><strong>档案尚未安全保存，已暂停后续修改</strong><p>当前数据暂留本页，请先导出完整备份。处理前请保持页面开启。</p>${save.storageError||save.server?`<p class="wjwk-muted">${esc([save.storageError&&'浏览器：'+save.storageError,save.server&&'酒馆：'+save.server].filter(Boolean).join('；'))}</p>`:''}<div class="wjwk-save-recovery-actions">${btn('retry-save','重试保存','wjwk-primary',busy)}${btn('export-all','导出完整备份','wjwk-secondary')}${btn('runtime-log-open','查看保存日志','wjwk-link')}</div></section>`;
   }
   showModules(state) {
     this.dialog('独立模块开关', `<form><p data-wjwk-help>只开启当前聊天正在玩的模块。关闭后暂停自动整理、规则与档案发送，已有数据保留。</p><label class="wjwk-checkbox"><input type="checkbox" name="mmlc" ${moduleEnabled(state,'mmlc')?'checked':''}>漫漫长路</label><label class="wjwk-checkbox"><input type="checkbox" name="taishi" ${moduleEnabled(state,'taishi')?'checked':''}>太始天</label><p class="wjwk-muted">漫漫长路需配合正文世界书使用。太始天自带完整词条规则，个人世界设定可通过世界书或参考资料补充。模块记录已有能力与成果。</p>${btn('modules-save','保存模块开关','wjwk-primary')}</form>`);
@@ -493,7 +501,7 @@ export class WorkbenchUI {
       ${resources.length ? `<div class="wjwk-resource-heading">资源</div>${btn('baseline','手动修正余额','wjwk-secondary wjwk-manual-balance',busy)}` : ''}${resources.map(r => {const d=resourceDefinition(power,r);return `<div class="wjwk-resource"><span>${esc(r.name)}${d?`<small> · ${{point:'专属点数',energy:'可用能量',quota:'可用次数'}[d.kind]}</small>`:''}</span><strong>${r.balance === null ? '未确认' : esc(r.balance)}</strong></div>`;}).join('')}
       <details class="wjwk-sidebar-tools"><summary>其他设置与管理</summary>${btn('simple-mode',this.simpleMode?'切换完整界面':'切换简洁界面','wjwk-link')}${btn('runtime-log-open','运行日志','wjwk-link')}${btn('ai-ref-open','插件 AI 参考世界书','wjwk-link',busy)}${power ? btn('adapter-open','词条适配配置','wjwk-link',busy) : ''}${power && !isMmlc(power)&&!isTaishi(power) ? '<details><summary>余额与接入</summary>' + btn('baseline', resources.some(r => r.balance === null) ? '确认余额 · 开始使用' : resources.length ? '调整余额与已有能力' : '补录已有能力与物品', 'wjwk-primary wjwk-setup-button', busy) + (resources.length ? btn('balances', '查看全部词条余额', 'wjwk-link', busy) : '') + btn('toggle-power', power.active ? '暂停接入' : '恢复接入', 'wjwk-link', busy) + '</details>' : ''}</details>
       <details class="wjwk-role-status"><summary>角色变量接入</summary><strong>${roleLinked ? '角色 MVU 已接入' : '角色变量（可选）'}</strong><p>${roleLinked ? `绑定 ${Object.keys(state.roleLink.bindings).length} 项余额 · ${state.roleLink.roots.length} 个区域` : '无需接入也能管理记录；已有变量可绑定读取。'}</p>${btn('manage', '金手指与角色接入', 'wjwk-link', busy)}${roleLinked ? btn('role-refresh', '刷新角色余额', 'wjwk-link', busy || pending.length > 0) : ''}</details>
-      <details class="wjwk-sidebar-bottom"><summary>档案备份</summary>${btn('export', '导出当前模块档案', 'wjwk-link', !state)}${btn('export-all', '完整聊天备份（三模块）', 'wjwk-link', !state)}${btn('backup', '恢复档案', 'wjwk-link', busy)}${save && !save.verified ? btn('retry-save', '重试酒馆保存', 'wjwk-link', busy || !state) : ''}</details><div class="wjwk-design-seal" aria-hidden="true"><span>◇</span><p>一卷一境<br>万象有迹可循</p></div></aside>
+      <details class="wjwk-sidebar-bottom"><summary>档案备份</summary>${btn('export', '导出当前模块档案', 'wjwk-link', !state)}${btn('export-all', '完整聊天备份（三模块）', 'wjwk-link', !state)}${btn('backup', '恢复档案', 'wjwk-link', busy)}${save?.chatKey===view.chatKey && !save.verified && !save.conflict ? btn('retry-save', '重试酒馆保存', 'wjwk-link', busy || !state) : ''}</details><div class="wjwk-design-seal" aria-hidden="true"><span>◇</span><p>一卷一境<br>万象有迹可循</p></div></aside>
       <main class="wjwk-main ${this.tab === 'management' ? 'wjwk-player-main' : ''}" aria-busy="${busy || querying || committing || continuing ? 'true' : 'false'}">${this.saveRecovery(view)}<div class="wjwk-context-line"><span class="wjwk-eyebrow">${esc(power?.name || '等待接入')}</span>${power&&!isMmlc(power)&&!isTaishi(power)?btn("power-management","管理词条","wjwk-secondary",busy):""}<span class="wjwk-muted">${esc(view.managementChat?.some(m => !m.is_user && !m.is_system) ? `当前正文：第${view.managementChat.findLastIndex(m => !m.is_user && !m.is_system) + 1}条` : '暂无正文')}</span></div>
       ${power&&(isMmlc(power)||isTaishi(power))?`<nav class="wjwk-quick-tools" aria-label="当前档案常用操作">${btn('open-archive','手动补录 / 修正','wjwk-secondary',busy||historyMismatch||pending.length>0||!power.active)}${resources.length?btn('baseline','修正余额','wjwk-secondary',busy||historyMismatch||pending.length>0):''}${btn('delete-power',isMmlc(power)?'删除统计档案':isTaishi(power)?'删除太始天档案':'删除当前词条','wjwk-warning',busy||historyMismatch||pending.length>0)}</nav>`:''}
 
