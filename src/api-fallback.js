@@ -1,7 +1,7 @@
 // Bounded transport failover. Parsing, validation and persistence stay outside.
 export function transportFailure(kind,message,httpStatus){
  const error=new Error(message);error.transportKind=kind;
- error.retryableTransport=['network','timeout'].includes(kind)||(kind==='http'&&[408,429,500,502,503,504].includes(httpStatus));
+ error.retryableTransport=['network','timeout'].includes(kind)||(['http','provider'].includes(kind)&&[408,429,500,502,503,504,524].includes(httpStatus));
  if(httpStatus!==undefined)error.httpStatus=httpStatus;
  return error;
 }
@@ -9,11 +9,21 @@ export function transportFailure(kind,message,httpStatus){
 export function permanentProviderError(d={}) {
  return /insufficient|quota|billing|balance|payment|invalid.{0,8}key|authentication|unauthorized|forbidden|invalid.?request|unsupported|not.?found|context.?length|token.?limit|content.?filter|额度|余额|欠费|鉴权|不支持|上下文.{0,8}(限制|超)/i.test(`${d.providerCode||''} ${d.providerMessage||''}`);
 }
-export function providerFailure(d,message){
- const error=new Error(message);error.requestStage='response';
- if(d.providerError&&!d.textCharacters&&!permanentProviderError(d)&&/service.?unavailable|overload|temporar|server.?busy|rate.?limit|too.?many.?requests|gateway.?timeout|internal.?server.?error|服务.{0,4}(不可用|繁忙)|限流|^(500|502|503|504|408|429)$/i.test(`${d.providerCode||''} ${d.providerMessage||''}`.trim())){
-  error.transportKind='provider';error.retryableTransport=true;error.httpStatus=d.httpStatus;
- }
+export function wrappedProviderError(content){
+ return /^\[API\s*错误\]\s*(\S[\s\S]*)$/i.exec(content.trim())?.[1];
+}
+export function providerFailure(d,message,kind='provider'){
+ if(!d.providerError&&kind!=='http')return Object.assign(new Error(message),{requestStage:'response'});
+ const detail=`${d.providerCode||''} ${d.providerMessage||''}`.trim();
+ const status=Number(detail.match(/^([45]\d{2})(?:\s|$)|\bstatus(?:\s+code)?\s*[:=]?\s*([45]\d{2})\b/i)?.slice(1).find(Boolean))||d.httpStatus;
+ const quota=/insufficient.?quota|quota.*(?:exceeded|exhausted)|(?:monthly|daily) quota|billing|balance|payment|额度|余额|欠费/i.test(detail);
+ const busy=status===503||/service.?unavailable|overload|high demand|server.?busy|服务.{0,4}(不可用|繁忙)/i.test(detail);
+ const limited=status===429||/rate.?limit|too.?many.?requests|限流/i.test(detail);
+ const timeout=[408,504,524].includes(status)||/gateway.?timeout|timed out/i.test(detail);
+ const label=quota?'AI 渠道额度不足，请更换渠道或补充额度':busy?'AI 渠道繁忙，请稍后重试或更换渠道':timeout?'AI 渠道请求超时，请稍后重试或更换渠道':limited?'AI 渠道请求太频繁，请稍后再试':message;
+ const error=transportFailure(kind,label===message?message:`${label}${status>=400?`（HTTP ${status}）`:''}`,status);
+ error.requestStage='transport';
+ error.retryableTransport=!quota&&!permanentProviderError(d)&&(kind==='http'||!d.textCharacters)&&(error.retryableTransport||busy||timeout||limited||/temporar|internal.?server.?error/i.test(detail));
  return error;
 }
 export function retryDelay(ms,signal){

@@ -1,3 +1,5 @@
+import {wrappedProviderError} from './api-fallback.js';
+
 // Read only explicit final-text fields. Reasoning and tool arguments are never prose.
 function textParts(value) {
   if (typeof value === 'string') return value;
@@ -23,15 +25,16 @@ export function parseModelResponse(data, status = 200) {
    if(!block){inlineReasoning+=content.length;content='';break;}
    inlineReasoning+=block[0].length;content=content.slice(block[0].length).trim();
   }
+  const providerError=data?.error||wrappedProviderError(content);
   const diagnostic = {httpStatus: status, format, finish, choices: Array.isArray(data?.choices) ? data.choices.length : 0,
     contentType: typeof message?.content === 'string' ? 'string' : Array.isArray(message?.content) ? 'parts' : 'missing',
-    textCharacters: content.length, reasoningPresent: Boolean(inlineReasoning || message?.reasoning_content || message?.reasoning || message?.thinking),
-    toolsPresent: Boolean(message?.tool_calls?.length || message?.function_call), refusalPresent: Boolean(message?.refusal), providerError: Boolean(data?.error)};
+    textCharacters: providerError&&!data?.error?0:content.length, reasoningPresent: Boolean(inlineReasoning || message?.reasoning_content || message?.reasoning || message?.thinking),
+    toolsPresent: Boolean(message?.tool_calls?.length || message?.function_call), refusalPresent: Boolean(message?.refusal), providerError: Boolean(providerError)};
   const usage=data?.usage;
   diagnostic.reasoningCharacters=inlineReasoning+(typeof message?.reasoning_content==='string'?message.reasoning_content.length:0);
   if(usage)diagnostic.usage=Object.fromEntries([['promptTokens',usage.prompt_tokens],['completionTokens',usage.completion_tokens],['reasoningTokens',usage.completion_tokens_details?.reasoning_tokens]].filter(([,v])=>Number.isFinite(v)&&v>=0));
-  if(data?.error){const e=data.error;diagnostic.providerMessage=String(typeof e==='string'?e:e.message||'').replace(/Bearer\s+[^\s"']+/gi,'Bearer [已隐藏]').replace(/sk-[\w-]+/g,'[已隐藏]').slice(0,400);diagnostic.providerCode=String(e.type||e.code||'').slice(0,80);}
-  if (data?.error) return {diagnostic, error:'接口在成功响应中返回错误对象；本次未提交，请查看运行日志中的响应诊断'};
+  if(providerError){const e=providerError;diagnostic.providerMessage=String(typeof e==='string'?e:e.message||'').replace(/Bearer\s+[^\s"']+/gi,'Bearer [已隐藏]').replace(/sk-[\w-]+/g,'[已隐藏]').slice(0,400);diagnostic.providerCode=String(e.code||e.type||'').slice(0,80);}
+  if(providerError)return {diagnostic,error:data?.error?'接口在成功响应中返回错误对象；本次未提交，请查看运行日志中的响应诊断':'AI 渠道返回错误；请查看运行日志中的响应诊断'};
   if(diagnostic.toolsPresent||finish==='tool_calls')return {diagnostic,error:'接口返回了工具调用，当前整理任务只接受JSON正文；本次未提交。请检查中转的工具注入设置，未执行工具或自动重试'};
   if (content.trim()) return {content, diagnostic};
   const detail = finish === 'length' ? '生成达到接口输出限制，但未返回最终正文' : finish === 'content_filter' || diagnostic.refusalPresent ? '接口拒绝生成或触发内容过滤' : diagnostic.toolsPresent ? '接口只返回工具调用，没有最终正文' : diagnostic.reasoningPresent ? '接口只返回思考内容，没有最终正文' : format === 'unknown' ? '接口返回格式不在已支持的正文结构中' : '接口返回空正文';

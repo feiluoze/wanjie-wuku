@@ -1,6 +1,6 @@
 import {archiveFormatOptions} from './archive-contract.js';
 import {composePromptPreset} from './prompt-presets.js';
-import {transportFailure,providerFailure,permanentProviderError} from './api-fallback.js';
+import {transportFailure,providerFailure,wrappedProviderError} from './api-fallback.js';
 import {backendRequestHeaders,independentFetch} from './model-transport.js';
 import { GENERATION_DEFAULTS, OUTPUT_TOKEN_LIMIT, requestTimeoutSeconds } from './preferences.js';
 import {customRequestParameters} from './model-parameters.js';
@@ -144,7 +144,14 @@ export class ModelConnection {
         if (signal?.aborted) abortHandler(); else signal?.addEventListener('abort', abortHandler, { once: true });
         timer = setTimeout(() => reject(transportFailure('timeout','酒馆查询超时；本次返回不会写入档案')), seconds * 1000);
       });
-      try { const result = await Promise.race([raw, cancelled]); assert(typeof result === 'string' && result.trim(), '模型没有返回正文'); return result; }
+      try {
+        const result = await Promise.race([raw, cancelled]); assert(typeof result === 'string' && result.trim(), '模型没有返回正文');
+        if(wrappedProviderError(result)){
+          const parsed=parseModelResponse({choices:[{message:{content:result}}]});report(parsed.diagnostic);
+          throw providerFailure(parsed.diagnostic,parsed.error);
+        }
+        return result;
+      }
       finally { clearTimeout(timer); signal?.removeEventListener('abort', abortHandler); }
     }
     assert(settings.mode === 'custom', '连接方式无效');
@@ -165,9 +172,8 @@ export class ModelConnection {
         if (!response.ok) {
             let diagnostic={httpStatus:response.status,format:'http-error'};
             try{if(typeof response.json==='function'){const parsed=parseModelResponse(await response.json(),response.status);diagnostic={...parsed.diagnostic,httpStatus:response.status,format:'http-error'};}}catch{}
-            report(diagnostic);const error=transportFailure('http',`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,response.status);
-            if(permanentProviderError(diagnostic))error.retryableTransport=false;
-            throw error;
+            report(diagnostic);
+            throw providerFailure(diagnostic,`模型请求失败（HTTP ${response.status}）；本次没有改变账目`,'http');
           }
         let data;
         try { data = await response.json(); } catch {
@@ -176,6 +182,7 @@ export class ModelConnection {
           throw new Error('接口响应不是完整 JSON，可能返回了流式数据或被网关截断；本次未提交，不会自动重试');
         }
         const parsed = parseModelResponse(data,response.status ?? 200); report(parsed.diagnostic);
+        if(parsed.diagnostic.providerError)throw providerFailure(parsed.diagnostic,parsed.error);
         if(parsed.diagnostic.finish==='length'){const limit=customParameters.max_completion_tokens??customParameters.max_tokens??settings.maxTokens??GENERATION_DEFAULTS.maxTokens;const error=new Error('输出达到接口输出限制（请求上限 '+limit+' tokens）；本次未提交。请在AI连接与方案→高级设置与自动核算→输出上限中提高额度，或缩小本批整理范围');error.requestStage='response';throw error;}
         if(parsed.error)throw providerFailure(parsed.diagnostic,parsed.error); return parsed.content;
       }

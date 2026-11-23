@@ -3,6 +3,7 @@ import {assert,clone,stable,ASYNC_MARKER} from './core.js';
 import {ARCHIVE_FIELDS} from './archives.js';
 import {creationConfig} from './creation-config.js';
 import {normalizePlayerGuide} from './player-guide.js';
+import {wrappedProviderError} from './api-fallback.js';
 // Strings are lexical units; damaged object braces must not truncate an array.
 function rawSection(raw,key){
  let objects=0,arrays=0;
@@ -45,6 +46,7 @@ function repairOutputPolicy(failure){
 }
 export function responseRepairPrompt(pending,power){
  const failures=(pending.data.rawFailures||[]).slice(0,1).map((f,index)=>({...f,index}));assert(failures.length,'没有保存的格式失败回复');
+ assert(!wrappedProviderError(failures[0].raw),'这次没有收到成果，原回复是 AI 渠道报错。请稍后重查该楼层，或更换渠道后重查。');
  const sourceIndexes=new Set(failures.flatMap(f=>f.sourceIndexes));
  const failedText=failures.map(f=>f.raw).join('\n'),policy=repairOutputPolicy(failures[0]);
  const payload={task:'只修复原回复的JSON语法和字段位置',allowedOutputs:policy.outputs,failed:failures.map(({index,raw,error,diagnostic,sourceIndexes})=>({index,raw,error,diagnostic,sourceIndexes})),fieldTypes:ARCHIVE_FIELDS,recordSchemas:creationConfig(power)?.records||[],sources:pending.sources.filter(s=>sourceIndexes.has(s.index)),playerNote:pending.playerNote||'',existingIdentities:Object.values(power.archives||{}).filter(r=>failedText.includes(r.id)||r.name?.length>=2&&failedText.includes(r.name)).map(r=>({archiveId:r.id,name:r.name,type:r.type,recordId:r.specific?.recordId}))};
