@@ -235,7 +235,7 @@ export class WukuApp {
       referenceReport={books:reference.summary,characters:reference.characters,fingerprint:reference.fingerprint,at:Date.now(),status:'发送中'};this.referenceLast=referenceReport;
       this.runtimeLog?.step(logId,'发送请求',{systemCharacters:String(actualPrompt.system||'').length,userCharacters:String(actualPrompt.user||'').length,inputCharacters:prompt.inputCharacters||{},references:reference.summary});
       let input;try{input=JSON.parse(prompt.user);}catch{}
-      const carried=input?.selectedRules||[input?.selectedRule||{id:input?.ownership?.currentPower?.id||snapshot.state.powers[this.powerId]?.id,name:input?.ownership?.currentPower?.name||snapshot.state.powers[this.powerId]?.name,fullText:input?.rules}];
+      const carried=prompt.combinedArchive?input.entries.map(entry=>({id:entry.powerId,name:entry.name,fullText:entry.input.rules})):input?.selectedRules||[input?.selectedRule||{id:input?.ownership?.currentPower?.id||snapshot.state.powers[this.powerId]?.id,name:input?.ownership?.currentPower?.name||snapshot.state.powers[this.powerId]?.name,fullText:input?.rules}];
       this.runtimeLog?.step(logId,'携带规则',{rules:carried.filter(p=>typeof p?.fullText==='string').map(p=>({id:p.id,name:p.name,characters:p.fullText.length})),references:reference.summary,referenceCharacters:reference.characters,scope:'插件主动携带的规则与所选参考；不代表酒馆主正文的全部世界书'});
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');

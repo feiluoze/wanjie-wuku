@@ -4,7 +4,7 @@ import strict from 'node:assert/strict';
 import { fixture } from './mvu-fixture.js';
 import { archiveSources, applyArchiveChanges } from '../src/archive-review.js';
 import { normalizeArchiveRange, archiveRangeBounds } from '../src/archive-scope.js';
-import { validateState, clone, chatHashes, hash, stable } from '../src/core.js';
+import { validateState, clone, chatHashes, hash, stable, createPower, importBook } from '../src/core.js';
 const wait=()=>new Promise(r=>setTimeout(r,500));
 function response(f,changes=true){return completeReview(null,{changes:changes?[{type:'skill',name:'拂风绵掌',status:'active',fields:{level:'已掌握'},sourceIndex:0,quote:'你已掌握拂风绵掌',ruleQuote:f.power.rules.slice(0,20)}]:[]});}
 test('manual rescan rereads reviewed floors without erasing incremental cursors',async()=>{
@@ -43,6 +43,35 @@ test('explicit automatic save persists validated changes and advances sources wi
 });
 test('existing review-only mode never silently becomes automatic save',async()=>{
  const f=fixture();f.app.settings.mode='st';f.app.model.request=async()=>response(f);await f.store.transact(n=>{n.powers[f.power.id].autoArchiveReview=true;});f.app.schedulePlayerReview('normal');await wait();strict.ok(f.app.pendingArchiveReview);strict.equal(Object.keys(f.store.read().powers[f.power.id].archives).length,0);
+});
+test('eligible entries share one request and a missing result leaves that entry unread',async()=>{
+ for(const missing of [false,true]){
+  const f=fixture();f.app.settings.mode='st';
+  const other=createPower(importBook({entries:{2:{comment:'第二种能力',content:'记录剧情中明确完成的另一类成果。'}}},'自编规则')[0]);
+  await f.store.transact(next=>{
+   next.powers[other.id]=other;
+   for(const power of Object.values(next.powers))Object.assign(power,{
+    autoArchiveReview:true,autoArchiveSave:true,autoArchiveStart:0,archiveAuto:{every:1,context:0,combine:true}
+   });
+  });
+  let calls=0;
+  f.app.model.request=async prompt=>{
+   calls++;
+   const input=JSON.parse(prompt.user);
+   strict.equal(input.entries.length,2);
+   strict.equal(input.sources.length,1);
+   strict.ok(input.entries.every(entry=>!Object.hasOwn(entry.input,'sources')));
+   const answer={changes:[],message:'',floorReviews:[{sourceIndex:0,status:'reviewed',changeCount:0}]};
+   return JSON.stringify(missing?{entry1:answer}:{entry1:answer,entry2:answer});
+  };
+  f.app.schedulePlayerReview('normal');
+  clearTimeout(f.app.playerReviewTimer);f.app.playerReviewTimer=null;
+  await f.app.runPlayerReview();
+  const powers=f.store.read().powers;
+  strict.equal(calls,1);
+  strict.equal(powers[f.power.id].archiveReviewed.length,1);
+  strict.equal(powers[other.id].archiveReviewed.length,missing?0:1);
+ }
 });
 test('automatic parse failures do not advance sources or loop API calls and manual can retry',async()=>{
  const f=fixture();f.app.settings.mode='st';let calls=0;f.app.model.request=async()=>{calls++;return 'not JSON';};await f.app.togglePlayerAutoSave();f.app.schedulePlayerReview('normal');await wait();strict.equal(f.store.read().powers[f.power.id].archiveReviewed.length,0);f.app.schedulePlayerReview('normal');await wait();strict.equal(calls,1);

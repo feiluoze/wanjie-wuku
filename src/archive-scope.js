@@ -18,5 +18,5 @@ export function archiveRangeLabel(power) {
 export function normalizeArchiveAuto(raw = {}) {
  const every=Number(raw.every ?? 1), context=Number(raw.context ?? 6);
  if(!Number.isSafeInteger(every)||every<1||every>12||!Number.isSafeInteger(context)||context<0||context>80)throw Error('更新间隔须为1—12条角色回复，参考前文须为0—80条角色回复');
- return {every,context};
+ return {every,context,...(raw.combine===true||raw.combine==='on'?{combine:true}:{})};
 }
