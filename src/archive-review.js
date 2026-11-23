@@ -340,17 +340,22 @@ export const archiveReviewMethods = {
     }finally{if(this.manualBatchRun===run)this.manualBatchRun=null;this.refresh();}
   },
   async clearArchiveBatch(){assert(!this.busy&&!this.archiveReviewJob&&!this.pendingArchiveReview&&!this.manualBatchRun,'请先取消任务或处理候选');const s=this.ensureStable(),id=this.powerId;await this.store.transact(next=>{delete next.powers[id].archiveBatch;},{captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},facts:false});this.openArchiveBatch();this.refresh();},
-  openArchiveRange() {
+  openArchiveRange(manualOnly=false) {
     const s=this.ensureStable(), p=s.state.powers[this.powerId]; assert(p?.active,'请先选择当前金手指');
-    this.archiveRangeDraft={powerId:p.id,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}};
-    this.ui.showArchiveRange(p,s.ctx.chat.length);
+    this.archiveRangeDraft={powerId:p.id,manualOnly,captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}};
+    this.ui.showArchiveRange(p,s.ctx.chat.length,manualOnly);
   },
   async saveArchiveRange(data) {
     assert(!this.busy&&!this.mainBusy&&!this.committing,'请等待当前操作完成');
     const d=this.archiveRangeDraft;assert(d,'读取范围窗口已失效');this.ensureStable();
-    const range=normalizeArchiveRange(data.values), auto=normalizeArchiveAuto(data.values);
-    await this.store.transact(next=>{assert(next.powers[d.powerId]?.active,'接入已变化');next.powers[d.powerId].archiveReadRange=range;next.powers[d.powerId].archiveAuto=auto;},{captured:d.captured,facts:false});
-    this.archiveRangeDraft=null;this.ui.closeDialog();this.refresh();this.notice('更新设置已保存。自动按角色回复间隔处理新内容；读取范围用于手动补漏。');
+    const range=normalizeArchiveRange(data.values), auto=d.manualOnly?null:normalizeArchiveAuto(data.values);
+    await this.store.transact(next=>{
+      const power=next.powers[d.powerId];assert(power?.active,'接入已变化');
+      power.archiveReadRange=range;
+      if(auto)power.archiveAuto=auto;
+    },{captured:d.captured,facts:false});
+    this.archiveRangeDraft=null;this.ui.closeDialog();this.refresh();
+    this.notice(d.manualOnly?'读取范围已保存，下次手动整理将使用此范围。':'更新设置已保存。自动按角色回复间隔处理新内容；读取范围用于手动补漏。');
   },
 
   reviewArchives(options = {}) {

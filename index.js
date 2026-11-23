@@ -915,6 +915,7 @@ export class WukuApp {
       case 'archive-batch-continuous': return this.runArchiveBatch(true);
       case 'archive-batch-clear': return this.clearArchiveBatch();
       case 'archive-range': return this.openArchiveRange();
+      case 'archive-read-range': return this.openArchiveRange(true);
       case 'save-archive-range': return this.saveArchiveRange(data);
       case 'terminal-review':
       case 'review-archives': return this.reviewArchives({ rescan: true });

@@ -63,7 +63,8 @@ test('home shows possibilities, current results and history before advanced tool
   const f = setup(), ui = Object.create(WorkbenchUI.prototype); ui.view = {}; f.power.name = '母巢';
   const empty = ui.management(f.state, f.power, false, 'st', null, f.ctx.chat);
   strict.ok(empty.indexOf('能做什么') < empty.indexOf('现在有什么')); strict.ok(empty.indexOf('现在有什么') < empty.indexOf('最近做过什么'));
-  strict.match(empty, /AI 整理当前情况|不用先填写表格/); strict.match(empty, /name="playerNote"/); strict.doesNotMatch(empty, /name="field:/);
+  strict.match(empty, /data-action="player-initial"[^>]*>整理当前情况<\/button>\s*<button[^>]*data-action="archive-read-range"/);
+  strict.match(empty, /name="playerNote"/); strict.doesNotMatch(empty, /name="field:/);
   f.power.playerGuide = normalizePlayerGuide({ ...f.guide, summary: '<img src=x>' }, f.power);
   const populated = ui.management(f.state, f.power, false, 'st', null, f.ctx.chat); strict.doesNotMatch(populated, /<img src=x>/); strict.match(populated, /&lt;img/);
   strict.match(archivePrompt(f.power, [], f.ctx.chat, f.note).system, /愿望记录为planned/);
