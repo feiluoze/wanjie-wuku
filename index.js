@@ -199,7 +199,7 @@ export class WukuApp {
     if(this.manualBatchRun)this.manualBatchRun.stopped=true;
     this.aiActivity?.cancel(); this.modelListController?.abort();
   }
-  async query(prompt, snapshot, { task = 'general', retryTransient = false, taishiWorkflow = false, collaboration = null, coordinateOnly = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
+  async query(prompt, snapshot, { task = 'general', retryTransient = false, singleAttempt = false, taishiWorkflow = false, collaboration = null, coordinateOnly = false, referenceBatch = null, workflowResume = null, workflowRetryRole = null, validateWorkflowChanges = () => [], workflowOnAttempt = () => {}, workflowOnCheckpoint = () => {} } = {}) {
     assert(!this.destroyed, '插件实例已释放');
     assert(!this.busy, '已有查询进行中');
     const connectionPlan = resolveTaskConnectionPlan(task,getContext(),this.settings,this.apiKey), connection=connectionPlan[0];this.requestSecrets=[this.apiKey,...accountSecrets()];
@@ -248,7 +248,7 @@ export class WukuApp {
       this.runtimeLog?.capture(logId,'完整请求',actualPrompt);
       this.aiActivity?.phase('等待 AI 回复');
       const send=async(p,plan,budget)=>{const wire=databasePromptTrial(p,Boolean(prompt.databasePromptTrial));if(wire.messages){this.runtimeLog?.step(logId,'数据库预设试验',{presetId:DATABASE_PROMPT_TRIAL_ID,messages:wire.messages.length,characters:wire.messages.reduce((n,m)=>n+m.content.length,0)});this.runtimeLog?.capture(logId,'实际多消息请求',wire);}return requestWithFallback(plan,selected=>this.model.request(wire,{signal:controller.signal,connection:selected,onRequest:info=>{this.aiActivity?.budget?.(info);this.runtimeLog?.step(logId,'实际插件输入',{task:selected.task,attempt:selected.attempt,...info});},onResponse:diagnostic=>this.runtimeLog?.step(logId,'接口响应诊断',{task:selected.task,attempt:selected.attempt,...diagnostic})}),{
-        retryDelays:retryTransient?[8000,20000]:[],maxAttempts:budget?.remainingAttempts??Infinity,
+        retryDelays:retryTransient&&!singleAttempt?[8000,20000]:[],maxAttempts:singleAttempt?1:budget?.remainingAttempts??Infinity,
         onRetry:info=>{this.aiActivity?.phase(`${info.delay/1000}秒后自动重试（第${info.attempt}/${info.limit}次）`);this.runtimeLog?.step(logId,'等待自动重试',info);},
         signal:controller.signal,check:()=>{if(this.controller!==controller)throw new DOMException('查询已取消','AbortError');checkCapture();assert(snapshot.referenceOnly||hash(stable(chatHashes(getContext().chat)))===contextHash,'查询期间剧情发生变化，本次旧结果已丢弃');},
         onAttempt:selected=>{if(selected.attempt>1)budget?.onExtraAttempt();this.aiActivity?.connection(selected);this.aiActivity?.phase(selected.retry>0?'等待自动重试回复':selected.attempt>1?'等待备用 API 回复':'等待 AI 回复');this.runtimeLog?.step(logId,'API尝试',{task:selected.task,attempt:selected.attempt,limit:selected.attemptLimit,profile:selected.profileName,model:selected.settings.mode==='st'?'酒馆当前连接':selected.settings.model});},

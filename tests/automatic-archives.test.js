@@ -73,9 +73,11 @@ test('single-floor review reuses the reply after an archive write and waits on a
   }else strict.equal(Object.keys(p.archives).length,2);
  }
 });
-test('eligible entries share one request and a missing result leaves that entry unread',async()=>{
- for(const missing of [false,true]){
+test('combined updates keep valid members, retry only missing members and abandon a broken format for the round',async()=>{
+ for(const scenario of ['complete','partial','wrong_floor','wrong_count','unusable','invalid_json','retry_failed']){
   const f=fixture();f.app.settings.mode='st';
+  const allInvalid=['unusable','invalid_json'].includes(scenario);
+  if(allInvalid)f.ctx.chat.push({is_user:false,mes:'另一层剧情已经明确结束。'});
   const other=createPower(importBook({entries:{2:{comment:'第二种能力',content:'记录剧情中明确完成的另一类成果。'}}},'自编规则')[0]);
   await f.store.transact(next=>{
    next.powers[other.id]=other;
@@ -83,23 +85,34 @@ test('eligible entries share one request and a missing result leaves that entry 
     autoArchiveReview:true,autoArchiveSave:true,autoArchiveStart:0,archiveAuto:{every:1,context:0,combine:true}
    });
   });
-  let calls=0;
+  const calls=[];
   f.app.model.request=async prompt=>{
-   calls++;
    const input=JSON.parse(prompt.user);
-   strict.equal(input.entries.length,2);
    strict.equal(input.sources.length,1);
+   const answer={changes:[],message:'',floorReviews:[{sourceIndex:input.sources[0].index,status:'reviewed',changeCount:0}]};
+   if(!input.entries){
+    calls.push(['single',input.ownership.currentPower.id,input.sources[0].index]);
+    if(scenario==='retry_failed')throw Object.assign(Error('temporary outage'),{retryableTransport:true});
+    return JSON.stringify(answer);
+   }
+   calls.push(['combined']);
+   strict.equal(input.entries.length,2);
    strict.ok(input.entries.every(entry=>!Object.hasOwn(entry.input,'sources')));
-   const answer={changes:[],message:'',floorReviews:[{sourceIndex:0,status:'reviewed',changeCount:0}]};
-   return JSON.stringify(missing?{entry1:answer}:{entry1:answer,entry2:answer});
+   if(scenario==='invalid_json')return 'broken';
+   if(scenario==='unusable')return JSON.stringify(answer);
+   if(scenario==='wrong_floor')return JSON.stringify({entry1:answer,entry2:{...answer,floorReviews:[{...answer.floorReviews[0],sourceIndex:99}]}});
+   if(scenario==='wrong_count')return JSON.stringify({entry1:answer,entry2:{...answer,floorReviews:[{...answer.floorReviews[0],changeCount:99}]}});
+   return JSON.stringify(scenario==='complete'?{entry1:answer,entry2:answer}:{entry1:answer});
   };
   f.app.schedulePlayerReview('normal');
   clearTimeout(f.app.playerReviewTimer);f.app.playerReviewTimer=null;
   await f.app.runPlayerReview();
   const powers=f.store.read().powers;
-  strict.equal(calls,1);
-  strict.equal(powers[f.power.id].archiveReviewed.length,1);
-  strict.equal(powers[other.id].archiveReviewed.length,missing?0:1);
+  strict.equal(calls.filter(([kind])=>kind==='combined').length,1,scenario);
+  strict.equal(calls.length,allInvalid?5:scenario==='complete'?1:2,scenario);
+  if(calls.length===2)strict.deepEqual(calls[1],['single',other.id,0]);
+  strict.equal(powers[f.power.id].archiveReviewed.length,allInvalid?2:1,scenario);
+  strict.equal(powers[other.id].archiveReviewed.length,allInvalid?2:scenario==='retry_failed'?0:1,scenario);
  }
 });
 test('automatic parse failures do not advance sources or loop API calls and manual can retry',async()=>{

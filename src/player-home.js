@@ -5,6 +5,16 @@ import { normalizeArchiveAuto } from './archive-scope.js';
 import { assert, text, stable, hash, chatHashes } from './core.js';
 import { archiveContextCurrent as archiveCurrent } from './archives.js';
 
+function combinedSectionIssue(data,key,index){
+  const section=data?.[key];
+  if(!section||typeof section!=='object'||Array.isArray(section))return '缺少词条结果';
+  if(!Array.isArray(section.changes))return '缺少成果列表';
+  if(!Array.isArray(section.floorReviews)||section.floorReviews.length!==1)return '缺少该楼层的核对结果';
+  const review=section.floorReviews[0];
+  if(review?.sourceIndex!==index)return '楼层编号不匹配';
+  if(review.status!=='reviewed'||!Number.isSafeInteger(review.changeCount)||review.changeCount<0)return '楼层未完成核对';
+  return '';
+}
 // Rule explanations describe possibilities, never ownership or completed events.
 
 
@@ -81,6 +91,7 @@ export const playerHomeMethods = {
     if (this.lastPlayerAuto === id) return;
     const run = {}; this.lastPlayerAuto = id; this.playerAutoRunning = run;
     const powerIds=capture.powerIds||[capture.powerId], due=new Set(), paused=new Set();
+    let combineUnavailable=false;
     try {
       for(const powerId of powerIds){
         if(this.pendingArchiveReview||this.playerAutoRunning!==run)break;
@@ -108,7 +119,7 @@ export const playerHomeMethods = {
           first=false;due.add(powerId);this.archiveAutoStatus ||= {};this.archiveAutoStatus[powerId]='正在更新';this.refresh();
           try {
             let group;
-            if(config.combine&&p.autoArchiveSave&&!this.archiveUpdateWaiting()){
+            if(!combineUnavailable&&config.combine&&p.autoArchiveSave&&!this.archiveUpdateWaiting()){
               const peers=powerIds.filter(otherId=>otherId!==powerId&&!paused.has(otherId)).map(otherId=>snapshot.state.powers[otherId]).filter(other=>{
                 if(!other?.active||!other.autoArchiveReview||!other.autoArchiveSave||other.autoArchiveStart===undefined||hasWorldSchedule(other)||other.archiveBatch&&other.archiveBatch.cursor<other.archiveBatch.parts.length)return false;
                 const settings=normalizeArchiveAuto(other.archiveAuto);
@@ -122,6 +133,7 @@ export const playerHomeMethods = {
               await this.reviewArchives({silent:true,autoSave:Boolean(p.autoArchiveSave),automatic:true,powerId});
             }else{
               let reply;
+              const missing=[];
               for(const member of group.members){
                 if(this.pendingArchiveReview||this.playerAutoRunning!==run)break;
                 due.add(member.powerId);
@@ -132,15 +144,26 @@ export const playerHomeMethods = {
                     this.runtimeLog?.step(this.logTask,'合并更新请求',{floor:sources[0].index+1,entries:group.members.map(m=>m.name)});
                     reply=await this.query(group.prompt,{...current,referenceOnly:false},{task:'archive',retryTransient:true});
                   }else this.runtimeLog?.step(this.logTask,'沿用合并更新回复',{floor:sources[0].index+1});
-                  const section=reply.data?.[member.key];
-                  assert(section&&Array.isArray(section.changes)&&Array.isArray(section.floorReviews)&&section.floorReviews.length===1&&section.floorReviews[0]?.sourceIndex===sources[0].index,
-                    '合并回复缺少本词条在该楼层的完整结果，读取进度未推进');
+                  const reason=combinedSectionIssue(reply.data,member.key,sources[0].index);
+                  if(reason){
+                    const error=Error(reason);
+                    error.combinedSectionIssue=true;
+                    this.runtimeLog?.step(this.logTask,'合并结果未采用',{floor:sources[0].index+1,entry:member.key,reason});
+                    throw error;
+                  }
+                  const section=reply.data[member.key];
                   const data=Object.fromEntries(Object.keys(group.prompt.archiveSchema.properties[member.key].properties).filter(key=>Object.hasOwn(section,key)).map(key=>[key,section[key]]));
                   return {...reply,data,logId:this.logTask,captured:{...reply.captured,revision:current.state.revision}};
                 };
                 try{
                   await this.reviewArchives({silent:true,autoSave:true,automatic:true,powerId:member.powerId,combinedReply});
                 }catch(error){
+                  if(error.combinedSectionIssue){missing.push({member,reason:error.message});continue;}
+                  if(!reply&&error.jsonDiagnostic){
+                    combineUnavailable=true;
+                    for(const item of group.members)missing.push({member:item,reason:'合并回复无法解析'});
+                    break;
+                  }
                   if(!reply||error?.name==='AbortError'){
                     for(const item of group.members){paused.add(item.powerId);this.archiveAutoStatus[item.powerId]='合并更新暂停：'+error.message;}
                     throw error;
@@ -151,6 +174,26 @@ export const playerHomeMethods = {
                 if(this.archiveAutoIncomplete?.[member.powerId]){
                   paused.add(member.powerId);this.archiveAutoIncomplete[member.powerId]=false;
                   this.archiveAutoStatus[member.powerId]='部分楼层待重查，自动整理已暂停';
+                }
+              }
+              if(missing.length===group.members.length)combineUnavailable=true;
+              for(const {member,reason} of missing){
+                if(this.pendingArchiveReview||this.playerAutoRunning!==run)break;
+                const current=this.contextSnapshot(),target=current.state.powers[member.powerId];
+                if(current.chatKey!==snapshot.chatKey||current.state.id!==snapshot.state.id||this.archiveUpdateWaiting())break;
+                if(!target?.active||!target.autoArchiveReview||!target.autoArchiveSave||this.settings.mode==='off')continue;
+                due.add(member.powerId);
+                try{
+                  await this.reviewArchives({silent:true,autoSave:true,automatic:true,powerId:member.powerId,combinedFallback:{source:sources[0],reason}});
+                }catch(error){
+                  if(error?.name==='AbortError')throw error;
+                  paused.add(member.powerId);this.archiveAutoStatus[member.powerId]='单独补跑暂停：'+error.message;
+                  this.notice(member.name+'单独补跑未完成：'+error.message,true);
+                }
+                const latest=this.contextSnapshot();
+                if(latest.chatKey!==snapshot.chatKey||latest.state.id!==snapshot.state.id)break;
+                if(this.archiveAutoIncomplete?.[member.powerId]||stable(archiveSources(latest.ctx.chat,latest.state,latest.state.powers[member.powerId]||target,{automatic:true})[0])===stable(sources[0])){
+                  paused.add(member.powerId);if(this.archiveAutoIncomplete)this.archiveAutoIncomplete[member.powerId]=false;
                 }
               }
               if(paused.has(powerId))break;
