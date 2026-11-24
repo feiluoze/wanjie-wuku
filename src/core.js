@@ -499,8 +499,13 @@ export function validateState(data) {
     }
     validateArchiveUndo(p.archiveUndo);
     p.archives ||= {};
+    const branches=p.storyBranches??[];
+    assert(Array.isArray(branches)&&new Set(branches.map(row=>row?.id)).size===branches.length,'旧分支记录无效');
+    for(const branch of branches){
+      assert(branch?.record&&['archive','management'].includes(branch.kind)&&typeof branch.id==='string'&&/^(archive|management)_[a-f0-9]{16}$/.test(branch.id)&&typeof branch.fallback==='string'&&/^(?:[a-f0-9]{16})?$/.test(branch.fallback),'旧分支记录无效');
+    }
     assert(typeof p.archives === 'object' && !Array.isArray(p.archives) && Object.keys(p.archives).length <= 512, '经营档案无效');
-    for (const [archiveId, r] of Object.entries(p.archives)) {
+    for (const [archiveId, r] of [...Object.entries(p.archives),...branches.filter(row=>row.kind==='archive').map(row=>[row.record.id,row.record])]) {
       key(archiveId);
       for (const row of [r, ...list(r.history, 1000, '档案历史')]) {
         validateSpecific(row.specific);
@@ -527,7 +532,7 @@ export function validateState(data) {
     }
     p.managementRecords ||= {};
     assert(typeof p.managementRecords === 'object' && !Array.isArray(p.managementRecords) && Object.keys(p.managementRecords).length <= 128, '管理记录无效');
-    for (const [recordId, r] of Object.entries(p.managementRecords)) {
+    for (const [recordId, r] of [...Object.entries(p.managementRecords),...branches.filter(row=>row.kind==='management').map(row=>[row.record.id,row.record])]) {
       key(recordId); assert(r.id === recordId && ['progress', 'arrangement', 'record'].includes(r.category) && ['active', 'ended'].includes(r.status), '管理记录身份或类型无效');
       assert(text(r.label, 200) && text(r.value, 8000), '管理记录缺少内容');
       assert(Number.isSafeInteger(r.updatedAt) && r.updatedAt >= 0 && r.source && ['story', 'manual'].includes(r.source.type), '管理记录来源无效');

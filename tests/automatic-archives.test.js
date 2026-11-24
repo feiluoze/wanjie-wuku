@@ -4,6 +4,7 @@ import strict from 'node:assert/strict';
 import { fixture } from './mvu-fixture.js';
 import { archiveSources, applyArchiveChanges } from '../src/archive-review.js';
 import { normalizeArchiveRange, archiveRangeBounds } from '../src/archive-scope.js';
+import { saveArchive } from '../src/archives.js';
 import { validateState, clone, chatHashes, hash, stable, createPower, importBook } from '../src/core.js';
 const wait=()=>new Promise(r=>setTimeout(r,500));
 function response(f,changes=true){return completeReview(null,{changes:changes?[{type:'skill',name:'拂风绵掌',status:'active',fields:{level:'已掌握'},sourceIndex:0,quote:'你已掌握拂风绵掌',ruleQuote:f.power.rules.slice(0,20)}]:[]});}
@@ -43,6 +44,34 @@ test('explicit automatic save persists validated changes and advances sources wi
 });
 test('existing review-only mode never silently becomes automatic save',async()=>{
  const f=fixture();f.app.settings.mode='st';f.app.model.request=async()=>response(f);await f.store.transact(n=>{n.powers[f.power.id].autoArchiveReview=true;});f.app.schedulePlayerReview('normal');await wait();strict.ok(f.app.pendingArchiveReview);strict.equal(Object.keys(f.store.read().powers[f.power.id].archives).length,0);
+});
+test('single-floor review reuses the reply after an archive write and waits on a concurrent target edit',async()=>{
+ for(const overlap of [false,true]){
+  const f=fixture();f.app.settings.mode='st';
+  const source={type:'manual',note:'玩家登记'};
+  await f.app.togglePlayerAutoSave();
+  let target;
+  if(overlap)await f.store.transact(next=>{
+   target=saveArchive(next.powers[f.power.id],{name:'拂风绵掌',type:'skill',status:'working',fields:{level:'练习中'}},source).id;
+  });
+  let calls=0;
+  f.app.model.request=async()=>{
+   calls++;
+   await f.store.transact(next=>{
+    saveArchive(next.powers[f.power.id],overlap?{id:target,name:'拂风绵掌',type:'skill',status:'working',fields:{level:'玩家刚更新的进度'}}:
+     {name:'独立手记',type:'record',status:'active',fields:{description:'玩家刚保存的记录'}},source);
+   });
+   return response(f);
+  };
+  await f.app.reviewArchives({silent:true,automatic:true,autoSave:true});
+  const p=f.store.read().powers[f.power.id];
+  strict.equal(calls,1);
+  strict.equal(p.archiveReviewed.length,overlap?0:1);
+  if(overlap){
+   strict.equal(p.archives[target].fields.level,'玩家刚更新的进度');
+   strict.match(f.app.pendingArchiveReview.message,/整理期间更新过/);
+  }else strict.equal(Object.keys(p.archives).length,2);
+ }
 });
 test('eligible entries share one request and a missing result leaves that entry unread',async()=>{
  for(const missing of [false,true]){

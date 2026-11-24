@@ -114,10 +114,10 @@ export class WukuApp {
       this.mainBusy = true; await this.beginNarrative(type); this.refresh();
     });
     listen('GENERATION_STOPPED', async () => { this.finishMemoryRequest('stopped'); this.creationAttempt=null; this.terminalAttempt = null; this.memoryAttempt = null; this.mainBusy = false; if (this.continuation) this.continuation.ready = true; await this.stopNarrative(); await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); });
-    listen('GENERATION_ENDED', async () => { this.finishMemoryRequest('ended'); if(this.creationAttempt)this.creationAttempt.ended=true; this.mainBusy = false; await this.completeCreation(); if(this.terminalAttempt){this.terminalAttempt.ended=true;await this.completeTerminal();} if (this.memoryAttempt && this.memoryGenerationType !== 'quiet') { this.memoryAttempt.ended = true; if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); } if (this.narrativeAttempt) { this.narrativeAttempt.ended = true; await this.completeNarrative(); } await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(this.narrativeGenerationType); if (this.settings.autoSync && this.settings.mode !== 'off') this.scheduleSync(); });
+    listen('GENERATION_ENDED', async () => { this.finishMemoryRequest('ended'); if(this.creationAttempt)this.creationAttempt.ended=true; this.mainBusy = false; await this.completeCreation(); if(this.terminalAttempt){this.terminalAttempt.ended=true;await this.completeTerminal();} if (this.memoryAttempt && this.memoryGenerationType !== 'quiet') { this.memoryAttempt.ended = true; if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`本轮正文记忆发送记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`本轮正文记忆发送记录未保存：${e.message}`, true)); } if (this.narrativeAttempt) { this.narrativeAttempt.ended = true; await this.completeNarrative(); } await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(this.narrativeGenerationType); if (this.settings.autoSync && this.settings.mode !== 'off') this.scheduleSync(); });
     for (const name of ['MESSAGE_EDITED', 'MESSAGE_DELETED', 'MESSAGE_SWIPED']) listen(name, async () => { this.continuation = null; await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); });
     listen('MESSAGE_RECEIVED', () => { this.refresh(); this.scheduleRoleRead(); });
-    listen('CHARACTER_MESSAGE_RENDERED', async (index, type) => { if(this.creationAttempt&&(!type||type===this.creationAttempt.type)){this.creationAttempt.rendered=Number(index);await this.completeCreation();} if(this.terminalAttempt&&(!type||type===this.terminalAttempt.type)){this.terminalAttempt.rendered=Number(index);await this.completeTerminal();} if (this.memoryAttempt && (!type || type === this.memoryAttempt.type)) { this.memoryAttempt.rendered = Number(index); if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`正文记忆带入记录未保存：${e.message}`, true)); } if (this.continuation?.index === Number(index) && (type === 'continue' || !type && !this.mainBusy)) this.continuation.ready = true; if (this.narrativeAttempt && (!type || ['normal', 'continue', 'regenerate', 'swipe'].includes(type))) { this.narrativeAttempt.rendered = Number(index); await this.completeNarrative(); } await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(type); });
+    listen('CHARACTER_MESSAGE_RENDERED', async (index, type) => { if(this.creationAttempt&&(!type||type===this.creationAttempt.type)){this.creationAttempt.rendered=Number(index);await this.completeCreation();} if(this.terminalAttempt&&(!type||type===this.terminalAttempt.type)){this.terminalAttempt.rendered=Number(index);await this.completeTerminal();} if (this.memoryAttempt && (!type || type === this.memoryAttempt.type)) { this.memoryAttempt.rendered = Number(index); if (this.memoryAttempt.plan?.packet) await this.completeArchiveMemory().catch(e => this.notice(`本轮正文记忆发送记录未保存：${e.message}`, true)); else this.completeArchiveMemory().catch(e => this.notice(`本轮正文记忆发送记录未保存：${e.message}`, true)); } if (this.continuation?.index === Number(index) && (type === 'continue' || !type && !this.mainBusy)) this.continuation.ready = true; if (this.narrativeAttempt && (!type || ['normal', 'continue', 'regenerate', 'swipe'].includes(type))) { this.narrativeAttempt.rendered = Number(index); await this.completeNarrative(); } await this.cleanupStoryRecords().catch(e=>this.notice(`旧分支清理未提交：${e.message}`,true)); this.refresh(); this.scheduleRoleRead(); this.schedulePlayerReview(type); });
   }
   contextSnapshot() { const ctx = getContext(); return { ctx, state: this.store.read(), hashes: chatHashes(ctx.chat), chatKey: scope(ctx).key }; }
   names(ctx = getContext()) { return { user: ctx?.name1 || '{{user}}', character: ctx?.name2 || '{{char}}' }; }
@@ -213,12 +213,20 @@ export class WukuApp {
     const controller = new AbortController(); this.controller = controller; this.busy = true; this.ui.notice = null; this.refresh();
     const captured = { chatKey: snapshot.chatKey, stateId: snapshot.state.id, revision: snapshot.state.revision };
     const archiveScope=prompt.archivePowerId?stable(archiveRequestScope(snapshot.state,prompt.archivePowerId)):null;
+    const recheckScope=prompt.recheckArchiveReply?stable(archiveRequestScope(snapshot.state,prompt.archivePowerId,{allowArchiveChanges:true})):null;
+    let sent=false,archiveRebased=false;
     const checkCapture=()=>{
       try{this.store.assertCapture(captured);}catch(error){
         const latest=this.store.capture(),state=this.store.read();
-        if(!archiveScope||latest.chatKey!==captured.chatKey||latest.stateId!==captured.stateId||stable(archiveRequestScope(state,prompt.archivePowerId))!==archiveScope)throw error;
+        if(!archiveScope||latest.chatKey!==captured.chatKey||latest.stateId!==captured.stateId)throw error;
+        const unrelated=stable(archiveRequestScope(state,prompt.archivePowerId))===archiveScope;
+        if(!unrelated){
+          if(!sent||!recheckScope||stable(archiveRequestScope(state,prompt.archivePowerId,{allowArchiveChanges:true}))!==recheckScope)throw error;
+          assert(stable(chatHashes(getContext().chat).slice(0,snapshot.hashes.length))===stable(snapshot.hashes),'整理所依据的正文已变化，请重新核对');
+          archiveRebased=true;
+        }
         captured.revision=latest.revision;snapshot.state=state;
-        this.runtimeLog?.step(this.logTask,'请求状态核对',{unrelatedRevisionRebased:true,revision:latest.revision});
+        this.runtimeLog?.step(this.logTask,'请求状态核对',{unrelatedRevisionRebased:unrelated,archiveRebased,revision:latest.revision,floors:prompt.reading?.floors});
       }
     };
     const contextHash = hash(stable(snapshot.hashes));
@@ -262,6 +270,7 @@ export class WukuApp {
         try{return parseJSON(reply);}catch(error){error.requestStage='response';this.runtimeLog?.failureResponse(logId,reply,role);if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',{...error.jsonDiagnostic,task:role});throw error;}
       };
       requestStage='transport';
+      sent=true;
       const raw = taishiWorkflow?null:await send(actualPrompt,connectionPlan);
       requestStage='response';rawResponse=raw;
       if(!taishiWorkflow)this.runtimeLog?.capture(logId,'原始返回',raw);
@@ -272,7 +281,7 @@ export class WukuApp {
       if (controller.signal.aborted || this.controller !== controller) throw new DOMException('查询已取消', 'AbortError'); checkCapture();
       assert(snapshot.referenceOnly || hash(stable(chatHashes(getContext().chat))) === contextHash, '查询期间剧情发生变化，本次旧结果已丢弃');
       if (snapshot.roleView) this.role.assertCapture(snapshot.roleView.capture, snapshot.state.roleLink);
-      return { data, captured, contextHash, logId,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences||prompt.personReferences?{referencePacket:reference}:{}) };
+      return { data, captured, contextHash:archiveRebased?hash(stable(chatHashes(getContext().chat))):contextHash, logId,archiveRebased,referenceFingerprint:reference.fingerprint,...(prompt.setupReferences||prompt.personReferences?{referencePacket:reference}:{}) };
     } catch(error){if(['查询期间剧情发生变化，本次旧结果已丢弃','准备世界书期间剧情已变化，请重试','档案已经变化，本次旧结果已丢弃','聊天已经切换，本次结果不会写入其他聊天'].includes(error.message)){error.name='ContextChangedError';error.requestStage='context';}error.requestStage ||= requestStage;if(error.jsonDiagnostic&&rawResponse!==undefined){this.runtimeLog?.failureResponse(logId,rawResponse,'',error.jsonDiagnostic);if(prompt.archivePowerId&&!prompt.setupReferences&&!prompt.personReferences&&!taishiWorkflow&&typeof rawResponse==='string'&&rawResponse.length<=120000)error.archiveResponseFailure={raw:rawResponse,error:error.message,diagnostic:error.jsonDiagnostic,contract:prompt.archiveSchema,captured:{...captured},contextHash,referenceFingerprint:referenceReport?.fingerprint||''};}if(error.jsonDiagnostic)this.runtimeLog?.step(logId,'JSON诊断',error.jsonDiagnostic);this.runtimeLog?.step(logId,'请求失败',{stage:error.requestStage,error:error.message});if(referenceReport)referenceReport.status=controller.signal.aborted?'已取消':'请求或校验失败';throw error;} finally { if (this.controller === controller) { this.controller = null; this.busy = false; this.refresh(); } }
   }
   async manage() {
@@ -916,6 +925,7 @@ export class WukuApp {
       case 'archive-batch-clear': return this.clearArchiveBatch();
       case 'archive-range': return this.openArchiveRange();
       case 'archive-read-range': return this.openArchiveRange(true);
+      case 'restore-story-branch': return this.restoreStoryBranch(data.id);
       case 'save-archive-range': return this.saveArchiveRange(data);
       case 'terminal-review':
       case 'review-archives': return this.reviewArchives({ rescan: true });

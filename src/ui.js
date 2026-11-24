@@ -20,6 +20,7 @@ import {MODULE_NAMES} from './module-backup.js';
 import {creationConfig} from './creation-config.js';
 import {worldLinksHTML} from './taishi-world.js';
 import {archiveLibraryPage} from './archive-library.js';
+import {branchCurrent} from './archive-branch.js';
 import {taishiMemorySettings,TAISHI_MEMORY_CHANNELS} from './taishi-memory.js';
 import {moduleEnabled} from './space-controller.js';
 import {taishiBrief} from './taishi-brief.js';
@@ -407,7 +408,14 @@ export class WorkbenchUI {
   updateArchiveLibrary() {
     const node=this.modal.querySelector('[data-library-results]');if(!node||!this.view.power)return;
     const data=archiveLibraryPage(this.view.power,this.libraryFilter);this.libraryFilter.page=data.page;
-    node.innerHTML=`<div class="wjwk-library-summary" role="status"><span>共 ${data.total} 项</span><span>匹配 ${data.matched} 项</span><span>第 ${data.page+1} / ${data.pages} 页</span></div><div class="wjwk-archive-grid">${data.rows.map(r=>this.archiveCard(r,this.view.managementChat||[],this.view.busy,true)).join('') || empty('没有匹配档案。调整关键词或筛选条件即可查看其他内容。')}</div><div class="wjwk-library-pages">${btn('archive-library-page','上一页','wjwk-secondary',data.page===0).replace('data-action="archive-library-page"','data-action="archive-library-page" data-direction="-1"')}${btn('archive-library-page','下一页','wjwk-secondary',data.page===data.pages-1).replace('data-action="archive-library-page"','data-action="archive-library-page" data-direction="1"')}</div>`;
+    const chat=this.view.managementChat||[];
+    const branches=this.view.power.storyBranches||[];
+    const branchHTML=branches.length?`<details class="wjwk-support-panel"><summary>旧分支记录 · ${branches.length} 项</summary><p>这些版本已移出当前档案。切回对应回复后，武库会尝试恢复。若同一档案已更新，可在此确认恢复旧版本。</p>${branches.map(row=>{
+      const {record}=row,floor=record.source.anchor?.index??record.source.index;
+      const fields=row.kind==='archive'?[...Object.values(record.fields),...Object.values(record.specific?.fields||{})]:[record.value];
+      return `<details><summary>${esc(record.name||record.label)}${Number.isInteger(floor)?' · 第 '+(floor+1)+' 层':''}</summary>${fields.filter(Boolean).map(value=>`<p>${esc(value)}</p>`).join('')}${branchCurrent(row,chat)?btn('restore-story-branch','恢复此版本','wjwk-secondary',this.view.busy,`data-id="${esc(row.id)}"`):'<small>切回对应回复后可恢复。</small>'}</details>`;
+    }).join('')}</details>`:'';
+    node.innerHTML=branchHTML+`<div class="wjwk-library-summary" role="status"><span>共 ${data.total} 项</span><span>匹配 ${data.matched} 项</span><span>第 ${data.page+1} / ${data.pages} 页</span></div><div class="wjwk-archive-grid">${data.rows.map(r=>this.archiveCard(r,this.view.managementChat||[],this.view.busy,true)).join('') || empty('没有匹配档案。调整关键词或筛选条件即可查看其他内容。')}</div><div class="wjwk-library-pages">${btn('archive-library-page','上一页','wjwk-secondary',data.page===0).replace('data-action="archive-library-page"','data-action="archive-library-page" data-direction="-1"')}${btn('archive-library-page','下一页','wjwk-secondary',data.page===data.pages-1).replace('data-action="archive-library-page"','data-action="archive-library-page" data-direction="1"')}</div>`;
   }
   hideAIActivity() {
     clearInterval(this.aiTick); clearTimeout(this.aiHide); clearTimeout(this.taishiSearchTimer);

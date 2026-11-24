@@ -63,10 +63,15 @@ test('fresh branch review reuses the original ID, clears unsupported old fields 
  await f.app.reviewArchives({rescan:true});const pending=f.app.pendingArchiveReview;assert(pending.changes[0].recovery);await f.app.commitArchiveReview(pending,new Map([[0,r.id]]));const saved=f.store.read().powers[f.power.id].archives[r.id];assert.equal(saved.fields.outcome,'');assert.equal(saved.fields.goal,'寻找药铺');assert.equal(saved.history[0].fields.outcome,'旧分支已经买药并治好了病');assert(archiveContextCurrent(saved,f.ctx.chat));validateState(clone(f.store.read()));
 });
 
-test('reroll cleanup actually deletes branch-created archives and memory pins, preserving money and manual data',async()=>{
+test('reroll hides branch-created archives and restores them when the original reply returns',async()=>{
  const f=fixture(),r=record(f);const manual=saveArchive(f.power,{type:'record',name:'手动登记',status:'active',fields:{description:'明确保存的个人设定'}},{type:'manual',note:'玩家手动登记'});
  await f.store.transact(s=>{s.powers[f.power.id]=clone(f.power);s.powers[f.power.id].assets.asset_test=asset();s.archiveMemory={auto:true,budget:3000,selections:{[f.power.id+'/'+r.id]:{mode:'pinned',token:'branch_pin'}}};s.powers[f.power.id].lastArchiveUpdate={at:1,automatic:true,arrangements:0,sourceIndices:[0],records:[{id:r.id,signature:'a'.repeat(16),kind:'created'}]};});
  const before=clone(f.store.read());f.ctx.chat[0].mes='重抽：此前结果从未发生';const result=await f.app.cleanupStoryRecords();assert.equal(result.removed,1);const s=f.store.read(),p=s.powers[f.power.id];assert.equal(p.archives[r.id],undefined);assert(p.archives[manual.id]);assert.deepEqual(p.resources,before.powers[p.id].resources);assert.deepEqual(p.assets,before.powers[p.id].assets);assert.deepEqual(s.transactions,before.transactions);assert.equal(s.archiveMemory.selections[f.power.id+'/'+r.id],undefined);assert.equal(p.lastArchiveUpdate,undefined);validateState(clone(s));
+ assert.deepEqual(p.storyBranches[0].record,r);
+ f.ctx.chat[0].mes='自编开场：你已掌握拂风绵掌，尚有六点源质。';
+ assert.equal((await f.app.cleanupStoryRecords()).restored,1);
+ assert.deepEqual(f.store.read().powers[p.id].archives[r.id],r);
+ assert.equal(f.store.read().powers[p.id].storyBranches,undefined);
 });
 
 test('reroll restores the last valid version instead of deleting an older manually established object',()=>{

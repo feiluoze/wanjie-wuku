@@ -210,16 +210,25 @@ export const archiveMemoryMethods = {
     const observed = a.diagnostic?.readback || a.diagnostic?.request;
     a.requestRead = null; this.memoryAttempt = null;
     if (!a.plan?.packet || a.plan.invalid || a.diagnostic?.readError || observed && observed.status !== 'matched') return;
-    try { await this.store.transact(next => {
-      const config = next.archiveMemory; if (!config) return;
+    const anchor={index:a.rendered,swipeId:m.swipe_id??0,length:body.length,textHash:hash(body)};
+    const ticket=this.runtimeLog?.begin('正文记忆发送记录'),at=Date.now();
+    try { const saved=await this.store.transact(next => {
+      const chat=getContext().chat,config=next.archiveMemory;
+      if(!config||next.id!==a.stateId||!archiveContextCurrent({source:{type:'story',anchor}},chat))return false;
       for (const c of a.plan.included) if (c.mode === 'next' && config.selections[c.id]?.token === c.token) delete config.selections[c.id];
       if(observed?.status==='matched'){
-        const anchor={index:a.rendered,swipeId:m.swipe_id??0,length:body.length,textHash:hash(body)};
-        config.feedback=[...(config.feedback||[]).filter(d=>archiveContextCurrent({source:{type:'story',anchor:d.anchor}},s.ctx.chat)),...a.plan.included.filter(c=>c.feedback).map(c=>({...c.feedback,anchor}))].slice(-64);
+        config.feedback=[...(config.feedback||[]).filter(d=>archiveContextCurrent({source:{type:'story',anchor:d.anchor}},chat)),...a.plan.included.filter(c=>c.feedback).map(c=>({...c.feedback,anchor}))].slice(-64);
       }
-      config.last = { packet: text(a.plan.packet, 36002), at: Date.now(), index: a.rendered, count: a.plan.included.length };
-    }, { captured: { chatKey: a.chatKey, stateId: a.stateId, revision: s.state.revision }, facts: false });
-      if (a.diagnostic) a.diagnostic.saved = true;
-    } catch (error) { if (a.diagnostic) a.diagnostic.saved = false; throw error; }
+      if(!config.last||config.last.at<=at)config.last={packet:text(a.plan.packet,36002),at,index:a.rendered,count:a.plan.included.length};
+      return true;
+    }, {facts:false});
+      this.runtimeLog?.step(ticket,'发送记录保存',{floor:a.rendered+1,saved:saved.result===true});
+      this.runtimeLog?.finish(ticket,saved.result?'已保存':'未执行');
+      if (a.diagnostic) a.diagnostic.saved = saved.result===true;
+    } catch (error) {
+      this.runtimeLog?.finish(ticket,'失败',error.message);
+      if (a.diagnostic) a.diagnostic.saved = false;
+      throw error;
+    }
   },
 };

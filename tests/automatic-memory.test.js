@@ -10,4 +10,15 @@ test('exclusion suppresses both overview and matched detail and persists in vali
 test('automatic off retains explicitly pinned reminders and omits overview',()=>{const f=setup();f.state.archiveMemory.auto=false;assert.equal(memoryPlan(f.state,f.ctx.chat,'北坡').packet,'');f.state.archiveMemory.selections[f.id]={mode:'pinned',token:'pin'};const p=memoryPlan(f.state,f.ctx.chat);assert.match(p.packet,/耐寒工蜂/);assert.equal(p.included.length,1);assert.equal(p.included[0].mode,'pinned');});
 test('whole summary is omitted when too large, never clipping a restriction',()=>{const f=setup();f.r.fields.limits='禁用'.repeat(2000);f.state.archiveMemory.budget=750;const p=memoryPlan(f.state,f.ctx.chat);assert.equal(p.packet,'');assert.ok(p.omitted.some(r=>r.reason.includes('预算')));});
 test('saving settings preserves last request diagnostics',()=>{const f=setup();f.state.archiveMemory.last={packet:'previous',at:1,index:0,count:1};assert.deepEqual(memoryConfigFromForm(f.state,f.power.id,{auto:true,budget:3000}).last,f.state.archiveMemory.last);});
+test('memory receipt persists after an earlier queued fact write and preserves the newer selection',async()=>{
+ const f=setup();
+ f.state.archiveMemory.selections[f.id]={mode:'next',token:'old_selection'};
+ f.app.memoryAttempt={type:'normal',ended:true,rendered:0,before:[],chatKey:f.app.contextSnapshot().chatKey,stateId:f.state.id,plan:{packet:'已带入工蜂档案',included:[{id:f.id,mode:'next',token:'old_selection'}]}};
+ const earlier=f.store.transact(next=>{next.archiveMemory.selections[f.id]={mode:'pinned',token:'new_selection'};});
+ await f.app.completeArchiveMemory();
+ await earlier;
+ const config=f.store.read().archiveMemory;
+ assert.equal(config.last.packet,'已带入工蜂档案');
+ assert.equal(config.selections[f.id].token,'new_selection');
+});
 test('disabling automatic memory invalidates cached request summary',async()=>{const f=setup();await f.store.transact(s=>Object.assign(s,clone(f.state)));f.app.beginArchiveMemory('normal');f.app.mainBusy=true;assert.match(f.app.memoryInjection(f.store.read()),/当前概况/);await f.store.transact(s=>{s.archiveMemory.auto=false;},{facts:false});assert.equal(f.app.memoryInjection(f.store.read()),'');});

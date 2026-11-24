@@ -383,7 +383,9 @@ export const archiveReviewMethods = {
     return job.promise;
   },
   async performArchiveReview(options = {}, job = null) {
-    const snapshot = {...this.ensureStable({ model: true }), referenceOnly:!options.workflowResume}, power = snapshot.state.powers[options.powerId || this.powerId]; assert(power?.active, '请先选择已接入的金手指');
+    const snapshot = {...this.ensureStable({ model: true }), referenceOnly:!options.workflowResume};
+    const originalPower=snapshot.state.powers[options.powerId||this.powerId];
+    let power=originalPower;assert(power?.active,'请先选择已接入的金手指');
     assert(!options.setupReferences||isTaishi(power),'只有太始天可以建立世界设定底稿');
     if(options.setupReferences)assert(power.taishiWorldStructure,'请先选择单世界或多世界建档结构，再导入个人世界书');
     if(options.setupReferences&&power.taishiWorldStructure.mode==='single'){const root=power.archives?.[power.taishiWorldStructure.worldId];assert(root&&root.specific?.recordId==='world'&&root.status!=='ended'&&archiveCurrent(root,snapshot.ctx.chat),'指定主世界已失效，请重新选择建档结构');}
@@ -404,7 +406,8 @@ export const archiveReviewMethods = {
     const taishiWorkflow=isTaishi(power)&&power.taishiWorkflow===true&&collaborationSettings(power.taishiCollaboration).mode!=='single'&&(!playerNote||options.taishiEvolution)&&!options.setupReferences&&!options.taishiDraft&&!terminalOrders.length&&!creationItems.length;
     assert(!options.workflowResume||taishiWorkflow,'高级工作流已关闭或当前任务不支持续跑');
     let staging=null;
-    const request = selectedSources => {const prompt=archivePrompt(staging?.power||power, selectedSources, snapshot.ctx.chat, playerNote, {automatic: Boolean(options.automatic), terminalOrders,creationItems,state:snapshot.state,setupReferences:Boolean(options.setupReferences),referenceBatch:options.referenceBatch||null,skipSetupPeople:Boolean(options.skipSetupPeople),taishiDraft:options.taishiDraft||null,taishiEvolution:options.taishiEvolution||null});return this.query(staging?staging.prompt(prompt):prompt, snapshot, {retryTransient:Boolean(options.automatic),task:options.workflowRetryRole||(options.taishiDraft?'creation':options.setupReferences?'setup':'archive'),taishiWorkflow,collaboration:taishiWorkflow?collaborationSettings(power.taishiCollaboration):null,coordinateOnly:Boolean(options.coordinateOnly),referenceBatch:options.referenceBatch||null,workflowResume:options.workflowResume||null,workflowRetryRole:options.workflowRetryRole||null,validateWorkflowChanges:(changes,role,workflowDependencies)=>{const data={changes,workflowDependencies};const checked=normalizeArchiveBatch(data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state);finalizeBatchLinks(checked,data);if(options.taishiEvolution)for(const c of checked.changes){const reason=evolutionConsequence(c,power);if(reason)checked.issues.push({kind:"高影响后果",name:c.name,reason});}return checked;},workflowOnAttempt:options.workflowOnAttempt,workflowOnCheckpoint:(workflowState,referenceFingerprint)=>{
+    const recheckArchiveReply=sources.length===1&&!playerNote&&!options.setupReferences&&!isTaishi(power)&&!terminalOrders.length&&!creationItems.length;
+    const request = selectedSources => {const prompt=archivePrompt(staging?.power||power, selectedSources, snapshot.ctx.chat, playerNote, {automatic: Boolean(options.automatic), terminalOrders,creationItems,state:snapshot.state,setupReferences:Boolean(options.setupReferences),referenceBatch:options.referenceBatch||null,skipSetupPeople:Boolean(options.skipSetupPeople),taishiDraft:options.taishiDraft||null,taishiEvolution:options.taishiEvolution||null});prompt.recheckArchiveReply=recheckArchiveReply;return this.query(staging?staging.prompt(prompt):prompt, snapshot, {retryTransient:Boolean(options.automatic),task:options.workflowRetryRole||(options.taishiDraft?'creation':options.setupReferences?'setup':'archive'),taishiWorkflow,collaboration:taishiWorkflow?collaborationSettings(power.taishiCollaboration):null,coordinateOnly:Boolean(options.coordinateOnly),referenceBatch:options.referenceBatch||null,workflowResume:options.workflowResume||null,workflowRetryRole:options.workflowRetryRole||null,validateWorkflowChanges:(changes,role,workflowDependencies)=>{const data={changes,workflowDependencies};const checked=normalizeArchiveBatch(data,power,sources,snapshot.ctx.chat,playerNote,snapshot.state);finalizeBatchLinks(checked,data);if(options.taishiEvolution)for(const c of checked.changes){const reason=evolutionConsequence(c,power);if(reason)checked.issues.push({kind:"高影响后果",name:c.name,reason});}return checked;},workflowOnAttempt:options.workflowOnAttempt,workflowOnCheckpoint:(workflowState,referenceFingerprint)=>{
       const state=clone(workflowState);for(const role of ['taishiWorld','taishiPeople'])if(state.stages[role].status==='pending')state.stages[role].status='failed';
       this.saveReviewCheckpoint({captured:{chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision},contextHash:hash(stable(snapshot.hashes)),referenceFingerprint,powerId:power.id,sources,playerNote,data:{workflowState:state},changes:[],issues:[],terminalResults:[],creationResults:[],floorReviews:[],blockedFloors:sources.map(s=>s.index),readOnly:true,message:'任务中断，已保留成功阶段；请选择未完成阶段继续。',workflowOptions:{rescan:Boolean(options.rescan),initial:Boolean(options.initial),automatic:Boolean(options.automatic),...(options.manualBatch?{manualBatch:clone(options.manualBatch)}:{}),...(options.taishiEvolution?{taishiEvolution:clone(options.taishiEvolution),supplement:true,values:{playerNote},...(options.taishiScheduleEvent?{taishiScheduleEvent:clone(options.taishiScheduleEvent)}:{}),...(options.taishiTimeEvent?{taishiTimeEvent:clone(options.taishiTimeEvent)}:{})}:{})}});
      }});};
@@ -422,6 +425,7 @@ export const archiveReviewMethods = {
     if(!result.captured){result.captured={chatKey:snapshot.chatKey,stateId:snapshot.state.id,revision:snapshot.state.revision};result.contextHash=hash(stable(snapshot.hashes));result.logId=this.logTask;}
 
     if (job && (job.cancelled || this.archiveReviewJob !== job)) throw new DOMException('查询已取消', 'AbortError');
+    if(result.archiveRebased)power=snapshot.state.powers[originalPower.id];
     const retainRejected=issue=>{
       const pending={...result,powerId:power.id,sources,playerNote,setupReferences:Boolean(options.setupReferences),...(options.taishiBuild?{taishiBuild:clone(options.taishiBuild)}:{}),changes:[],terminalResults:[],creationResults:[],floorReviews:[],issues:[issue],blockedFloors:sources.map(s=>s.index),readOnly:true};
       this.pendingArchiveReview=pending;this.saveReviewCheckpoint(pending);
@@ -460,6 +464,16 @@ export const archiveReviewMethods = {
     }
     if(options.taishiDraft)protectTaishiDraft(batch,options.taishiDraft);
     if(!playerNote&&!options.taishiEvolution&&!options.taishiTimeEvent)reviewFloorCoverage(batch,prepared.data,sources,{required:isTaishi(power)||Boolean(options.combinedReply)});
+    const concurrentChanges=result.archiveRebased?batch.changes.filter(change=>{
+      if(!change.id)return false;
+      const before=originalPower.archives?.[change.id],latest=change.before;
+      if(!before||!latest||change.recovery||before.name!==latest.name||before.type!==latest.type||before.module!==latest.module||before.specific?.recordId!==latest.specific?.recordId)return true;
+      const conflict=(oldValue,newValue,proposed)=>oldValue!==newValue&&newValue!==proposed;
+      return conflict(before.status,latest.status,change.status)||
+        Object.entries(change.patch).some(([key,value])=>conflict(before.fields[key],latest.fields[key],value))||
+        Object.entries(change.specific?.fields||{}).some(([key,value])=>conflict(before.specific?.fields[key],latest.specific?.fields[key],value));
+    }):[];
+    if(result.archiveRebased)this.runtimeLog?.step(result.logId,'按最新档案复核',{floors:sources.map(s=>s.index+1),conflictIds:concurrentChanges.map(c=>c.id)});
     if(options.setupReferences){
       protectTaishiBaseline(batch,power.taishiWorldStructure?.worldId);
       const names=(this.referenceLast?.books||[]).map(b=>b.name).join('、');
@@ -477,7 +491,7 @@ export const archiveReviewMethods = {
     if(options.manualBatch&&options.batchContinuous&&!batch.issues.length&&!needsScopeConfirmation){
       await this.commitArchiveReview(reviewed,new Map(reviewed.changes.map((c,i)=>[i,c.id])),{terminalChosen:new Set(reviewed.terminalResults.map((_,i)=>i)),creationChosen:new Set(reviewed.creationResults.map((_,i)=>i))});this.notice('本批已保存；连续处理可随时取消，已保存批次和日志保留。');return;
     }
-    if (!(taishiWorkflow&&batch.issues.length) && !batch.issues.some(i=>i.repairable||i.conflicts?.length) && !needsScopeConfirmation && !options.setupReferences && options.autoSave && !reviewed.creationResults.some(c=>c.recovery) && !reviewed.changes.some(c => c.recovery) && !reviewed.terminalResults.some(c => c.recovery)) {
+    if (!(taishiWorkflow&&batch.issues.length) && !concurrentChanges.length && !batch.issues.some(i=>i.repairable||i.conflicts?.length) && !needsScopeConfirmation && !options.setupReferences && options.autoSave && !reviewed.creationResults.some(c=>c.recovery) && !reviewed.changes.some(c => c.recovery) && !reviewed.terminalResults.some(c => c.recovery)) {
       assert(!this.pendingArchiveReview, '已有待确认结果，自动更新暂停');
       const committed = await this.commitArchiveReview(reviewed, new Map(reviewed.changes.map((c, i) => [i, c.id])), { automatic: true });
       this.archiveAutoIncomplete ||= {};this.archiveAutoIncomplete[power.id]=Boolean(reviewed.blockedFloors.length);
@@ -485,6 +499,7 @@ export const archiveReviewMethods = {
       if(committed?.save?.verified===false)this.runtimeLog?.patch(result.logId,{partial:true});
       return this.notice(`${reviewed.issues.length?'部分更新已保存，'+reviewed.issues.length+' 项待重查（见运行日志）。':''}自动更新已保存：${committed?.counts?.objects??reviewed.changes.length} 个档案对象、${reviewed.terminalResults.length} 项安排进展、${reviewed.creationResults.length} 项拟定进展。${reviewed.skippedOwnership.length?' 已跳过 '+reviewed.skippedOwnership.length+' 项其他金手指对象。':''}${committed?.save?.verified === false ? committed.save.note : ''}`);
     }
+    if(concurrentChanges.length)reviewed.message='这些档案在整理期间更新过，请核对再保存：'+concurrentChanges.map(c=>c.name).join('、')+'。'+reviewed.message;
     this.pendingArchiveReview = reviewed;this.saveReviewCheckpoint(reviewed);
     if (!options.silent) this.ui.showArchiveReview(this.pendingArchiveReview, power, snapshot.ctx.chat);
     else this.notice(needsScopeConfirmation?'太始天发现新的关联对象，请打开待确认核对归属；本轮未自动保存。':[...reviewed.changes,...reviewed.terminalResults,...reviewed.creationResults].some(c => c.recovery) ? 'AI已重新整理来源失效的档案，请打开首页确认恢复；尚未自动保存。' : 'AI已整理本轮变化，打开首页查看并接受。');
@@ -675,6 +690,12 @@ export const archiveReviewMethods = {
     try {
       const result=await this.store.transact(next => {
         const p = next.powers[pending.powerId]; assert(p?.active, '接入已变化');
+        const chat=getContext().chat;
+        const stale=pending.sources.filter(anchor=>!archiveContextCurrent({source:{type:'story',anchor}},chat)).map(anchor=>anchor.index+1);
+        if(stale.length){
+          this.runtimeLog?.step(pending.logId,'正文楼层变化',{floors:stale});
+          throw Error('第 '+stale.join('、')+' 层正文已变化，请重查这些楼层。');
+        }
         if(pending.taishiEvolution){assert(p.taishiAutonomy===true,'自主发展已关闭');assert([...chosen].every(([i,target])=>target===pending.changes[i]?.id),'自主发展候选必须保存到原对象，不能改派给其他世界或人物');assert(pending.changes.every((c,i)=>!chosen.has(i)||pending.data?.workflowState?.evolutionAdopted||c.id===pending.taishiEvolution.worldId||[...chosen.keys()].some(j=>pending.changes[j]?.id===pending.taishiEvolution.worldId)),'保存人物发展时必须一并保存本次世界历时');}
         if(pending.taishiTimeEvent){assert(!automatic,'正文历时发展需玩家确认');assertStoryTime(p,getContext().chat,pending.taishiTimeEvent);assert([...chosen.keys()].some(i=>pending.changes[i]?.id===pending.taishiTimeEvent.worldId),'采用正文历时必须同时保存世界候选');assert(!pending.issues.length&&chosen.size===pending.changes.length,'正文历时需全部核对通过并一起接受，避免同一历时被重复采用');}
         if (automatic) assert(p.autoArchiveReview && p.autoArchiveSave, '自动保存已关闭');
