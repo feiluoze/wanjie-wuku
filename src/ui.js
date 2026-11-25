@@ -46,6 +46,7 @@ import {taishiUIMethods} from './taishi-ui.js';
 import {AI_TASKS} from './task-routing.js';
 import { isMmlc, MMLC_MODULES, mmlcModule } from './mmlc.js';
 import { managementProfile } from './management-profiles.js';
+import {catalogGroups} from './catalog-groups.js';
 import { profilePanel, coveragePanel, coverageResults } from './profile-view.js';
 import { renderWorkflows, workflowForm } from './workflow.js';
 import { MANAGEMENT_CATEGORIES } from './management.js';
@@ -54,14 +55,14 @@ import { archiveIdentity, terminalMemoryIdentity, terminalMemoryCurrent } from '
 import { currentPlayerGuide, playerTimeline } from './player-home.js';
 import { archiveChangeTarget } from './archive-review.js';
 import { ARCHIVE_TYPES, ARCHIVE_STATUS, ARCHIVE_FIELDS, archiveContextCurrent, archiveCurrent, isMotherNest, archivePanel, archiveUpdateSummary, archiveJourney } from './archives.js';
-import { amount, canAfford, inferResources, VERSION, workflowText, managementRecordCurrent } from './core.js';
+import { amount, canAfford, inferResources, VERSION, workflowText, managementRecordCurrent, primaryInjectionSource } from './core.js';
 
 // Presentation only; never determines archive ownership or gameplay routing.
 export const workbenchAppearance = power => isMmlc(power) ? 'journey' : isTaishi(power)?'taishi': /^太始天(?:[（(·].*)?$/.test(String(power?.name || '').trim()) ? 'taishi' : 'arsenal';
 const appearanceLabels = { arsenal:'能力藏馆', journey:'修行道场', taishi:'诸界观测台' };
 const moduleMarks = {land:'山',sect:'宗',arts:'经',body:'修',items:'器',spirits:'灵',fleet:'舟',projects:'研'};
 
-export const requiresFormValidation = action => ['archive-merge-compare','archive-merge-preview','frameworks-save','taishi-structure-save','taishi-civilization-save','taishi-schedule-test','taishi-schedule-save','taishi-relation-save','archive-batch-create', 'taishi-world-action-draft', 'taishi-setting-preview', 'taishi-clock-preview', 'taishi-descent-draft', 'taishi-evolve', 'taishi-draft-submit', 'taishi-people-save', 'archive-correct-draft', 'creation-draft', 'creation-refine', 'terminal-draft', 'terminal-confirm', 'save-archive-range', 'register', 'save-baseline', 'save-balances', 'save-settings', 'save-api-profile', 'role-save', 'save-management', 'save-workflow', 'save-archive', 'save-manual-story', 'save-memory', 'preview-memory'].includes(action);
+export const requiresFormValidation = action => ['archive-merge-compare','archive-merge-preview','frameworks-save','taishi-structure-save','taishi-civilization-save','taishi-schedule-test','taishi-schedule-save','taishi-relation-save','archive-batch-create', 'taishi-world-action-draft', 'taishi-setting-preview', 'taishi-clock-preview', 'taishi-descent-draft', 'taishi-evolve', 'taishi-draft-submit', 'taishi-people-save', 'archive-correct-draft', 'creation-draft', 'creation-refine', 'terminal-draft', 'terminal-confirm', 'save-archive-range', 'register', 'save-injection-rule', 'save-baseline', 'save-balances', 'save-settings', 'save-api-profile', 'role-save', 'save-management', 'save-workflow', 'save-archive', 'save-manual-story', 'save-memory', 'preview-memory'].includes(action);
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const archiveStatus = r => r.status === 'active' ? ({ member: '在册', skill: '已掌握', bond: '有效' })[r.type] || ARCHIVE_STATUS.active : ARCHIVE_STATUS[r.status];
@@ -182,6 +183,7 @@ export class WorkbenchUI {
       if (event.target.matches('[data-story-note]')) this.storyNote = event.target.value;
       if (event.target.matches('[data-model-search]')) this.filterModels(event.target.value);
       if (event.target.matches('[data-entry-search]')) this.filterEntries(event.target.value);
+      if (event.target.matches('[data-entry-injection]')&&this.previewEntryId)this.injectionDrafts.set(this.previewEntryId,event.target.value);
     });
     listen('change', event => {
       if(event.target.matches('[data-prompt-preset-file]')&&event.target.files?.[0])Promise.resolve(this.action('prompt-preset-import',{file:event.target.files[0]})).catch(error=>this.setNotice(error.message,true));
@@ -212,6 +214,7 @@ export class WorkbenchUI {
       if (event.target.matches('[data-workflow-source]')) { const m = this.view.managementChat?.[Number(event.target.value)], body = workflowText(m?.mes ?? m?.content ?? ''); event.target.closest('form').elements.quote.value = body.length <= 4000 ? body : ''; if (body.length > 4000) this.setNotice('该消息超过4000字，请逐字摘录本次相关证据。'); }
       if (event.target.matches('[name="role-rule"]')) this.updateRoleSelection(event.target.closest('form'));
       if (event.target.matches('[data-primary]')) this.previewRule(event.target.value);
+      if (event.target.matches('[data-entry-category],[data-entry-subcategory]')) this.filterEntries(this.modal.querySelector('[data-entry-search]').value);
       if (event.target.matches('[data-archive-range-mode]')) this.archiveRangeVisibility(event.target.value);
       else if (event.target.matches('[name="mode"]')) this.connectionVisibility(event.target.value);
       if (event.target.matches('[data-model-list]')) { const field = event.target.closest('form').querySelector('[name="model"]'); if (event.target.value) field.value = event.target.value; }
@@ -303,7 +306,7 @@ export class WorkbenchUI {
   showPowerManagement(){
     const {power,busy,historyMismatch}=this.view||{};if(!power)return;
     const blocked=busy||historyMismatch||(this.view.state?.roleWrites||[]).some(w=>w.status==='pending');
-    this.dialog(`${power.name} · 管理词条`,`<div data-power-management data-power-id="${esc(power.id)}"><p>管理当前聊天中的「${esc(power.name)}」。</p><div class="wjwk-toolbar">${btn('view-rule','查看原文规则','wjwk-secondary')}${btn('toggle-power',power.active?'暂停接入':'恢复接入','wjwk-secondary',blocked)}</div><p>暂停后保留已有档案与余额，需要时可恢复。</p><section class="wjwk-management-danger"><h3>删除词条</h3><p>删除会移除这个词条在当前聊天中的记录。下一步可先导出备份，再确认删除。</p>${btn('delete-power','删除当前词条…','wjwk-warning',blocked)}</section></div>`);
+    this.dialog(`${power.name} · 管理词条`,`<div data-power-management data-power-id="${esc(power.id)}"><p>管理当前聊天中的「${esc(power.name)}」。</p><div class="wjwk-toolbar">${btn('view-rule','查看／编辑规则','wjwk-secondary')}${btn('toggle-power',power.active?'暂停接入':'恢复接入','wjwk-secondary',blocked)}</div><p>暂停后保留已有档案与余额，需要时可恢复。</p><section class="wjwk-management-danger"><h3>删除词条</h3><p>删除会移除这个词条在当前聊天中的记录。下一步可先导出备份，再确认删除。</p>${btn('delete-power','删除当前词条…','wjwk-warning',blocked)}</section></div>`);
   }
   showAttention(){
     const view=this.view||{},state=view.state||{},review=view.pendingArchiveReview;
@@ -861,7 +864,11 @@ export class WorkbenchUI {
     this.dialog('漫漫长路 · 内置完整规则书',`<section data-mmlc-rulebook><p>玩家提供的 ${esc(MMLC_RULEBOOK.snapshotDate)} 快照 · ${MMLC_RULEBOOK.entries.length} 篇。可查看完整原文，角色已有资产以当前档案为准。</p><nav class="wjwk-brief-index" aria-label="规则书目录">${MMLC_RULEBOOK.entries.map(e=>`<button type="button" class="wjwk-link" data-action="mmlc-rule-chapter" data-id="${e.uid}">${esc(e.title)}</button>`).join('')}</nav>${MMLC_RULEBOOK.entries.map(e=>`<details data-mmlc-chapter="${e.uid}"><summary>${esc(e.title)}${e.enabled?'':' · 原文件停用'}</summary><pre class="wjwk-full-rule">${esc(e.content)}</pre></details>`).join('')}<small>启用模块后，正文会带入精简核心规则与本轮相关原文，合计最多4200字符。暂停模块后停止带入。这里可查阅完整21篇原书；拟定方案时会按目标选取相关章节，最多16000字符。</small></section>`);
   }
   openMmlcRuleChapter(id){const row=this.modal.querySelector(`[data-mmlc-chapter="${Number(id)}"]`);if(row){row.open=true;row.scrollIntoView({block:'start'});}}
-  showRule(power) { this.dialog(`${power.name} · 规则`, `<pre class="wjwk-full-rule">${esc(power.rules)}</pre>`); }
+  showRule(power) {
+    const original=!isMmlc(power)&&primaryInjectionSource(power);
+    const editor=original?`<form><label>修改发送给正文模型的主词条<textarea name="injectionRule" rows="12" maxlength="${Math.max(200000,original.length)}" required>${esc(power.injectionPrimaryRules??original)}</textarea></label><p class="wjwk-muted">保存后从下次剧情请求起使用。附加规则、异步整理和原世界书沿用原文。</p><div class="wjwk-toolbar">${btn('save-injection-rule','保存注入正文','wjwk-primary',false,`data-id="${esc(power.id)}"`)}${power.injectionPrimaryRules?btn('reset-injection-rule','还原注入原文','wjwk-secondary',false,`data-id="${esc(power.id)}"`):''}</div></form>`:'';
+    this.dialog(`${power.name} · 规则`,editor?`${editor}<details><summary>查看接入规则与附加内容</summary><pre class="wjwk-full-rule">${esc(power.rules)}</pre></details>`:`<pre class="wjwk-full-rule">${esc(power.rules)}</pre>`,{size:'wide'});
+  }
   showAdapter(power,library={schemaVersion:1,revision:0,configs:[]}) {
     const binding=power.adapterBinding,candidates=matchingAdapters(power,library).filter(c=>!binding||c.id===binding.config.id);
     this.dialog(`${power.name} · 词条适配配置`,`<p data-wjwk-help>适配包导入一次，同一酒馆账户的新聊天自动关联匹配词条；已有聊天保留自己的版本。</p><p class="wjwk-muted">配置操作已接入 拟定方案和下一轮正文承接；专用统计字段已接入 剧情整理，按正文证据保存。</p>${binding?`<p><strong>${esc(binding.config.name)} · ${esc(binding.config.version)}</strong></p><p>${adapterBindingCurrent(power)?'已关联，可在 拟定方案中使用':'词条规则已变化，原适配须重新核对'}</p>`:'<p>当前尚未登记适配配置，继续使用现有通用功能。</p>'}${binding&&adapterBindingCurrent(power)&&!library.configs.some(c=>c.id===binding.config.id)?btn('adapter-share','供其他聊天复用','wjwk-secondary'):''}<p>账户适配库：${new Set(library.configs.map(c=>c.id)).size}种适配。${candidates.length>1&&!binding?'当前有多个匹配方案，沿用通用功能；需要时可在下方选择。':''}</p>${candidates.length?`<details><summary>可用适配${binding?'与更新':''}</summary>${candidates.map(c=>`<p><strong>${esc(c.name)} · ${esc(c.version)}</strong> <button type="button" data-action="adapter-library-use" data-id="${esc(c.id)}">查看${binding?.config.id===c.id?'与核对更新':''}</button></p>`).join('')}</details>`:''}<label>导入适配文件<input type="file" accept=".json,application/json" data-adapter-file></label><details><summary>作者接入信息</summary><p>原文指纹：<code>${primaryHash(power)}</code></p><p data-wjwk-help>身份使用作者命名空间与固定词条ID，版本采用数字三段；匹配原文，不依赖文件名或显示名称。</p></details>`);
@@ -1044,19 +1051,23 @@ export class WorkbenchUI {
   setModels(ids, selected) { this.modelIds = ids; const input = this.modal.querySelector('[name="model"]'); if (input) input.value = selected; this.filterModels(this.modal.querySelector('[data-model-search]')?.value || ''); }
   filterModels(query) { const select = this.modal.querySelector('[data-model-list]'); if (!select) return; const current = this.modal.querySelector('[name="model"]')?.value || ''; const matches = (this.modelIds || []).filter(id => id.toLowerCase().includes(query.trim().toLowerCase())); select.innerHTML = `<option value="">${matches.length ? `找到 ${matches.length} 个模型，点选切换` : '没有匹配项，可修改搜索或手动填写'}</option>` + (!matches.includes(current) && current ? `<option value="${esc(current)}" selected>${esc(current)}（当前使用）</option>` : '') + matches.map(id => `<option value="${esc(id)}" ${id === current ? 'selected' : ''}>${esc(id)}</option>`).join(''); }
   showManage(catalog, names = [], role = {}) {
-    this.catalog = catalog; this.frameworkDrafts = new Map();
+    this.catalog = catalog; this.frameworkDrafts = new Map();this.injectionDrafts=new Map();this.previewEntryId=null;
+    this.groupedCatalog=catalogGroups(catalog);
     this.manageTab ||= 'entry';
     const info = builtinWorldbookInfo(), readBooks = importedCatalogBooks(catalog), linked = Boolean(role.state?.roleLink);
     const summary = `<div class="wjwk-dialog-summary"><span><strong>${catalog.length}</strong> 个可选词条</span><span><strong>${readBooks.length}</strong> 本已读取世界书</span><span class="wjwk-muted">${linked ? '角色变量已接入' : '角色变量未接入（可选）'}</span></div>`;
     const tabs = `<nav class="wjwk-dialog-tabs" role="tablist" aria-label="接入步骤"><button type="button" role="tab" data-action="manage-tab" data-tab="entry">① 选择金手指</button><button type="button" role="tab" data-action="manage-tab" data-tab="role">② 角色变量${linked ? ' · 已接入' : '（可选）'}</button></nav>`;
     const readBooksPanel = readBooks.length ? `<details class="wjwk-inline-details" data-read-books><summary>已读取的世界书 · ${readBooks.length} 本</summary><p class="wjwk-muted">移除只清理插件选择库中的读取内容，保留酒馆原书、已接入金手指及档案。内置武库始终可用；需要时可重新读取。</p>${readBooks.map(book => `<div class="wjwk-read-book-row"><span>${esc(book.name)} · ${book.count} 条</span><button type="button" class="wjwk-link" data-action="remove-read-book" data-book="${esc(book.name)}">移除</button></div>`).join('')}</details>` : '';
     const sourcePanel = `<section class="wjwk-form-section wjwk-source-section"><header class="wjwk-form-section-head"><div><h3>选择来源</h3><p>从已内置或已读取的世界书中选一个条目，也可以导入 JSON。</p></div></header><div class="wjwk-source-grid"><form class="wjwk-source-row"><label>酒馆世界书<select name="book">${names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') || '<option value="">暂无可读取的世界书</option>'}</select></label>${btn('read-book', '读取', 'wjwk-secondary', !names.length)}</form><label class="wjwk-file-button">导入世界书 JSON<input type="file" accept=".json,application/json" data-book-file></label></div><p class="wjwk-muted">内置武库 ${info.version} 版 · ${info.entries} 条规则。读取或导入后，在下方选择实际使用的词条。</p>${readBooksPanel}<details class="wjwk-inline-details"><summary>内置统计模块</summary><div class="wjwk-inline-actions">${btn('add-mmlc', '接入漫漫长路统计', 'wjwk-secondary')}${btn('space-taishi', '进入太始天', 'wjwk-secondary')}</div><p class="wjwk-muted">漫漫长路记录修行、造物、道场与研究成果；太始天管理个人诸界与眷属行动。</p></details></section>`;
-    const entryForm = catalog.length ? `<form class="wjwk-entry-form"><div class="wjwk-form-grid"><label>查找词条<input type="search" data-entry-search placeholder="输入名称，如 蝴蝶 / 深蓝 / 升变" autocomplete="off"></label><label>主词条<select name="primary" data-primary>${catalog.map(e => this.entryOption(e)).join('')}</select></label></div><p data-resource-hint class="wjwk-resource-hint"></p><section data-register-frameworks></section><details class="wjwk-inline-details"><summary>附加约束词条（例如全局结算思维链）</summary><div class="wjwk-companions">${catalog.map(e => `<label class="wjwk-checkbox"><input type="checkbox" name="companion" value="${esc(e.id)}">${esc(e.name)}</label>`).join('')}</div></details><details class="wjwk-inline-details"><summary>查看主词条完整正文</summary><pre class="wjwk-full-rule" data-rule-preview></pre></details><div class="wjwk-dialog-actions">${btn('register', '接入并确认余额', 'wjwk-primary')}<small>接入后先核对余额，再开始使用。</small></div></form>` : empty('读取或导入世界书后，可从完整词条中选择。');
+    const groups=this.groupedCatalog;
+    const supplementCount=groups.supplements.reduce((total,group)=>total+group.entries.length,0);
+    const supplementLibrary=`<details class="wjwk-inline-details"><summary>附加库 · ${supplementCount} 条</summary>${groups.supplements.length?groups.supplements.map(group=>`<details class="wjwk-inline-details"><summary>${esc(group.label)} · ${group.entries.length} 条</summary><div class="wjwk-companions">${group.entries.map(e=>`<label class="wjwk-checkbox"><input type="checkbox" name="companion" value="${esc(e.id)}">${esc(e.name)}</label>`).join('')}</div></details>`).join(''):empty('没有可选附加规则。')}</details>`;
+    const entryForm=groups.main.length?`<form class="wjwk-entry-form"><div class="wjwk-form-grid"><label>功能大类<select data-entry-category><option value="">全部大类</option>${groups.main.map(group=>`<option value="${group.id}">${esc(group.label)}</option>`).join('')}</select></label><label>细分类<select data-entry-subcategory></select></label><label>查找词条<input type="search" data-entry-search placeholder="输入名称或来源" autocomplete="off"></label><label>主词条<select name="primary" data-primary required></select></label></div><p data-resource-hint class="wjwk-resource-hint"></p><section data-register-frameworks></section>${supplementLibrary}<details class="wjwk-inline-details"><summary>编辑注入正文</summary><label>发送给正文模型的主词条<textarea name="injectionRule" data-entry-injection rows="10" maxlength="200000" required></textarea></label><small>接入后从下一次剧情请求起使用。异步整理仍使用接入原文。</small></details><div class="wjwk-dialog-actions">${btn('register','接入并确认余额','wjwk-primary')}<small>接入后先核对余额，再开始使用。</small></div></form>`:`${empty('没有可接入的金手指正文。')}${supplementLibrary}`;
     const entryPanel = `<section class="wjwk-manage-panel" data-manage-panel="entry" role="tabpanel">${sourcePanel}<div class="wjwk-form-section"><header class="wjwk-form-section-head"><div><h3>选择要接入的词条</h3><p>选择玩家当前实际使用的词条；接入后自动进入余额确认。</p></div></header>${entryForm}</div></section>`;
     const rolePanel = `<section class="wjwk-manage-panel" data-manage-panel="role" role="tabpanel"><div class="wjwk-form-section"><header class="wjwk-form-section-head"><div><h3>角色变量 · MVU</h3><p>可选。接入后可以把余额与行动结果写回角色变量；不接入也能正常管理档案。</p></div></header>${this.rolePanel(role, names)}</div></section>`;
     this.dialog('接入金手指与角色', `${summary}${tabs}<div class="wjwk-manage-body">${entryPanel}${rolePanel}</div>`, { size: 'wide' });
     this.manageVisibility();
-    if (catalog[0]) this.previewRule(catalog[0].id);
+    if(this.groupedCatalog.main.length)this.filterEntries('');
     this.updateRoleSelection(this.modal.querySelector('[data-role-form]'));
   }
   updateRoleSelection(form) {
@@ -1077,9 +1088,36 @@ export class WorkbenchUI {
     } else if (linked) body += `<p class="wjwk-resource-hint">当前聊天已保存角色接入：${state.roleLink.rules.length} 条规则，${Object.keys(state.roleLink.bindings).length} 项绑定。读取后可检查并修改。</p>`;
     return `<div class="wjwk-role-panel">${body}</div>`;
   }
-  entryOption(entry) { const resources = inferResources(entry), profile = managementProfile(entry); return `<option ${profile.verified && profile.role === 'support' ? 'disabled' : ''} value="${esc(entry.id)}">${esc(entry.name)}${profile.verified && profile.role === 'support' ? ' · 辅助规则，请选入附加约束' : ''}${resources.length ? ` · ${esc(resources.map(r => r.name).join('、'))}` : ''} · ${esc(entry.book)}</option>`; }
-  filterEntries(query) { const select = this.modal.querySelector('[data-primary]'); if (!select) return; const current = select.value; const entries = (this.catalog || []).filter(e => e.name.includes(query.trim()) || e.book.includes(query.trim())); select.innerHTML = entries.map(e => this.entryOption(e)).join(''); select.value = entries.some(e => e.id === current) ? current : entries[0]?.id || ''; this.previewRule(select.value); }
-  previewRule(id) { const entry = this.catalog?.find(e => e.id === id); const preview = this.modal.querySelector('[data-rule-preview]'); if (preview) preview.textContent = entry?.content || ''; const hint = this.modal.querySelector('[data-resource-hint]'); if (hint) { const resources = entry ? inferResources(entry) : []; hint.textContent = !entry ? '没有匹配的词条' : resources.length ? `已识别资源：${resources.map(r => r.name).join('、')}。接入后核对当前余额。` : '没有识别到固定数值资源，可直接接入；物品与能力按正文登记。'; if (entry) { const profile = managementProfile(entry); hint.textContent += ` 管理：${profile.verified ? '原文匹配配置' : '通用回退'}；${profile.templates.length}项模板。${profile.note}`; } } this.previewFrameworkChoices(entry); }
+  entryOption(entry) { return `<option value="${esc(entry.id)}">${esc(entry.name)} · ${esc(entry.book)}</option>`; }
+  filterEntries(query) {
+    const select=this.modal.querySelector('[data-primary]');
+    if(!select)return;
+    const category=this.modal.querySelector('[data-entry-category]'),subcategory=this.modal.querySelector('[data-entry-subcategory]');
+    const previous=select.value,sub=subcategory.value,roots=this.groupedCatalog.main.filter(root=>!category.value||root.id===category.value);
+    const groups=roots.flatMap(root=>root.groups);
+    subcategory.innerHTML='<option value="">全部细分类</option>'+groups.map(group=>`<option value="${group.id}">${esc(group.label)}</option>`).join('');
+    subcategory.value=groups.some(group=>group.id===sub)?sub:'';
+    const q=query.trim().toLowerCase();
+    const matches=groups.filter(group=>!subcategory.value||group.id===subcategory.value).map(group=>({...group,entries:group.entries.filter(e=>e.name.toLowerCase().includes(q)||e.book.toLowerCase().includes(q))})).filter(group=>group.entries.length);
+    select.innerHTML=matches.map(group=>`<optgroup label="${esc(group.label)}">${group.entries.map(e=>this.entryOption(e)).join('')}</optgroup>`).join('')||'<option value="">没有匹配的词条</option>';
+    const entries=matches.flatMap(group=>group.entries);
+    select.value=entries.some(e=>e.id===previous)?previous:entries[0]?.id||'';
+    this.modal.querySelector('[data-action="register"]').disabled=!entries.length;
+    this.previewRule(select.value);
+  }
+  previewRule(id) {
+    if(this.previewEntryId===id)return;
+    this.previewEntryId=id;
+    const entry=this.catalog?.find(e=>e.id===id),field=this.modal.querySelector('[data-entry-injection]');
+    if(field){
+      const existing=entry&&Object.values(this.view?.state?.powers||{}).find(p=>p.id===entry.id||(p.primaryRules??p.rules)===entry.content);
+      field.value=entry?(this.injectionDrafts.get(id)??existing?.injectionPrimaryRules??entry.content):'';
+      field.disabled=!entry;
+    }
+    const hint=this.modal.querySelector('[data-resource-hint]'),resources=entry?inferResources(entry):[];
+    if(hint)hint.textContent=!entry?'':resources.length?`已识别资源：${resources.map(r=>r.name).join('、')}。接入后核对当前余额。`:'此词条无固定数值资源，可直接接入。';
+    this.previewFrameworkChoices(entry);
+  }
   showBaseline(power, findings = {}, link = null) {
     const resources = Object.values(power.resources), found = resources.filter(r => findings[r.id]);
     this.dialog(`${power.name} · 手动余额与已有事实`, `<form><p data-balance-summary>${resources.length ? `已识别 ${resources.length} 项资源，聊天中找到 ${found.length} 项余额候选（含已有账本的校正候选）。直接填写当前正确余额，保存为填写的当前余额。` : '此词条没有识别到固定数值资源，可直接开始使用。'}</p>${resources.map(r => this.balanceRow(r, findings[r.id], `balance:${r.id}`, link?.bindings[`${power.id}:${r.id}`])).join('')}<div class="wjwk-toolbar">${btn('extract-balances', '重新扫描聊天余额', 'wjwk-secondary')}${resources.some(r => r.balance === null) ? btn('zero-balances', '空白余额设为 0', 'wjwk-secondary') : ''}</div><p class="wjwk-muted">已有账本余额优先。找不到的数值可直接填写；留空继续保持未确认。“空白余额设为 0”只填写空白项，候选值和已有值保持原样；确认后才保存。</p><details><summary>已有能力与物品（按需要补录）</summary><label>名称<input name="assetName" maxlength="200" placeholder="例如：基础呼吸法"></label><label>类别<input name="assetKind" maxlength="100" placeholder="能力 / 物资 / 起始事实"></label><label>数量<input name="assetQuantity" value="1" inputmode="decimal"></label><label>完整规格与当前掌握程度<textarea name="assetDescription" maxlength="8000" rows="3"></textarea></label><label class="wjwk-checkbox"><input type="checkbox" name="assetPermanent">永久持有的成果</label></details><label>修正说明（可不填）<input name="reason" maxlength="600" placeholder="例如：补记正文收入后的余额，或纠正遗漏扣款"></label><details><summary>高级：资源补充与预支规则</summary>${resources.map(r => `<label>${esc(r.name)}允许的最低余额<input name="floor:${esc(r.id)}" ${link?.bindings[`${power.id}:${r.id}`] ? 'readonly' : ''} value="${esc(r.floor ?? '0')}" inputmode="decimal"></label>`).join('')}<label>新增正文定义的资源名<input name="resourceName" maxlength="200" placeholder="没有自动识别到的实际货币或次数"></label><label>新增资源余额<input name="resourceBalance" inputmode="decimal" placeholder="留空为未知"></label></details>${btn('save-baseline', resources.length ? '保存手动修正' : '保存并返回操作台', 'wjwk-primary')}</form>`);

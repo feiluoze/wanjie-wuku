@@ -1,4 +1,4 @@
-import {resourceBalanceAllowed} from './src/core.js';
+import {resourceBalanceAllowed,setPrimaryInjection,primaryInjectionSource} from './src/core.js';
 import {promptPresetMethods} from './src/prompt-preset-ui.js';
 import {archiveRequestScope} from './src/archive-input.js';
 import {databasePromptTrial,DATABASE_PROMPT_TRIAL_ID} from './src/database-prompt-trial.js';
@@ -783,13 +783,17 @@ export class WukuApp {
         assert(!this.busy&&!this.mainBusy&&!this.committing&&!this.pendingArchiveReview&&!this.archiveReviewJob&&!this.manualBatchRun,'请先完成或放弃当前整理候选，再接入或调整词条');
         const s = snapshot(); const selectedEntry = this.settings.catalog.find(e => e.id === data.values.primary); assert(selectedEntry, '主词条不存在');
         const entry = { ...selectedEntry, id:builtinPowerId(selectedEntry,s.state.powers) };
-        const companions = new FormData(data.form).getAll('companion').filter(id => id !== selectedEntry.id).map(id => this.settings.catalog.find(e => e.id === id)).filter(Boolean);
+        const companions = [...new Set(new FormData(data.form).getAll('companion'))].map(id=>this.settings.catalog.find(e=>e.id===id));
+        assert(companions.every(Boolean),'所选附加词条已变化，请重新选择');
         assertProfileRegistration(entry, companions, s.state.powers);
         const registered = createPower(entry, companions);
+        if(data.values.injectionRule!==undefined)setPrimaryInjection(registered,data.values.injectionRule);
         const frameworkChoice=data.form?.elements?.['framework-selection']?.value==='1'?new FormData(data.form).getAll('record-framework'):undefined;
         await this.store.transact(next => {
           const old = next.powers[registered.id]; if (old) upgradeBuiltinPower(old);
           if (old) { if(old.recordFrameworks)registered.recordFrameworks=clone(old.recordFrameworks); if (old.adapterBinding) registered.adapterBinding = old.adapterBinding; registered.resources = { ...registered.resources, ...old.resources }; registered.assets = old.assets; registered.fields = old.fields; registered.archives = old.archives || {}; registered.autoArchiveReview = old.autoArchiveReview || false; registered.autoArchiveSave = old.autoArchiveSave || false; if(old.taishiWorkflow!==undefined)registered.taishiWorkflow=old.taishiWorkflow; if(old.taishiPeople)registered.taishiPeople=clone(old.taishiPeople); if(old.taishiBuild)registered.taishiBuild=clone(old.taishiBuild); if(old.taishiTime)registered.taishiTime=clone(old.taishiTime);if(old.taishiSchedule)registered.taishiSchedule=clone(old.taishiSchedule);if(old.taishiSchedules)registered.taishiSchedules=clone(old.taishiSchedules); if(old.taishiAutonomy!==undefined)registered.taishiAutonomy=old.taishiAutonomy; if (old.archiveReadRange) registered.archiveReadRange = old.archiveReadRange; if (old.archiveAuto) registered.archiveAuto = old.archiveAuto; if (old.autoArchiveStart !== undefined) registered.autoArchiveStart = old.autoArchiveStart; if (old.ruleVersion === registered.ruleVersion) registered.playerGuide = old.playerGuide; registered.archiveReviewed = old.archiveReviewed || []; registered.archiveStart = old.archiveStart ?? next.managementStart; registered.managementRecords = old.managementRecords || {}; registered.cycles = old.cycles || {}; registered.simulations = old.simulations || {}; if (old.ruleVersion === registered.ruleVersion) registered.fixedQuotes = old.fixedQuotes; }
+          if(old?.storyBranches)registered.storyBranches=old.storyBranches;
+          if(data.values.injectionRule===undefined&&old?.injectionPrimaryRules)setPrimaryInjection(registered,old.injectionPrimaryRules);
           autoAssociateAdapter(registered,this.associationLibrary());
           next.powers[registered.id] = registered;
           if (!Object.keys(s.state.powers).length) { next.syncCursor = s.ctx.chat.length; next.managementStart = s.ctx.chat.length; next.historyAnchor = s.hashes; }
@@ -951,7 +955,24 @@ export class WukuApp {
       case 'open-archive': return this.openArchive(data.id);
       case 'save-archive': return this.saveArchive(data);
       case 'move-archive': return this.moveArchive(data);
-      case 'view-rule': { const p = this.store.read().powers[this.powerId]; assert(p, '请先选择金手指'); return this.ui.showRule(p); }
+      case 'view-rule': {
+        const s=this.contextSnapshot(),p=s.state.powers[this.powerId];assert(p,'请先选择金手指');
+        this.injectionRuleDraft={chatKey:s.chatKey,stateId:s.state.id,powerId:p.id};
+        return this.ui.showRule(p);
+      }
+      case 'save-injection-rule':
+      case 'reset-injection-rule': {
+        assert(!this.busy&&!this.mainBusy&&!this.committing,'请等当前任务结束再修改注入正文');
+        const s=this.ensureStable(),p=s.state.powers[data.id];
+        const draft=this.injectionRuleDraft;
+        assert(p&&p.id===this.powerId&&!isMmlc(p)&&draft?.chatKey===s.chatKey&&draft.stateId===s.state.id&&draft.powerId===p.id,'请重新打开当前词条的规则');
+        await this.store.transact(next=>{
+          const power=next.powers[p.id];
+          setPrimaryInjection(power,name==='reset-injection-rule'?primaryInjectionSource(power):data.values.injectionRule);
+        },{captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},facts:false});
+        this.refresh();this.ui.showRule(this.store.read().powers[p.id]);
+        return this.notice('注入正文已保存，下次剧情请求生效。');
+      }
       case 'retry-story': return this.setStoryStatus(data.id, 'waiting');
       case 'stop-story': return this.setStoryStatus(data.id, 'stopped');
       case 'cancel-scene': if (this.sceneQuery) this.cancel(); return;

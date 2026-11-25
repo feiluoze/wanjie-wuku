@@ -144,7 +144,7 @@ export function importBook(data, name = '导入世界书') {
     const entryId = String(e.uid ?? e.id ?? index);
     const label = String(e.comment || e.name || e.key?.[0] || e.keys?.[0] || `词条 ${entryId}`).slice(0, 200);
     assert(e.content.length <= 200000, '单条正文过长');
-    return { id: `entry_${hash(`${name}\n${entryId}`)}`, entryId, book: name, name: label, content: e.content, enabledInBook: e.disable !== undefined ? !e.disable : e.enabled !== false, auxiliary: /思维链|选项栏|·/.test(label) };
+    return { id: `entry_${hash(`${name}\n${entryId}`)}`, entryId, book: name, name: label, content: e.content, enabledInBook: e.disable !== undefined ? !e.disable : e.enabled !== false, auxiliary: /思维链|选项栏|·/.test(label), ...(e.auxiliary===true?{explicitAuxiliary:true}:{}) };
   });
   assert(entries.length && entries.length <= 2000, '世界书条目数量无效');
   return entries;
@@ -203,6 +203,20 @@ export function createPower(entry, companions = []) {
     active: true, resources: Object.fromEntries(resources.map(r => [r.id, r])), fields: {}, assets: {},
     cycles: {}, simulations: {}, managementRecords: {}, quotes: [], fixedQuotes: [], pricing: entry.name === '蝴蝶效应' ? 'fixed_effect' : 'stateful', createdAt: Date.now(),
   };
+}
+export function primaryInjectionSource(power){
+  if(power.primaryRules&&power.rules.startsWith(power.primaryRules))return power.primaryRules;
+  return power.companions?.length?null:power.rules;
+}
+export function setPrimaryInjection(power,value){
+  const original=primaryInjectionSource(power);
+  assert(original&&typeof value==='string'&&value.length<=Math.max(200000,original.length)&&value.trim(),'注入正文不能为空或超出长度上限');
+  if(value.replace(/\r\n?/g,'\n')===original.replace(/\r\n?/g,'\n'))delete power.injectionPrimaryRules;
+  else power.injectionPrimaryRules=value;
+}
+function injectionRules(power){
+  const original=power.injectionPrimaryRules&&primaryInjectionSource(power);
+  return original?power.injectionPrimaryRules+power.rules.slice(original.length):power.rules;
 }
 function panelBalanceAmount(value) {
   const plain = value.replace(/,/g, '');
@@ -413,7 +427,7 @@ export function buildInjection(state, names = {}) {
   const mmlcRules=mmlcBodyRules(state,names);
   // Keep the existing envelope so repeated host assembly replaces this packet.
   if (!powers.length) return mmlcRules?`[${STATE_MARKER}]\n${mmlcRules}\n[/${STATE_MARKER}]`:'';
-  return `[${STATE_MARKER}]\n这是万界武库插件已保存的当前事实，适用人物：${names.user || '{{user}}'}。版本：${state.revision}。\n已完成操作无需再次扣付、领取或重新裁定。按所得完整规格描写其实际效力。过去面板与本记录冲突时，以本记录及其后真正新增的事实为准。插件接入暂停不回收永久所得。\n本轮新发生的金手指收益可在原有 WJWK 回执中展示，作为待核对的新事件；不要把已经记账的操作再次当成新收益。\n周期 pending 仅表示待正文处理；recorded 是玩家核对正文已结算。模拟 available 为候选，selected 为玩家选择且尚未到账，received 为玩家核对正文已到账。waiting 条件未满足，不可兑现。只承接已启用词条的有效选择，严格按原规则和现实条件处理；登记不授予额外次数或收益，不因插件选择而默认已发奖。\n当前档案：\n${JSON.stringify(powers.map(p => publicPower(p, names.chat)))}\n近期已完成记录：\n${JSON.stringify(state.transactions.filter(t => t.type !== 'workflow' && t.powerId !== MMLC_ID && (!state.powers[t.powerId] || !isTaishi(state.powers[t.powerId]) || state.powers[t.powerId].active)).slice(-8).map(t => ({ label: t.label, powerId: t.powerId, changes: t.changes, atMessage: t.atMessage })))}\n当前接入的完整规则（保留原词条能力与边界）：\n${enabled.map(p => `【${p.name}】\n${p.rules.replaceAll('{{user}}', names.user || '{{user}}').replaceAll('{{char}}', names.character || '{{char}}')}`).join('\n\n')}\n${mmlcRules}\n[/${STATE_MARKER}]`;
+  return `[${STATE_MARKER}]\n这是万界武库插件已保存的当前事实，适用人物：${names.user || '{{user}}'}。版本：${state.revision}。\n已完成操作无需再次扣付、领取或重新裁定。按所得完整规格描写其实际效力。过去面板与本记录冲突时，以本记录及其后真正新增的事实为准。插件接入暂停不回收永久所得。\n本轮新发生的金手指收益可在原有 WJWK 回执中展示，作为待核对的新事件；不要把已经记账的操作再次当成新收益。\n周期 pending 仅表示待正文处理；recorded 是玩家核对正文已结算。模拟 available 为候选，selected 为玩家选择且尚未到账，received 为玩家核对正文已到账。waiting 条件未满足，不可兑现。只承接已启用词条的有效选择，严格按原规则和现实条件处理；登记不授予额外次数或收益，不因插件选择而默认已发奖。\n当前档案：\n${JSON.stringify(powers.map(p => publicPower(p, names.chat)))}\n近期已完成记录：\n${JSON.stringify(state.transactions.filter(t => t.type !== 'workflow' && t.powerId !== MMLC_ID && (!state.powers[t.powerId] || !isTaishi(state.powers[t.powerId]) || state.powers[t.powerId].active)).slice(-8).map(t => ({ label: t.label, powerId: t.powerId, changes: t.changes, atMessage: t.atMessage })))}\n当前接入的完整规则（保留原词条能力与边界）：\n${enabled.map(p => `【${p.name}】\n${injectionRules(p).replaceAll('{{user}}', names.user || '{{user}}').replaceAll('{{char}}', names.character || '{{char}}')}`).join('\n\n')}\n${mmlcRules}\n[/${STATE_MARKER}]`;
 }
 export function validateState(data) {
   validateAIWorldbooks(data?.aiWorldbooks);
@@ -540,6 +554,7 @@ export function validateState(data) {
       else assert(text(r.source.note, 600), '人工校准缺少说明');
     }
     key(id); assert(id === p.id, '词条标识不一致'); text(p.name, 200); text(p.rules, 2000000); assert(hash(p.rules) === p.ruleVersion, '正文版本校验不一致');
+    if(p.injectionPrimaryRules!==undefined)assert(primaryInjectionSource(p)&&text(p.injectionPrimaryRules,Math.max(200000,primaryInjectionSource(p).length)),'自定义注入正文无效');
     assert(p.pricing === 'fixed_effect' || p.pricing === 'stateful', '报价方式无效');
     for (const map of [p.resources, p.fields, p.assets]) assert(map && typeof map === 'object' && !Array.isArray(map), '词条状态无效');
     for (const [rId, r] of Object.entries(p.resources)) { key(rId); assert(r.id === rId, '资源标识不一致'); text(r.name, 200); const floor = amount(r.floor ?? '0'); if (r.balance !== null) assert(resourceBalanceAllowed(p,r,r.balance), '资源余额低于允许的最低余额'); }

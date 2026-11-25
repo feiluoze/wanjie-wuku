@@ -15,9 +15,16 @@ export function managementProfile(entity) {
   return { name:entity?.name || '未知词条', role:'primary', family:'archive', templates:clone(generic), workflows:['cycle','simulation'], variantGroup:null, verified:false, match:named ? 'changed' : 'unknown', note:named ? '同名词条正文与已配置版本不同，使用通用记录；不套用旧版专用字段。' : '尚无专用配置，仍可查看完整规则、补录记录与核对正文；专用机制待核对。' };
 }
 export function configuredProfiles() { return clone(PROFILE_DATA); }
+export function isSupplementEntry(entry,profile=managementProfile(entry)){
+  if(profile.verified)return profile.role==='support';
+  if(entry.explicitAuxiliary===true)return true;
+  return /(?:思维链|选项栏|附加规则|附加约束|辅助规则)(?:[（(][^）)]*[）)])?$/.test(entry.name.trim())||
+    /[·・]\s*[^·・]*(?:详解|初始技能|特效样式|模拟格式)$/.test(entry.name.trim());
+}
 export function assertProfileRegistration(entry, companions, powers) {
   assert(![entry,...companions].some(isDedicatedEntry),'太始天只在专用模块启用，请使用顶部模块开关；通用词条不再接入太始天');
-  const main = managementProfile(entry); assert(!main.verified || main.role !== 'support', '这是一条辅助规则，请随所属主词条选入附加规则，不单独接入');
+  assert(!isSupplementEntry(entry),'这是一条辅助规则，请从附加库选入');
+  assert(companions.every(e=>isSupplementEntry(e)),'附加库只能选辅助规则，金手指正文请单独接入');
   const incoming = [entry, ...companions].map(managementProfile).filter(p=>p.verified && p.variantGroup);
   const groups = new Set(); for (const p of incoming) { assert(!groups.has(p.variantGroup), '两个太始天版本须择一，不能在同次接入中组合'); groups.add(p.variantGroup); }
   for (const p of Object.values(powers)) {
