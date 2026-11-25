@@ -82,7 +82,7 @@ test('query switches real transport, preserves snapshot and reports actual backu
 test('settings expose ordered backups inside optional details without leaking profile credentials',()=>{
  const ui=Object.create(WorkbenchUI.prototype);let html;ui.dialog=(_title,body)=>html=body;ui.modal={querySelector:()=>null};
  ui.showSettings({...settings('a'),taskFallbacks:{archive:['b']}},{profiles:[{id:'b',name:'备用',model:'b',mode:'custom'}]});
- assert.match(html,/name="fallback1:archive"/);assert.match(html,/name="fallback2:archive"/);assert.match(html,/备用请求可能另计费用/);assert.match(html,/不使用/);
+ assert.match(html,/name="fallback1:archive"/);assert.match(html,/name="fallback2:archive"/);assert.match(html,/按顺序切换备用连接/);assert.match(html,/不使用/);
 });
 
 

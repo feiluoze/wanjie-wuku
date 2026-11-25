@@ -152,5 +152,5 @@ test('autonomy changes invalidate stale windows, cannot use auto-save, and UI es
   const f=await setup();f.app.openTaishiDevelopment();await f.app.saveTaishiAutonomy({autonomy:'on'});assert.equal(f.store.read().powers[f.app.powerId].taishiAutonomy,true);
   await assert.rejects(f.app.reviewArchives({automatic:true,autoSave:true,taishiEvolution:{worldId:f.world,elapsed:1,unit:'years'},values:{playerNote:'玩家确认推进一年'}}));
   await f.store.transact(s=>s.powers[f.app.powerId].taishiAutonomy=false);assert.throws(()=>f.app.evolveTaishi(values(f)));
-  const ui=Object.create(WorkbenchUI.prototype);let html;ui.dialog=(_title,body)=>html=body;const p=clone(f.store.read().powers[f.app.powerId]);p.archives[f.a].name='<img onerror=bad>';ui.showTaishiPeople(p);assert(!html.includes('<img'));assert(html.includes('&lt;img'));ui.showTaishiDevelopment(p,'st');assert.match(html,/旧档默认关闭/);assert.match(html,/data-action="taishi-evolve" disabled/);
+  const ui=Object.create(WorkbenchUI.prototype);let html;ui.dialog=(_title,body)=>html=body;const p=clone(f.store.read().powers[f.app.powerId]);p.archives[f.a].name='<img onerror=bad>';ui.showTaishiPeople(p);assert(!html.includes('<img'));assert(html.includes('&lt;img'));ui.showTaishiDevelopment(p,'st');assert.match(html,/开启后可按内部历时自动推演/);assert.match(html,/data-action="taishi-evolve" disabled/);
 });

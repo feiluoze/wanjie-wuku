@@ -8,4 +8,4 @@ export const TAISHI_MODEL_GUIDE=Object.freeze([
   {task:'复杂冲突复核',tier:'Pro 类按需',reason:'用于重建或难以确定的矛盾，无需每轮调用；字段、权限、重复写入始终由程序校验。'}
 ]);
 export const TAISHI_MODEL_SOURCE='https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/guides/gemini-3-5-flash';
-export const TAISHI_MODEL_NOTE='Flash / Pro 是能力与速度取舍的参考，不按名称保证效果。先用同一模型也可以；以实际连贯性、结构输出成功率、耗时和费用决定。模型升级或切换须玩家选择，失败不自动换用更贵模型。';
+export const TAISHI_MODEL_NOTE='Flash 侧重速度，Pro 侧重复杂推演，也可以全部使用同一个模型。';

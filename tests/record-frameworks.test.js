@@ -65,7 +65,7 @@ test('source castle legacy assets resume updates in their selected framework ins
 });
 
 test('choice markup escapes source names and supports all-off without forced recommendations',()=>{
- const p=power('源堡');setRecordFrameworks(p,[]);const html=frameworkChoicesHTML({...p,name:'<img onerror=alert(1)>'});assert.equal((html.match(/type="checkbox"/g)||[]).length,7);assert(!html.includes(' checked'));assert(!html.includes('<img'));assert(html.includes('原状态栏'));assert(html.includes('正文记忆'));
+ const p=power('源堡');setRecordFrameworks(p,[]);const html=frameworkChoicesHTML({...p,name:'<img onerror=alert(1)>'});assert.equal((html.match(/type="checkbox"/g)||[]).length,7);assert(!html.includes(' checked'));assert(!html.includes('<img'));assert(html.includes('关闭某项仅停止自动记录'));
 });
 
 test('reserved generic IDs never override custom adapter fields and an invalid existing binding cannot gain a fallback',()=>{

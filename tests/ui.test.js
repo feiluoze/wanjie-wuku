@@ -31,7 +31,7 @@ test('action preview separates immediate story from deferred settlement and pres
   const html=WorkbenchUI.prototype.detail(p,op,false);strict.match(html,/确认并展开剧情/);strict.match(html,/data-action="execute-later"/);strict.match(html,/在院中试演/);strict.match(html,/data-story-note/);
 });
 test('narrative panel exposes retry and evidence without treating any reply as confirmed',()=>{
-  const state=emptyState();state.narrativeActions=[{id:'op_test',label:'<script>测试</script>',intent:'玩家选择',status:'waiting'}];const ui=Object.create(WorkbenchUI.prototype);let html=ui.narratives(state,false,'st');strict.match(html,/展开待承接行动/);strict.doesNotMatch(html,/<script>/);strict.match(html,/不再扣费/);
+  const state=emptyState();state.narrativeActions=[{id:'op_test',label:'<script>测试</script>',intent:'玩家选择',status:'waiting'}];const ui=Object.create(WorkbenchUI.prototype);let html=ui.narratives(state,false,'st');strict.match(html,/展开待承接行动/);strict.doesNotMatch(html,/<script>/);strict.match(html,/不重复扣费/);
   Object.assign(state.narrativeActions[0],{status:'presented',result:{index:1,excerpt:'<img src=x>正文'}});html=ui.narratives(state,false,'st');strict.match(html,/待核对/);strict.match(html,/检查正文覆盖/);strict.match(html,/正文已承接/);strict.doesNotMatch(html,/<img/);
 });
 

@@ -987,9 +987,9 @@ export class WukuApp {
         const current=this.aiActivity?.current;
         if(!current||current.status!=='running'||String(current.id)!==String(data.taskId))return;
         assert(!this.committing,'结果正在提交，请等待完成；已保存内容不能通过取消撤销');
-        this.cancel();this.refresh();return this.notice('任务已取消，未提交的结果已放弃。酒馆连接的远端请求可能需要片刻才结束。');
+        this.cancel();this.refresh();return this.notice('任务已取消。');
       }
-      case 'cancel': this.cancel(); return this.notice('查询已取消，本次没有改变账目。');
+      case 'cancel': this.cancel(); return this.notice('查询已取消。');
       case 'open-workflow': return this.openWorkflow(data);
       case 'save-workflow': return this.saveWorkflow(data);
       case 'review-management': return this.reviewManagement();

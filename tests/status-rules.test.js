@@ -94,7 +94,7 @@ test('every model-proposed field requires coverage, including a second unrelated
 });
 test('preview shows quote and concrete update reason as inert text instead of claiming semantic proof', async () => {
   const f = fixture(); await linkFixture(f); await f.app.generate(); const op = f.app.selected; op.rolePlan.roleChecks[0].reason = '<img src=x onerror=bad> 模型理由';
-  const html = WorkbenchUI.prototype.detail(f.power, op, false, true, 'st'); strict.match(html, /逐项角色规则依据（模型说明，请核对）/); strict.match(html, /新增功法必须保留已有功法/); strict.match(html, /&lt;img/); strict.doesNotMatch(html, /<img/);
+  const html = WorkbenchUI.prototype.detail(f.power, op, false, true, 'st'); strict.match(html, /逐项角色规则依据/); strict.match(html, /新增功法必须保留已有功法/); strict.match(html, /&lt;img/); strict.doesNotMatch(html, /<img/);
 });
 test('a pending older outbox without new evidence can still complete its original write once', async () => {
   const f = fixture(); await linkFixture(f); await f.app.generate(); f.writeHook = () => { throw Error('legacy failure'); }; await f.app.execute();

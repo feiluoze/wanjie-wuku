@@ -77,7 +77,7 @@ export const creationMethods={
    assert(hash(stable(chatHashes(getContext().chat)))===d.contextHash&&creationCurrent(d.item,next.powers[d.item.powerId],getContext().chat),'规则或依据已变化，请重新拟定');
    next.creations||=[];assert(!next.creations.some(o=>o.id===d.item.id),'这份内容已经采用');assert(next.creations.length<1000,'拟定历史已满，请先导出整理');assert(next.creations.filter(o=>o.status==='queued').length<4,'已有四份内容等待正文，请先承接或撤销');
    next.creations.push(clone(d.item));next.transactions.push({id:d.item.id,powerId:d.item.powerId,type:'creation',label:d.item.title,changes:['已采用拟定内容，下一轮正文承接；实际成果待剧情确认'],evidence:[],costs:[],effects:[],at:Date.now(),atMessage:s.ctx.chat.length});
-  },{captured:d.captured});this.creationDraft=null;this.creationRequest=null;this.ui.closeDialog();this.notice('已采用，下一轮正文自动承接；实际成果会由剧情整理记录。');}finally{this.committing=false;this.refresh();}
+  },{captured:d.captured});this.creationDraft=null;this.creationRequest=null;this.ui.closeDialog();this.notice('已采用，下一轮正文将自动承接。');}finally{this.committing=false;this.refresh();}
  },
  async cancelCreation(id){const s=this.ensureStable();assert(!this.busy,'请等待当前操作完成');await this.store.transact(next=>{const o=next.creations?.find(o=>o.id===id);assert(o?.status==='queued','该内容已交正文或已撤销');o.status='cancelled';},{captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision},facts:false});this.refresh();},
  beginCreation(type){const s=this.contextSnapshot();this.creationAttempt=['normal','continue'].includes(type)&&(s.state.creations||[]).some(o=>o.status==='queued')?{chatKey:s.chatKey,stateId:s.state.id,type,before:s.hashes,beforeBody:type==='continue'?archiveText(s.ctx.chat.at(-1)?.mes??s.ctx.chat.at(-1)?.content??''):'',ids:[],packet:'',rendered:null,ended:false,reader:null}:null;},

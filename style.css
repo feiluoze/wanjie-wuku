@@ -1496,3 +1496,8 @@
 [data-ai-reading]{font-size:.85em;line-height:1.6;overflow-wrap:anywhere;}
 .wjwk-header-actions .wjwk-attention-open{min-width:4.8em;white-space:nowrap;}
 .wjwk .wjwk-context-line{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem;}.wjwk-context-line [data-action="power-management"]{margin-left:auto;min-height:36px;}
+
+/* Streamlined operations extra & settings tabs */
+.wjwk .wjwk-operations-extra { margin-top: 18px; display: grid; gap: 14px; }
+.wjwk [data-settings-panel] { display: grid; gap: 12px; }
+.wjwk [data-settings-panel][hidden] { display: none; }

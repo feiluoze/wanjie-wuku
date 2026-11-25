@@ -50,10 +50,10 @@ test('unselected native tables are explained in the chooser but never silently r
 
 test('source castle coverage distinguishes native knowledge from generic additions and does not revive retired categories',()=>{
  const p=power('源堡');setRecordFrameworks(p,['regions']);const html=frameworkChoicesHTML(p),coverage=nativeFrameworkCoverage(p);
- assert.deepEqual(coverage.tables.map(t=>t.id),['records']);assert(html.includes('复用自带子表：'));assert(!html.includes('data-native-table="assets"'));
+ assert.deepEqual(coverage.tables.map(t=>t.id),['records']);assert(html.includes('使用自带子表：'));assert(!html.includes('data-native-table="assets"'));
  assert(coverage.tables.every(t=>t.frameworkId==='knowledge'));
  const custom={...p,primaryRules:p.primaryRules+'自定义改写'};assert.equal(nativeFrameworkCoverage(custom).tables.length,0);
- assert(frameworkChoicesHTML(custom).includes('当前规则没有匹配的专属长期子表'));
+ assert(frameworkChoicesHTML(custom).includes('当前词条没有专属长期子表'));
 });
 
 test('native responses save into their declared table and immediately render visible facts, including empty tables',()=>{

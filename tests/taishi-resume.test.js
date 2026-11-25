@@ -84,7 +84,7 @@ test('automatic partial runs pause for preview; remainder can resume after a par
 
 test('workflow panel exposes individual retry, budget, cancel/discard and local recovery',async()=>{
   const f=await setup();await f.app.reviewArchives();const html=WorkbenchUI.prototype.taishiWorkflowReview.call({},pending(f));
-  assert(html.includes('data-stage="taishiPeople"'));assert(!html.includes('data-stage="taishiWorld"'));assert(html.includes('已使用 2 次请求'));assert(html.includes('每岗位合计最多 3 次'));assert(html.includes('成功岗位与未保存候选会保留'));assert(pending(f).checkpointSaved);assert(html.includes('taishi-workflow-discard'));
+  assert(html.includes('data-stage="taishiPeople"'));assert(!html.includes('data-stage="taishiWorld"'));assert(html.includes('已发 2 次请求'));assert(html.includes('每岗位上限 3 次'));assert(html.includes('已完成的岗位与候选会自动保留'));assert(pending(f).checkpointSaved);assert(html.includes('taishi-workflow-discard'));
 });
 
 test('invalid resume input fails without invoking a model',async()=>{

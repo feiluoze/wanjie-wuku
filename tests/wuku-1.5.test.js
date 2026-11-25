@@ -52,5 +52,5 @@ test('existing asset starts a goal without model calls or state writes and rejec
 });
 test('receipt stages distinguish ledger, pending variables and narration; inventory help is folded',()=>{
  const tx={id:'x',type:'operation'},s={roleWrites:[{id:'x',status:'pending'}],narrativeActions:[{id:'x',status:'waiting'}]};assert.deepEqual(receiptStatus(s,tx),{stages:['账本已结算','角色待同步','正文待承接'],pendingRole:true});
- const f=fixture(),ui=Object.create(WorkbenchUI.prototype);f.power.assets={a:{id:'a',name:'已掌握能力',kind:'能力',description:'完整说明'.repeat(60),quantity:'1',permanent:true}};const html=ui.assets(f.power);assert.match(html,/能力与永久所得/);assert.match(html,/data-action="asset-goal"/);assert.match(html,/<details><summary>完整效果/);assert.match(html,/登记与使用说明/);
+ const f=fixture(),ui=Object.create(WorkbenchUI.prototype);f.power.assets={a:{id:'a',name:'已掌握能力',kind:'能力',description:'完整说明'.repeat(60),quantity:'1',permanent:true}};const html=ui.assets(f.power);assert.match(html,/能力与永久所得/);assert.match(html,/data-action="asset-goal"/);assert.match(html,/<details><summary>完整效果/);assert.match(html,/背包与长期档案的区别/);
 });

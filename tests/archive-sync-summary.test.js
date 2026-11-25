@@ -44,7 +44,7 @@ test('library pending filter and summary action are available without changing s
  assert(html.includes('本次同步摘要'));assert(html.includes('基础记录 1'));assert(html.includes('查看待补全 1 条'));assert(html.includes('data-pending="1"'));
  assert.equal(p.archives.a.specific.fields.effect, undefined);
  p.archiveUndo = {label: '自动整理'};
- assert(Object.create(WorkbenchUI.prototype).automaticArchiveControls(p, false, 'st').includes('撤销上次：自动整理'));
+ assert(Object.create(WorkbenchUI.prototype).automaticArchiveControls(p, false, 'st').includes('撤销上次'));
 });
 
 test('review dialog renders the summary without changing the pending batch', () => {

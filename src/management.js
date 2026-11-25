@@ -95,7 +95,7 @@ export const managementMethods = {
         p.managementRecords[id] = { id, category, label, value, status, source: { type: 'manual', note }, updatedAt: Date.now() };
         this.record(next, `${p.name} · 人工校准管理记录`, [`${label}：${before?.value || '未知'} → ${value}`, `依据：${note}`], 'management', p.id);
       }, { captured: draft.captured });
-      this.managementDraft = null; this.ui.closeDialog(); this.notice(`管理记录已保存；没有交易或角色变量写回。${this.store.lastSave?.note || ''}`);
+      this.managementDraft = null; this.ui.closeDialog(); this.notice(`管理记录已保存。${this.store.lastSave?.note || ''}`);
     } finally { this.committing = false; this.refresh(); }
   },
   async reviewManagement() {
@@ -103,7 +103,7 @@ export const managementMethods = {
     const snapshot = { ...this.roleSnapshot(this.ensureStable({ model: true })), referenceOnly:true };
     assert(Object.values(snapshot.state.powers).some(p => p.active), '请先接入词条');
     const sources = managementSources(snapshot.ctx.chat, snapshot.state);
-    if (!sources.length) return this.notice('没有尚未核对的新增正文。能力使用继续直接在正文中进行。');
+    if (!sources.length) return this.notice('没有尚未核对的新增正文。');
     const { data, captured, contextHash } = await this.query(managementPrompt(snapshot.state, sources, snapshot.roleContract), snapshot);
     this.pendingManagement = { changes: normalizeManagement(data, snapshot.state, sources), sources, captured, contextHash,
       roleCapture: snapshot.roleView?.capture, message: String(data.message || '').slice(0, 2000) };
@@ -124,7 +124,7 @@ export const managementMethods = {
         this.record(next, '玩家核对正文管理记录', changes.map(c => `${next.powers[c.powerId].name} · ${c.label}：${c.before?.value || '未知'} → ${c.value}`), 'management');
       }, { captured: pending.captured });
       this.pendingManagement = null; this.ui.closeDialog();
-      this.notice(`已保存 ${changes.length} 项管理变化；未执行交易、发奖或角色变量写回。${this.store.lastSave?.note || ''}`);
+      this.notice(`已保存 ${changes.length} 项管理变化。${this.store.lastSave?.note || ''}`);
     } finally { this.committing = false; this.refresh(); }
   },
 };

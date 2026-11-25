@@ -84,6 +84,6 @@ test('default page keeps advanced model guidance behind a separate entry',async(
   assert.match(html,/data-action="taishi-create-world"/);assert.match(html,/data-action="taishi-add-companion"/);
   assert.match(html,/data-action="taishi-advanced"/);assert(!html.includes('Flash 类'));
   let dialog='';ui.dialog=(_title,body)=>dialog=body;ui.showTaishiAdvanced();
-  assert.match(dialog,/人物一致性/);assert.match(dialog,/世界岗位/);assert.match(dialog,/name="collaborationMode"/);assert.match(dialog,/酒馆直连共用酒馆当前模型/);
+  assert.match(dialog,/模型选择建议/);assert.match(dialog,/世界推演/);assert.match(dialog,/name="collaborationMode"/);assert.match(dialog,/酒馆直连按顺序执行/);
   ui.showTaishiDraft('world');assert.match(dialog,/name="description"/);assert(!dialog.includes('name="joining"'));
 });

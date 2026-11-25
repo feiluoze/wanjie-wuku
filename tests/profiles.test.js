@@ -55,7 +55,7 @@ test('templates prepare a form without inventing a fact, spending resources or i
   fake.openManagementTemplate('template_0');a.equal(stable(s),before);a.equal(shown[1],null);a.equal(shown[2].label,'重要记录');a.equal(fake.managementDraft.captured.revision,0);
   a.throws(()=>fake.openManagementTemplate('template_999'),/模板不存在/);
   let html;WorkbenchUI.prototype.showManagementRecord.call({dialog(_title,body){html=body;}},p,null,shown[2]);
-  a.match(html,/name="label"[^>]*value="重要记录"/);a.match(html,/name="value"[^>]*><\/textarea>/);a.match(html,/事实内容保持空白/);
+  a.match(html,/name="label"[^>]*value="重要记录"/);a.match(html,/name="value"[^>]*><\/textarea>/);a.match(html,/模板仅预填名称与类型/);
 });
 test('model management receives optional guidance without promoting it to facts or changing main injection', {skip:!original}, () => {
   const s=emptyState(),p=createPower(entries.find(e=>e.name==='万物尽头'));s.powers[p.id]=p;
