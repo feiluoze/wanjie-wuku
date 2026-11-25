@@ -45,6 +45,21 @@ test('explicit automatic save persists validated changes and advances sources wi
 test('existing review-only mode never silently becomes automatic save',async()=>{
  const f=fixture();f.app.settings.mode='st';f.app.model.request=async()=>response(f);await f.store.transact(n=>{n.powers[f.power.id].autoArchiveReview=true;});f.app.schedulePlayerReview('normal');await wait();strict.ok(f.app.pendingArchiveReview);strict.equal(Object.keys(f.store.read().powers[f.power.id].archives).length,0);
 });
+test('manual candidate edits persist without replacing the captured story evidence',async()=>{
+ const f=fixture();f.app.settings.mode='st';f.app.ui.showArchiveReview=()=>{};
+ f.app.model.request=async()=>response(f);
+ await f.app.reviewArchives({rescan:true});
+ const pending=f.app.pendingArchiveReview;
+ const NativeFormData=globalThis.FormData,form=new NativeFormData();
+ form.set('archive-change','0');form.set('edit-field:0:level','登堂');form.set('edit-status:0','active');
+ globalThis.FormData=class{constructor(value){return value;}};
+ try{await f.app.applyArchiveReview({form});}finally{globalThis.FormData=NativeFormData;}
+ const [saved]=Object.values(f.store.read().powers[f.power.id].archives);
+ strict.equal(saved.fields.level,'登堂');
+ strict.equal(saved.source.quote,pending.changes[0].source.quote);
+ strict.match(saved.source.note,/手动调整/);
+ strict.equal(pending.changes[0].patch.level,'已掌握');
+});
 test('single-floor review reuses the reply after an archive write and waits on a concurrent target edit',async()=>{
  for(const overlap of [false,true]){
   const f=fixture();f.app.settings.mode='st';

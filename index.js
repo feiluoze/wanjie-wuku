@@ -955,17 +955,52 @@ export class WukuApp {
       case 'open-archive': return this.openArchive(data.id);
       case 'save-archive': return this.saveArchive(data);
       case 'move-archive': return this.moveArchive(data);
-      case 'view-rule': {
-        const s=this.contextSnapshot(),p=s.state.powers[this.powerId];assert(p,'请先选择金手指');
+      case 'view-rule':
+      case 'view-rule-by-id': {
+        const s=this.contextSnapshot(),targetId=name==='view-rule-by-id'?data.id:this.powerId,p=s.state.powers[targetId];assert(p,'请先选择金手指');
         this.injectionRuleDraft={chatKey:s.chatKey,stateId:s.state.id,powerId:p.id};
         return this.ui.showRule(p);
+      }
+      case 'injection-overview': {
+        const s=this.contextSnapshot();
+        return this.ui.showInjectionOverview(s.state,s.ctx.chat);
+      }
+      case 'toggle-power-by-id': {
+        assert(!this.busy&&!this.mainBusy&&!this.committing,'请等当前任务结束再调整词条');
+        const s=this.ensureStable(),p=s.state.powers[data.id];assert(p,'词条不存在');
+        await this.store.transact(next=>{const power=next.powers[p.id];power.active=!power.active;this.record(next,`${power.active?'恢复':'暂停'}接入：${power.name}`,['已记账的永久成果保留'],'setup',power.id);},{captured:{chatKey:s.chatKey,stateId:s.state.id,revision:s.state.revision}});
+        this.plans=[];this.selected=null;
+        this.refresh();
+        if(this.ui.modal.querySelector('[data-injection-overview]'))this.ui.showInjectionOverview(this.store.read(),getContext().chat);
+        return this.notice(p.active?`已暂停「${p.name}」`:`已恢复「${p.name}」`);
+      }
+      case 'review-all-powers': {
+        const s=this.ensureStable({model:true});
+        const targets=Object.values(s.state.powers||{}).filter(p=>p.active&&powerSpace(p)==='wuku');
+        assert(targets.length,'没有已启用的普通金手指');
+        let done=0,skipped=0;
+        for(const p of targets){
+          if(this.pendingArchiveReview)break;
+          const current=this.contextSnapshot();
+          assert(current.chatKey===s.chatKey&&current.state.id===s.state.id,'聊天已切换，依次整理已停止');
+          const live=current.state.powers[p.id];
+          if(!live?.active){skipped++;continue;}
+          const res=await this.reviewArchives({powerId:p.id,autoSave:Boolean(live.autoArchiveSave),silent:true});
+          if(res?.skipped)skipped++;else done++;
+        }
+        this.refresh();
+        if(this.pendingArchiveReview){
+          await this.action('select-power',{id:this.pendingArchiveReview.powerId});
+          return this.openPlayerReview();
+        }
+        return this.notice(`已完成全部整理（处理 ${done} 个${skipped?`，无需更新 ${skipped} 个`:''}）。`);
       }
       case 'save-injection-rule':
       case 'reset-injection-rule': {
         assert(!this.busy&&!this.mainBusy&&!this.committing,'请等当前任务结束再修改注入正文');
         const s=this.ensureStable(),p=s.state.powers[data.id];
         const draft=this.injectionRuleDraft;
-        assert(p&&p.id===this.powerId&&!isMmlc(p)&&draft?.chatKey===s.chatKey&&draft.stateId===s.state.id&&draft.powerId===p.id,'请重新打开当前词条的规则');
+        assert(p&&!isMmlc(p)&&draft?.chatKey===s.chatKey&&draft.stateId===s.state.id&&draft.powerId===p.id,'请重新打开当前词条的规则');
         await this.store.transact(next=>{
           const power=next.powers[p.id];
           setPrimaryInjection(power,name==='reset-injection-rule'?primaryInjectionSource(power):data.values.injectionRule);

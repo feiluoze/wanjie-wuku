@@ -286,6 +286,10 @@ export function archiveChangeTarget(change, power, target, chat) {
   assert(!before?.specific||!change.specific||before.specific.adapterId===change.specific.adapterId&&before.specific.recordId===change.specific.recordId,'所选对象属于另一种专用统计分类');
   return { ...change, id: before?.id || null, name: before?.name || change.name, before: clone(before || null) };
 }
+export function canEditArchiveCandidate(pending,power,change){
+  return !pending.readOnly&&!isTaishi(power)&&!pending.setupReferences&&!pending.data?.workflowState&&
+    !pending.terminalResults?.length&&!pending.creationResults?.length&&!change.recovery;
+}
 export function applyArchiveChanges(power, changes, sources, chosen, chat, { blockedFloors = new Set(),playerJoining=false } = {}) {
   const used = new Map(), saved = [],savedByInput=new Map();
   const ordered=isTaishi(power)?orderLinkedSelection(changes,chosen):chosen;
@@ -617,7 +621,21 @@ export const archiveReviewMethods = {
       const targets=issue.archiveTargets,target=power.archives?.[targetId];
       assert(typeof targetId==='string'&&targets?.options?.some(o=>o.id===targetId)&&target?.specific?.recordId===targets.recordId&&target.specific.adapterId===creationConfig(power)?.id,'请选择本次候选列出的同一子表原档案');
     }
-    const raw=targetId!==undefined?{...clone(issue.candidate),archiveId:targetId,operation:'update'}:JSON.parse(String(data.values?.['repair-candidate:'+data.index]||''));
+    let raw;
+    if(targetId!==undefined){raw={...clone(issue.candidate),archiveId:targetId,operation:'update'};}
+    else if(data.values?.['repair-form:'+data.index]){
+      raw=clone(issue.candidate);
+      const nextFields={...(raw.fields&&typeof raw.fields==='object'?raw.fields:{})},nextDetails={...(raw.details&&typeof raw.details==='object'?raw.details:{})};
+      const fPrefix=`repair-field:${data.index}:`,dPrefix=`repair-detail:${data.index}:`;
+      for(const [k,v] of Object.entries(data.values||{})){
+        if(k.startsWith(fPrefix))nextFields[k.slice(fPrefix.length)]=String(v??'').trim();
+        else if(k.startsWith(dPrefix))nextDetails[k.slice(dPrefix.length)]=String(v??'').trim();
+      }
+      if(Object.keys(nextFields).length)raw.fields=nextFields;
+      if(Object.keys(nextDetails).length)raw.details=nextDetails;
+      const jsonOverride=String(data.values?.['repair-candidate:'+data.index]||'').trim();
+      if(jsonOverride&&jsonOverride!==JSON.stringify(issue.candidate,null,2))raw=JSON.parse(jsonOverride);
+    }else{raw=JSON.parse(String(data.values?.['repair-candidate:'+data.index]||''));}
     assert(raw&&typeof raw==='object'&&!Array.isArray(raw),'候选须为一个对象');
     // Editing values cannot change the captured owner, identity or evidence.
     for(const key of ['ownerPowerId',...(targetId!==undefined?[]:['archiveId']),'name','type','recordId','status','sourceIndex','quote','ruleQuote','module'])
@@ -675,13 +693,45 @@ export const archiveReviewMethods = {
   },
   async applyArchiveReview(data) {
     assert(!this.busy && !this.mainBusy && !this.committing, '请等待当前操作完成');
-    const pending = this.pendingArchiveReview; assert(pending, '预览已失效，请重新核对'); this.ensureStable();
+    const current=this.pendingArchiveReview;assert(current,'预览已失效，请重新核对');
+    const snapshot=this.ensureStable(),power=snapshot.state.powers[current.powerId];
+    const pending={...current,changes:current.changes.slice()};
     const form = new FormData(data.form), chosen = new Map(form.getAll('archive-change').map(i => [Number(i), form.get(`target:${i}`) || null]));
     const terminalChosen = new Set(form.getAll('terminal-result').map(Number)),creationChosen=new Set(form.getAll('creation-result').map(Number));
     assert([...creationChosen].every(i=>Number.isInteger(i)&&i>=0&&i<(pending.creationResults||[]).length),'拟定进展选择项无效');
     assert(!pending.changes.length && !pending.terminalResults?.length && !pending.creationResults?.length || chosen.size || terminalChosen.size || creationChosen.size, '请选择要保存的变化；取消不会推进核对进度');
     assert([...terminalChosen].every(i=>Number.isInteger(i)&&i>=0&&i<(pending.terminalResults||[]).length),'安排结果选择项无效');
     assert([...chosen.keys()].every(i => Number.isInteger(i) && i >= 0 && i < pending.changes.length), '选择项无效');
+    for(const i of chosen.keys()){
+      const original=pending.changes[i];
+      if(!canEditArchiveCandidate(pending,power,original))continue;
+      const c=clone(original),editedName=form.get(`edit-name:${i}`),editedStatus=form.get(`edit-status:${i}`);
+      if(!c.id&&!c.specific&&editedName!==null){c.name=text(editedName,200);assert(c.name,'请输入档案名称');}
+      if(editedStatus!==null&&!c.specific?.recordId.startsWith('statusbar_')){
+        assert(Object.hasOwn(ARCHIVE_STATUS,editedStatus),'档案状态无效');c.status=editedStatus;
+      }
+      for(const key of Object.keys(ARCHIVE_FIELDS[c.type])){
+        const value=form.get(`edit-field:${i}:${key}`);
+        if(value!==null&&value!==(c.patch[key]??c.before?.fields?.[key]??''))c.patch[key]=text(value,4000);
+      }
+      if(c.specific){
+        const details={...c.specificPatch};
+        for(const key of Object.keys(c.specific.fields)){
+          if(['source_profile','time_state'].includes(key))continue;
+          const value=form.get(`edit-spec:${i}:${key}`);
+          if(value!==null&&value!==c.specific.fields[key])details[key]=text(value,4000);
+        }
+        if(stable(details)!==stable(c.specificPatch||{})){
+          c.specific=normalizeSpecific({recordId:c.specific.recordId,details,module:c.module},power,c.before,{chat:snapshot.ctx.chat});
+          c.specificPatch=details;
+        }
+      }
+      if(stable(c)!==stable(original)){
+        assert(chosen.get(i)===(original.id||null),'修改候选内容和更换归属对象请分开操作');
+        c.source.note='玩家确认并手动调整整理候选';
+      }
+      pending.changes[i]=c;
+    }
     const committed=await this.commitArchiveReview(pending, chosen, {terminalChosen,creationChosen});
     const unverified=committed?.save?.verified===false;
     if(committed?.remainingReview){this.runtimeLog?.patch(pending.logId,{status:'部分保存，候选待补全'});this.ui.showArchiveReview(committed.remainingReview,this.contextSnapshot().state.powers[pending.powerId],this.contextSnapshot().ctx.chat);this.notice('有效项已保存；剩余候选已保留，可在这里继续处理。已保存的完整更新不会再次提交。');return this.refresh();}
