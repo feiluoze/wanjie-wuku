@@ -33,6 +33,7 @@ import {ownershipContext,foreignArchiveOwner,assertArchiveOwnership} from './arc
 import { readerReport } from './archive-reader.js';
 import {evidenceParts,canonicalFields,fieldDiagnostic,reviewFloorCoverage,assertSnapshotPatch,assertFactEvidence} from './archive-protocol.js';
 import { journalSnapshot, saveArchiveUndo } from './archive-journal.js';
+import {shoppingReceipt,applyShoppingReceipt} from './shopping-receipt.js';
 import { creationConfig } from './creation-config.js';
 import { normalizeSpecific } from './specialized-records.js';
 import { creationReviewItems, CREATION_RESULTS_PROMPT, normalizeCreationResults, applyCreationResults } from './creation-results.js';
@@ -772,6 +773,10 @@ export const archiveReviewMethods = {
         }
         const before = { ...p.archives };
         const saved = applyArchiveChanges(p, pending.changes, pending.sources, chosen, getContext().chat, {blockedFloors,playerJoining:pending.taishiDraft?.kind==='companion'&&pending.taishiDraft.joining==='direct'});
+        const completed=pending.sources.filter(s=>!blockedFloors.has(s.index)&&p.archiveReviewed.some(a=>a.index===s.index&&a.textHash===s.textHash));
+        const receipt=shoppingReceipt(next,p,chat,completed.map(s=>s.index));
+        applyShoppingReceipt(next,receipt);
+        if(receipt)this.runtimeLog?.step(pending.logId,'正文余额同步',{floor:receipt.index+1,resource:'兑换点',before:receipt.before,after:receipt.after});
         for(const [i,target] of chosen){const c=pending.changes[i],matches=target?[p.archives[target]].filter(Boolean):saved.filter(r=>r.name===c.name&&r.type===c.type&&r.specific?.recordId===c.specific?.recordId&&r.module===c.module);if(matches.length===1)acceptedArchiveIds.set(c.inputIndex,matches[0].id);}
         if(pending.taishiScheduleEvent)this.recordTaishiSchedule(p,pending.taishiScheduleEvent,getContext().chat);
         if(pending.taishiTimeEvent)recordStoryTime(p,getContext().chat,pending.taishiTimeEvent);

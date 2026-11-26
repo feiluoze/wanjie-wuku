@@ -35,12 +35,12 @@ export function operationPrompt({ power, state, goal, narrative, names, roleCont
     user: JSON.stringify({ task: '生成可执行方案，尚未执行', player: names.user, character: names.character, requestedGoal: goal, selectedRule: { id: power.id, name: power.name, fullText: power.rules }, state: publicPower(power), committedTransactions: state.transactions.filter(t => t.powerId === power.id).slice(-12), recentNarrative: narrative, ...(roleContract ? { roleContract } : {}) }),
   };
 }
-export function reconcilePrompt({ powers, state, narrative, names, boundResources = [] }) {
+export function reconcilePrompt({ powers, state, narrative, names, boundResources = [],shoppingReceiptFloors=[] }) {
   return {
     system: `${ASYNC_MARKER}\n你负责核算已发生的新剧情事实。只处理本次提供的未核算叙事；同一事实不得重复收益，插件已完成操作及其在剧情中的描述不得再次扣付或发奖。\n${FORMAT}\n顶层结构：{"events":[{...操作结构,"powerId":"对应已接入词条id","evidence":["本次新增叙事中的逐字证据片段，至少6字"]}],"message":"简短核算说明"}。
 同一条剧情产生多个词条收益时，各自列出；同一词条同一事实合并处理。不要用旧状态栏或结算回执里的数字覆盖当前账本。只发放已经成立的增量；未发生的行为、后续可能与预期不得结算。不能确认时events为空。
-boundResources 是已由 MVU 管理并读回的资源，events 的 costs/effects 禁止再次增减这些资源。剧情中的角色变量由角色卡的 MVU 流程负责，此核算仅登记武库所需的新增事实，不再生成角色写回。`,
-    user: JSON.stringify({ task: '核算已经发生的新增剧情', player: names.user, character: names.character, selectedRules: powers.map(p => ({ id: p.id, name: p.name, fullText: p.rules })), currentState: powers.map(publicPower), alreadyCommitted: state.transactions.slice(-30), newNarrative: narrative, boundResources }),
+boundResources 是已由 MVU 管理并读回的资源，events 的 costs/effects 禁止再次增减这些资源。剧情中的角色变量由角色卡的 MVU 流程负责，此核算仅登记武库所需的新增事实，不再生成角色写回。shoppingReceiptFloors 中对应词条、资源和楼层的兑换点由正文回执结算。本次只核算该层其他有效变动，勿再次增减兑换点。`,
+    user: JSON.stringify({ task: '核算已经发生的新增剧情', player: names.user, character: names.character, selectedRules: powers.map(p => ({ id: p.id, name: p.name, fullText: p.rules })), currentState: powers.map(publicPower), alreadyCommitted: state.transactions.slice(-30), newNarrative: narrative, boundResources,shoppingReceiptFloors }),
   };
 }
 export function roleMappingPrompt({ operation, power, roleContract }) {

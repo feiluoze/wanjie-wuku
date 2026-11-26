@@ -44,7 +44,7 @@ export function projectResourceStatus(power,record){
 export function resourcePolicy(power){
  const row=builtinResources(power);if(!row?.resources.length)return null;
  return {sourceHash:row.contentHash,resources:row.resources.map(d=>{const matches=Object.values(power.resources||{}).filter(r=>resourceMatches(r,d));return {...d,resourceId:matches.length===1?matches[0].id:d.id,balance:matches.length===1?matches[0].balance:null,conflict:matches.length>1};}),
-  authority:'当前聊天resources是余额唯一账本；绑定角色MVU时沿用原有绑定与核对机制。状态总览只读引用，不另建资源余额档案，不重复结算。正文快照是核对候选，成果整理不更新或重算账本。次数不按电脑时间自动补足，当前能量与上限分别理解，规则初始赠送不是已完成入账。负值快照不自动授予新的预支权限。'};
+  authority:'当前聊天resources是余额唯一账本；绑定角色MVU时沿用原有绑定与核对机制。状态总览只读引用，不另建资源余额档案，不重复结算。万界网购的明确余额变动由插件按结算回执与同层状态栏核对，模型整理成果时不填写余额。其他正文快照仍是核对候选。次数不按电脑时间自动补足，当前能量与上限分别理解，规则初始赠送不是已完成入账。负值快照不自动授予新的预支权限。'};
 }
 export function negativeResourceSnapshotAllowed(power,resource){return resourceDefinition(power,resource)?.negativeSnapshot===true;}
 

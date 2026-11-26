@@ -1,4 +1,5 @@
 import {resourceBalanceAllowed,setPrimaryInjection,primaryInjectionSource} from './src/core.js';
+import {shoppingReceipt,applyShoppingReceipt,removeReceiptedShoppingDeltas} from './src/shopping-receipt.js';
 import {promptPresetMethods} from './src/prompt-preset-ui.js';
 import {archiveRequestScope} from './src/archive-input.js';
 import {databasePromptTrial,DATABASE_PROMPT_TRIAL_ID} from './src/database-prompt-trial.js';
@@ -578,29 +579,40 @@ export class WukuApp {
     const narrative = unsettledNarrative(snapshot.ctx.chat, snapshot.state, narrativeMessages(snapshot.ctx.chat, snapshot.state.syncCursor, snapshot.state.syncTail));
     if (!narrative.some(m => !m.is_user)) { const result={skipped:true,reason:'no_new_narrative',message:'没有尚未核对的新增正文，本次未调用AI'};if (!auto) this.notice(result.message); return result; }
     const boundResources = Object.keys(snapshot.state.roleLink?.bindings || {});
-    const { data, captured, contextHash } = await this.query(reconcilePrompt({ powers, state: snapshot.state, narrative, names: this.names(snapshot.ctx), boundResources }), snapshot);
+    const floors=narrative.filter(m=>!m.is_user).map(m=>m.index);
+    const receipts=powers.map(p=>shoppingReceipt(snapshot.state,p,snapshot.ctx.chat,floors)).filter(Boolean);
+    const shoppingReceiptFloors=[...snapshot.state.transactions.map(t=>t.shoppingReceipt).filter(Boolean),...receipts]
+      .filter(r=>floors.includes(r.index)).map(r=>({powerId:r.powerId,resourceId:r.resourceId,sourceIndex:r.index}));
+    const { data, captured, contextHash } = await this.query(reconcilePrompt({ powers, state: snapshot.state, narrative, names: this.names(snapshot.ctx), boundResources,shoppingReceiptFloors }), snapshot);
     assert(Array.isArray(data.events) && data.events.length <= 40, '核算返回的事件数量或格式无效');
     // Player intentions are not evidence of completed events.
     const evidenceText = narrative.filter(m => !m.is_user).map(m => m.content).join('\n');
-    const events = data.events.map(raw => { const p = snapshot.state.powers[key(raw.powerId)]; assert(p?.active && powerSpace(p)==='wuku', '核算指向未接入词条或仅统计模块'); const op = normalizeOperation(raw, p, snapshot.state, contextHash, { event: true, evidenceText }); assert(![...op.costs.filter(c => c.kind === 'resource'), ...op.effects.filter(e => e.type === 'resource_credit')].some(e => boundResources.includes(bindingKey(p.id, e.id))), '核算尝试再次增减已绑定 MVU 的余额，已阻止重复结算'); return op; });
+    const events = data.events.map(raw => {
+      const p=snapshot.state.powers[key(raw.powerId)];assert(p?.active&&powerSpace(p)==='wuku','核算指向未接入词条或仅统计模块');
+      const op=removeReceiptedShoppingDeltas(normalizeOperation(raw,p,snapshot.state,contextHash,{event:true,evidenceText}),snapshot.state,snapshot.ctx.chat,narrative,receipts.find(r=>r.powerId===p.id));
+      if(op)assert(![...op.costs.filter(c=>c.kind==='resource'),...op.effects.filter(e=>e.type==='resource_credit')].some(e=>boundResources.includes(bindingKey(p.id,e.id))),'核算尝试再次增减已绑定 MVU 的余额，已阻止重复结算');
+      return op;
+    }).filter(Boolean);
     const seen = new Set(); for (const event of events) { const signature = stable([event.powerId, [...event.evidence].sort()]); assert(!seen.has(signature), '同一词条的同一剧情证据被重复结算，请重新核算'); seen.add(signature); }
-    this.pendingSync = { events, captured, contextHash, logId:this.logTask, hashes: snapshot.hashes, cursor: snapshot.ctx.chat.length, message: String(data.message || ''), roleCapture: snapshot.roleView?.capture };
+    this.pendingSync = { events, receipts, captured, contextHash, logId:this.logTask, hashes: snapshot.hashes, cursor: snapshot.ctx.chat.length, message: String(data.message || ''), roleCapture: snapshot.roleView?.capture };
     if (auto) return await this.applySync();
-    this.ui.showSync(events, snapshot.state, data.message);return {pending:true,changed:events.length};
+    this.ui.showSync(events,snapshot.state,data.message,receipts);return {pending:true,changed:events.length+receipts.length};
   }
   async applySync() {
     const pending = this.pendingSync; assert(pending, '核算预览已经失效'); this.ensureStable();
     assert(hash(stable(chatHashes(getContext().chat))) === pending.contextHash, '剧情已变化，请重新核算');
     if (pending.roleCapture) this.role.assertCapture(pending.roleCapture, this.store.read().roleLink);
+    const receipts=pending.receipts||[],count=pending.events.length+receipts.length;
     const result = await this.store.transact(next => {
       for (const event of pending.events) applyOperation(next, event, pending.contextHash, pending.hashes, { allowEvent: true });
+      for(const receipt of receipts)applyShoppingReceipt(next,receipt);
       next.syncCursor = pending.cursor; next.historyAnchor = [...pending.hashes];
       delete next.syncTail;
-    }, { captured: pending.captured, facts: pending.events.length > 0 });
-    this.runtimeLog?.step(pending.logId,'保存结果',{events:pending.events.length,verified:result.save?.verified===true});
-    this.runtimeLog?.finish(pending.logId,pending.events.length?'已保存':'未更新');
-    this.aiActivity?.confirmed(pending.logId,pending.events.length?'已确认并保存账本':'本批无新增变化，已确认核对进度');
-    this.pendingSync = null; this.ui.closeDialog(); this.refresh(); this.notice(`新增剧情核算完成：${pending.events.length} 项事件。${result.save?.note || ''}`);return {saved:true,changed:pending.events.length};
+    }, { captured: pending.captured, facts: count>0 });
+    this.runtimeLog?.step(pending.logId,'保存结果',{events:pending.events.length,shoppingBalances:receipts.map(r=>({floor:r.index+1,before:r.before,after:r.after})),verified:result.save?.verified===true});
+    this.runtimeLog?.finish(pending.logId,count?'已保存':'未更新');
+    this.aiActivity?.confirmed(pending.logId,count?'已确认并保存账本':'本批无新增变化，已确认核对进度');
+    this.pendingSync=null;this.ui.closeDialog();this.refresh();this.notice(`新增剧情核算完成：${pending.events.length} 项事件。${receipts.map(r=>`第 ${r.index+1} 层兑换点余额：${r.after}。`).join('')}${result.save?.note||''}`);return {saved:true,changed:count};
   }
   scheduleSync() {
     if (this.destroyed) return;

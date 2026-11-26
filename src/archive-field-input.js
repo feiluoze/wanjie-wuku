@@ -45,8 +45,10 @@ export function resolveArchiveCategory(input,config,before){
 }
 export function prepareArchiveFields(input,types,definition,config){
  const raw=unwrapArchiveInput(input),fields={},details={},held=[];if(object(raw.details))raw.details={...raw.details};
- // Evidence metadata is never a dedicated statistic. Preserve conflicts for review.
+ // A declared table column wins in details. In particular, an order's quote
+ // is a market price while the top-level quote is its source excerpt.
  if(object(raw.details))for(const key of ['quote','ruleQuote'])if(Object.hasOwn(raw.details,key)){
+  if(definition?.fields?.some(field=>field.id===key))continue;
   const value=raw.details[key];if(typeof value!=='string')continue;
   if(raw[key]!==undefined&&raw[key]!==value)throw Error('引用字段内容冲突，请按原文核对');
   raw[key]=value;delete raw.details[key];
