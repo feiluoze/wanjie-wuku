@@ -5106,6 +5106,401 @@
           "ruleQuote": "常驻织境布防：[已提前布设红丝障壁或丝网罗网的据点与区域；无则省略]"
         }
       ]
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "inventory",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "181",
+      "name": "万界广告窗",
+      "templates": [
+        {
+          "label": "奖励暂存箱",
+          "category": "record",
+          "ruleQuote": "奖励暂存箱：[当前暂存未取的广告奖励、货币与体验卡；空则记“空”]"
+        },
+        {
+          "label": "生效中广告奇效",
+          "category": "record",
+          "ruleQuote": "生效中广告奇效：[当前持续生效的体验卡或特殊状态；无则省略]"
+        }
+      ]
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "growth",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "182",
+      "name": "拾取万象",
+      "templates": [
+        {
+          "label": "已成百艺与绝学",
+          "category": "record",
+          "ruleQuote": "已成百艺与绝学：[通过光团拼合圆满的核心功法、战技、百艺与法则感悟；无则记“暂无”]"
+        }
+      ]
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "growth",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "183",
+      "name": "善意对比",
+      "templates": [
+        {
+          "label": "已锚定升格名目",
+          "category": "record",
+          "ruleQuote": "已锚定升格名目：[名目｜本土原格 → 当前常驻或融萃版本（已收录之可用异构）]"
+        }
+      ]
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "relationship",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "184",
+      "name": "巫祭",
+      "templates": [
+        {
+          "label": "法器与契约灵体",
+          "category": "record",
+          "ruleQuote": "法器与契约灵体：[已炼制的符箓法器、收服的灵界仆从及已建立的图腾/英灵连结；无则省略]"
+        },
+        {
+          "label": "圣坛与持续仪轨",
+          "category": "record",
+          "ruleQuote": "圣坛与持续仪轨：[⑥以上记录圣坛状态、持续生效的祈福/诅咒及⑦以上立下的言灵禁忌；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "巫祭",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "185",
+      "name": "巫祭·神秘学仪轨与神权详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "domain",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "186",
+      "name": "神灵",
+      "templates": [
+        {
+          "label": "业位与神国",
+          "category": "record",
+          "ruleQuote": "业位与神国：[当前神域覆盖范围、④以上专属神国建设进度及册封的从神/圣徒；无则省略]"
+        },
+        {
+          "label": "持续神迹与法则",
+          "category": "record",
+          "ruleQuote": "持续神迹与法则：[已降下的长效赐福、神罚或⑥以上改写的世界法则；无则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "神灵",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "187",
+      "name": "神灵·业位与神职法则详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "member",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "188",
+      "name": "牧民",
+      "templates": [
+        {
+          "label": "已养成与在牧名录",
+          "category": "record",
+          "ruleQuote": "已养成与在牧名录：[已驯服的兽群/异兽、养育中的门徒/精怪及当前成长阶段；无则省略]"
+        },
+        {
+          "label": "牧者反哺与共享天赋",
+          "category": "record",
+          "ruleQuote": "牧者反哺与共享天赋：[⑤以上记录从牧群突破中获得的反哺增益与共享天赋；未开放则省略]"
+        },
+        {
+          "label": "随身牧野与牧守疆域",
+          "category": "record",
+          "ruleQuote": "随身牧野与牧守疆域：[⑥以上记录牧野栖息地生态及⑧以上牧守的族群/文明状态；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "牧民",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "189",
+      "name": "牧民·驯养与牧世法则详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "190",
+      "name": "调查员",
+      "templates": [
+        {
+          "label": "在查案件与线索",
+          "category": "record",
+          "ruleQuote": "在查案件与线索：[当前正在调查的事件、已获取的关键物证与推理进展；无则省略]"
+        },
+        {
+          "label": "真相档案馆",
+          "category": "record",
+          "ruleQuote": "真相档案馆：[⑤以上记录已完成真相解析并锁定弱点的目标/能力/法则；未开放则省略]"
+        },
+        {
+          "label": "情报网与观测安排",
+          "category": "record",
+          "ruleQuote": "情报网与观测安排：[③以上记录持续运转的线人追踪网，及⑧以上持续生效的证实/证伪法则；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "调查员",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "191",
+      "name": "调查员·勘察与观测法则详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "inventory",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "192",
+      "name": "驾驶员",
+      "templates": [
+        {
+          "label": "随身机库与编队",
+          "category": "record",
+          "ruleQuote": "随身机库与编队：[③以上记录统领的编队/舰队，⑥以上记录机库存档的座驾与维护状态；未开放则省略]"
+        },
+        {
+          "label": "御物与航向安排",
+          "category": "record",
+          "ruleQuote": "御物与航向安排：[⑦以上记录强行接管的目标、驾驭的天体或⑧以上设定的时空航线；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "驾驶员",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "193",
+      "name": "驾驶员·操驾与御物法则详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "inventory",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "194",
+      "name": "侠盗",
+      "templates": [
+        {
+          "label": "虚空秘藏与赃物",
+          "category": "record",
+          "ruleQuote": "虚空秘藏与赃物：[已窃得并归属自身的奇珍异宝、神器及⑥以上清洗完成的秘藏清单；无则省略]"
+        },
+        {
+          "label": "窃得能力与概念",
+          "category": "record",
+          "ruleQuote": "窃得能力与概念：[⑤以上临时/永久窃得的能量招式，及⑦以上封存的抽象概念与因果；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "侠盗",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "195",
+      "name": "侠盗·潜行与窃取法则详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "growth",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "196",
+      "name": "超能力者",
+      "templates": [
+        {
+          "label": "已开发衍生技",
+          "category": "record",
+          "ruleQuote": "已开发衍生技：[{{user}}基于异能核心已实际开发并熟练掌握的招牌技巧与复合应用；无则省略]"
+        },
+        {
+          "label": "被动与持续效果",
+          "category": "record",
+          "ruleQuote": "被动与持续效果：[④以上记录开启的被动护身机制，及⑧以上持续生效的局部常数改写；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "超能力者",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "197",
+      "name": "超能力者·异能尺度与开发详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "domain",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "198",
+      "name": "恶灵",
+      "templates": [
+        {
+          "label": "规则与锁定猎物",
+          "category": "record",
+          "ruleQuote": "规则与锁定猎物：[③以上自定义恐怖触发规则，及当前已锁定的猎物/梦境侵蚀目标；无则省略]"
+        },
+        {
+          "label": "眷属与恐惧储备",
+          "category": "record",
+          "ruleQuote": "眷属与恐惧储备：[⑤以上记录收服的暗黑眷属、诅咒造物及收割的恐惧成长；未开放则省略]"
+        },
+        {
+          "label": "里世界与模因锚点",
+          "category": "record",
+          "ruleQuote": "里世界与模因锚点：[⑥以上记录展开的里世界状态，及⑦以上扩散的模因锚点；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "恶灵",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "199",
+      "name": "恶灵·恐怖法则与狩猎详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "archive",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "200",
+      "name": "科学家",
+      "templates": [
+        {
+          "label": "已建模规律与蓝图",
+          "category": "record",
+          "ruleQuote": "已建模规律与蓝图：[已实证解析的当地客观自然规律、收容物黑箱边界及核心图纸；无则省略]"
+        },
+        {
+          "label": "实验室与备份设施",
+          "category": "record",
+          "ruleQuote": "实验室与备份设施：[已建成的基地/自动化产线、⑤以上凤凰协议备份点及⑥以上微宇宙状态；无则省略]"
+        },
+        {
+          "label": "常数与超形上工程",
+          "category": "record",
+          "ruleQuote": "常数与超形上工程：[⑦以上部署的局部常数调校装置、现实稳定锚及收容物利用项目；未开放则省略]"
+        }
+      ]
+    },
+    {
+      "role": "support",
+      "parent": "科学家",
+      "family": "support",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "随所属主词条使用。",
+      "entryId": "201",
+      "name": "科学家·实证与超科法则详解",
+      "templates": []
+    },
+    {
+      "role": "primary",
+      "parent": null,
+      "family": "narrative",
+      "workflows": [],
+      "variantGroup": null,
+      "note": "保存对后续剧情有影响的已确认事实。",
+      "entryId": "202",
+      "name": "说书人",
+      "templates": [
+        {
+          "label": "传世章回录",
+          "category": "record",
+          "ruleQuote": "传世章回录：[已铸成并永久沉淀底蕴的经典名场面，简记场景、曲词与反哺特质；无则记“暂无”]"
+        },
+        {
+          "label": "名声传颂度",
+          "category": "record",
+          "ruleQuote": "名声传颂度：[当前传奇事迹在世间的流传层级与持续滋养状态]"
+        }
+      ]
     }
   ]
 }

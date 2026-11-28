@@ -3003,7 +3003,62 @@ const ORIGINAL_TABLE_DEFINITIONS=[
       "distinctIdentity": true
     }
   ]
-}
+},
+ {name:'拾取万象',hash:'50f11e25aced91b7',adapter:'wuku.statusbar_50f11e25aced91b7',
+  records:[record('completed_arts','百艺与绝学','逐项保留已拼合圆满、能继续使用的具名成果。',[
+   ['type','类别','功法、战技、百艺或法则感悟。'],
+   ['effect','已成能力','正文确认的效果、层次和用法。']
+  ])],
+  tables:[table('completed_arts','entity','已拼合圆满的具名成果。','同一成果深化更新原行；零散光团与未完成残片不单独建行。')]},
+ {name:'善意对比',hash:'b4720f1d7b5473eb',adapter:'wuku.statusbar_b4720f1d7b5473eb',
+  records:[record('anchored_comparisons','锚定升格名目','以本土锚定名目为一行，保留常驻版本及其可用异构。',[
+   ['original','本土原格','实际具备的本土境界、技艺、身份或具名物品。'],
+   ['current','当前常驻版本','已选定的常驻版本或实际融萃结果。'],
+   ['variants','已收录异构','仅记已确认可用的异构及主要差别。']
+  ])],
+  tables:[table('anchored_comparisons','entity','确已锚定的名目及可用版本。','切换、融萃和新增异构都更新原名目。')]},
+ {name:'巫祭',hash:'bee17368f824267e',adapter:'wuku.statusbar_bee17368f824267e',
+  records:[record('lasting_rites','持续秘仪','逐项保留长效契约、圣坛、仪轨与禁忌。',[
+   ['scope','对象与范围','实际契约对象、圣坛位置或仪轨作用范围。'],
+   ['effect','已成立效果','已生效的约定、效果与限制。'],
+   ['state','当前状态','仍有效、已解除或已转移等已知结果。']
+  ])],
+  tables:[table('lasting_rites','entity','后续剧情仍需遵循的具名契约或持续秘仪。','同一对象持续更新；一次占卜、临时符箓和短效仪式留在当前概况。')]},
+ {name:'牧民',hash:'9cc405b9e8b57c8d',adapter:'wuku.statusbar_9cc405b9e8b57c8d',
+  records:[record('herd_members','养成名录','长期跟踪具名培养对象或作为整体发展的一支牧群。',[
+   ['stage','成长阶段','实际已到达的成长阶段或血脉变化。'],
+   ['traits','已形成特质','已确认的能力、反哺或共享天赋。'],
+   ['placement','当前安置','实际去向、职责或当前所在牧野。']
+  ])],
+  tables:[table('herd_members','entity','有持续培养、突破或后续归属的对象。','同一对象进阶更新原行；日常喂养不另立档。')]},
+ {name:'调查员',hash:'b9d1d3c1a693a9c3',adapter:'wuku.statusbar_b9d1d3c1a693a9c3',
+  records:[record('case_files','调查卷宗','按重要案件或持续解析目标留档。',[
+   ['evidence','关键证据','决定进展、仍可核对的实际证据。'],
+   ['finding','确认结论','已证实的真相、规律或弱点。'],
+   ['open_questions','待核实疑点','仍影响后续的悬疑，注明尚未证实。']
+  ])],
+  tables:[table('case_files','entity','影响后续行动的调查对象与已查明结论。','结案或新增证据回填原卷宗；同案线索不逐条拆表。')]},
+ {name:'驾驶员',hash:'80886986fb19f768',adapter:'wuku.statusbar_80886986fb19f768',
+  records:[record('vehicle_registry','座驾与编队名录','逐项保留有长期使用或调遣价值的座驾和编队。',[
+   ['role','归属与用途','实际掌控关系、用途或编队职责。'],
+   ['capabilities','关键性能','已确认的能力、改装或编成。'],
+   ['condition','停放与整备','当前停放位置或长期影响使用的战损与维护。']
+  ])],
+  tables:[table('vehicle_registry','entity','长期归属或统领的具名座驾、机体及编队。','换驾不复制旧座驾；维修或改装更新原行。')]},
+ {name:'科学家',hash:'e93ceaeb8f4e5491',adapter:'wuku.statusbar_e93ceaeb8f4e5491',
+  records:[record('research_assets','研究成果与蓝图','逐项保留已验证、能够复用的研究成果。',[
+   ['result','实证结论或设计','已证实的规律、已完成的设计或已落地的工程成果。'],
+   ['application','用途与实现','已经证明可行的用途、原型或实际部署。'],
+   ['limits','边界与条件','已知适用范围、限制及可复现的必要条件。']
+  ])],
+  tables:[table('research_assets','entity','已验证的具名规律、蓝图和可复用工程成果。','按同一成果更新；试错、推测和同项目的日常进度不单列。')]},
+ {name:'说书人',hash:'76d23e7615d5fe98',adapter:'wuku.statusbar_76d23e7615d5fe98',
+  records:[record('legendary_chapters','传世章回','按已永久沉淀的具名章回留档。',[
+   ['scene','成名场景','形成名场面的主要情境与结果。'],
+   ['verse','代表曲词','实际用于该章回的曲名、代表词句或简述。'],
+   ['legacy','持久反哺','实证留下的底蕴、反哺特质或传颂变化。']
+  ])],
+  tables:[table('legendary_chapters','entity','已铸成且永久沉淀的章回。','同一章回传播或反哺变化更新原行；曲终消退的演出效果不留新档。')]},
 ];
 const revisedTableBoundaries = {
  '诸天盲盒':'下一触发或本轮结束写进当前概况。子表只保留实际形成的唯一纪念物和持续纠缠，不能将临时模板装备计入所有物。',
